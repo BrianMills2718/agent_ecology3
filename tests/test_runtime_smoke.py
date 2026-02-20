@@ -73,3 +73,25 @@ def test_runner_executes_bootstrap_loop(tmp_path) -> None:
     assert "simulation_started" in event_types
     assert "simulation_stopped" in event_types
     assert "invoke_success" in event_types or "invoke_failure" in event_types
+
+
+def test_loop_artifact_is_kernel_protected(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    world = World(cfg, run_id="test_loop_protection")
+
+    loop_artifact = world.artifacts.get("alpha_1_loop")
+    assert loop_artifact is not None
+    assert loop_artifact.kernel_protected is True
+
+    overwrite = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "write_artifact",
+            "artifact_id": "alpha_1_loop",
+            "artifact_type": "agent_loop",
+            "content": "overwrite attempt",
+            "executable": False,
+        },
+    )
+    assert overwrite.success is False
+    assert overwrite.error_code == "not_authorized"

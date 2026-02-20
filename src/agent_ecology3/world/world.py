@@ -384,11 +384,72 @@ def _neighbor_principal():
     return candidate
 
 
-def _fallback_action():
+def _artifact_ids(state_snapshot):
+    artifact_ids = set()
+    if not isinstance(state_snapshot, dict):
+        return artifact_ids
+    artifacts = state_snapshot.get("artifacts")
+    if not isinstance(artifacts, list):
+        return artifact_ids
+    for item in artifacts:
+        if not isinstance(item, dict):
+            continue
+        artifact_id = item.get("id")
+        if isinstance(artifact_id, str) and artifact_id:
+            artifact_ids.add(artifact_id)
+    return artifact_ids
+
+
+def _pick_read_target(state_snapshot):
+    own_prefix = "{principal_id}_"
+    if not isinstance(state_snapshot, dict):
+        return None
+    artifacts = state_snapshot.get("artifacts")
+    if not isinstance(artifacts, list):
+        return None
+    preferred = None
+    for item in artifacts:
+        if not isinstance(item, dict):
+            continue
+        artifact_id = item.get("id")
+        if not isinstance(artifact_id, str) or not artifact_id:
+            continue
+        if artifact_id.count("_") < 2:
+            continue
+        if artifact_id.startswith(own_prefix):
+            continue
+        if artifact_id.endswith("_scratch"):
+            return artifact_id
+        if preferred is None:
+            preferred = artifact_id
+    return preferred
+
+
+def _artifact_exists(artifact_id):
+    if "kernel_state" not in globals():
+        return False
+    try:
+        return kernel_state.read_artifact(artifact_id) is not None
+    except Exception:
+        return False
+
+
+def _fallback_action(state_snapshot):
+    existing = _artifact_ids(state_snapshot)
+    own_scratch_exists = "{scratch_id}" in existing or _artifact_exists("{scratch_id}")
+    read_target = _pick_read_target(state_snapshot)
+    balance = 0
+    if isinstance(state_snapshot, dict):
+        raw_balance = state_snapshot.get("balance")
+        if isinstance(raw_balance, int):
+            balance = raw_balance
     neighbor = _neighbor_principal()
+    neighbor_scratch = neighbor + "_scratch"
+    if _artifact_exists(neighbor_scratch):
+        read_target = neighbor_scratch
     turn = int(time.time()) + {slot}
     phase = turn % 4
-    if phase == 0:
+    if phase == 0 or not own_scratch_exists:
         return {{
             "action_type": "write_artifact",
             "artifact_id": "{scratch_id}",
@@ -396,16 +457,37 @@ def _fallback_action():
             "content": "heartbeat from {principal_id} turn " + str(turn),
         }}
     if phase == 1:
+        if read_target is None:
+            return {{
+                "action_type": "write_artifact",
+                "artifact_id": "{scratch_id}",
+                "artifact_type": "note",
+                "content": "state snapshot for {principal_id} turn " + str(turn),
+            }}
         return {{
             "action_type": "read_artifact",
-            "artifact_id": neighbor + "_scratch",
+            "artifact_id": read_target,
         }}
     if phase == 2:
+        if balance <= 1:
+            return {{
+                "action_type": "write_artifact",
+                "artifact_id": "{scratch_id}",
+                "artifact_type": "note",
+                "content": "low balance hold for {principal_id} turn " + str(turn),
+            }}
         return {{
             "action_type": "transfer",
             "recipient_id": neighbor,
             "amount": 1,
             "memo": "coordination pulse",
+        }}
+    if not own_scratch_exists or balance < 1:
+        return {{
+            "action_type": "write_artifact",
+            "artifact_id": "{scratch_id}",
+            "artifact_type": "note",
+            "content": "mint prep from {principal_id} turn " + str(turn),
         }}
     return {{
         "action_type": "submit_to_mint",
@@ -415,6 +497,8 @@ def _fallback_action():
 
 
 def _should_force_explore(decision):
+    if ((int(time.time()) + {slot}) % 5) == 0:
+        return True
     if not isinstance(decision, dict):
         return True
     action = decision.get("action_type")
@@ -444,8 +528,11 @@ def run():
         "You are agent {principal_id} in an economy simulation. "
         "Return exactly one JSON action object and never use noop. "
         "Valid action_type values include write_artifact, read_artifact, transfer, "
-        "submit_to_mint, query_kernel, invoke_artifact. "
+        "submit_to_mint, query_kernel. "
+        "Do not invoke artifacts directly. "
         "For query_kernel you must include query_type and params object. "
+        "Do not modify *_loop artifacts. "
+        "When writing artifacts, use ids prefixed with {principal_id}_. "
         "Prefer interaction and production actions over status checks."
     )
 
@@ -462,11 +549,11 @@ def run():
             decision = _extract_json(llm_result.get("content", ""))
 
     if _should_force_explore(decision):
-        decision = _fallback_action()
+        decision = _fallback_action(state_snapshot)
 
     result = invoke("kernel_act", decision)
     if not result.get("success"):
-        fallback = _fallback_action()
+        fallback = _fallback_action(state_snapshot)
         recovery = invoke("kernel_act", fallback)
         return {{"decision": decision, "fallback": fallback, "result": recovery}}
     return {{"decision": decision, "result": result}}
@@ -487,6 +574,9 @@ def run():
                 has_loop=True,
                 capabilities=["can_call_llm"] if self.config.llm.enable_bootstrap_loop_llm else [],
             )
+            artifact = self.artifacts.get(loop_id)
+            if artifact is not None:
+                artifact.kernel_protected = True
 
     def _bootstrap_mint_systems(self) -> None:
         if self.config.mint.enabled:

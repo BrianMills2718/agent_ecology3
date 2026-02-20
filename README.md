@@ -31,8 +31,11 @@ python run.py --config config/config.yaml
 python run.py --duration 300 --agents 4
 python run.py --dashboard
 python run.py --dashboard-only
-python -m agent_ecology3.analysis.emergence_report --events logs/latest/events.jsonl --pretty
-python -m agent_ecology3.analysis.emergence_report --events logs --run-id run_20260220_183640 --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --events logs/latest/events.jsonl --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --events logs --run-id run_20260220_183640 --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --events logs --run-id run_20260220_183640 --log-experiment --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --list-experiments --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --compare-experiments RUN_A RUN_B --pretty
 ```
 
 ## Autonomous Loop Behavior
@@ -40,6 +43,12 @@ python -m agent_ecology3.analysis.emergence_report --events logs --run-id run_20
 - Loop artifacts can call LLM when `llm.enable_bootstrap_loop_llm: true`.
 - The parser accepts both canonical AE3 action JSON and common LLM variants (`action` + `parameters`) and normalizes to internal intents.
 - Non-canonical `query_kernel` types are inferred to supported kernel queries to reduce invalid-action churn.
+
+## Experiment Integration
+
+- AE3 emergence analysis integrates with `llm_client` experiment logging (`start_run`, `log_item`, `finish_run`) so run metrics land in the existing experiment registry and SQLite observability DB.
+- `emergence_report` can also query that registry via `--list-experiments`, `--detail-experiment`, and `--compare-experiments`.
+- If `llm_client` is not installed in your active env, set `LLM_CLIENT_REPO=/home/brian/projects/llm_client` (or pass `--llm-client-repo`) so the analyzer can import directly from repo source.
 
 ## Project Layout
 

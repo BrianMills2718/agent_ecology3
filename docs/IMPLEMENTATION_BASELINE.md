@@ -79,3 +79,14 @@ After initial baseline validation, autonomous loop behavior was hardened to avoi
 5. Emergence verification runs:
 - `logs/run_20260220_165346/events.jsonl` (pre-fix reference; noop-only pattern)
 - `logs/run_20260220_183640/events.jsonl` (post-fix; mixed actions, cross-agent transfers/reads, mint submissions, and diverging balances)
+
+6. Experiment-infra integration:
+- `src/agent_ecology3/analysis/emergence_report.py`
+- AE3 summaries can now be logged into `llm_client`'s centralized experiment registry.
+- The same command surface supports list/detail/compare over historical AE3 runs via llm_client tables.
+
+7. Additional loop stability hardening:
+- `src/agent_ecology3/world/world.py`
+- Loop artifacts are `kernel_protected` to prevent accidental overwrite of executable loop code.
+- Fallback action selection validates artifact existence via `kernel_state` to reduce not-found churn.
+- Read target selection skips principal artifacts to avoid avoidable permission failures.
