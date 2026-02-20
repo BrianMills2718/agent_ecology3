@@ -36,6 +36,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --events logs 
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --events logs --run-id run_20260220_183640 --log-experiment --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --list-experiments --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --compare-experiments RUN_A RUN_B --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --analyze-experiments --pretty
 ```
 
 ## Autonomous Loop Behavior

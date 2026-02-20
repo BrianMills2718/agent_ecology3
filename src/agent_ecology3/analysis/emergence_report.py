@@ -332,6 +332,18 @@ def _compare_experiments(*, llm_client_repo: str | None, run_ids: list[str]) -> 
     return compare_runs(run_ids)
 
 
+def _analyze_experiments(*, llm_client_repo: str | None, experiment_log: str | None) -> dict[str, Any]:
+    _ensure_llm_client_import(llm_client_repo)
+    from llm_client import analyze_history
+
+    report = analyze_history(experiment_log=experiment_log)
+    if hasattr(report, "model_dump"):
+        return report.model_dump()
+    if hasattr(report, "dict"):
+        return report.dict()
+    return {"report": str(report)}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate emergence metrics from AE3 event logs.")
     parser.add_argument(
@@ -357,6 +369,8 @@ def main() -> int:
     parser.add_argument("--experiment-limit", type=int, default=20, help="Limit for --list-experiments.")
     parser.add_argument("--detail-experiment", default=None, help="Show one experiment run + items by run id.")
     parser.add_argument("--compare-experiments", nargs="*", default=None, help="Compare 2+ experiment run ids.")
+    parser.add_argument("--analyze-experiments", action="store_true", help="Run llm_client analyzer over experiment history.")
+    parser.add_argument("--experiment-log-path", default=None, help="Optional experiments.jsonl path for analyzer.")
 
     args = parser.parse_args()
 
@@ -380,6 +394,11 @@ def main() -> int:
         payload = _compare_experiments(
             llm_client_repo=args.llm_client_repo,
             run_ids=list(args.compare_experiments),
+        )
+    elif args.analyze_experiments:
+        payload = _analyze_experiments(
+            llm_client_repo=args.llm_client_repo,
+            experiment_log=args.experiment_log_path,
         )
     else:
         events_path = _resolve_events_path(args.events, args.run_id)
