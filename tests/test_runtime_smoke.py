@@ -108,4 +108,5 @@ def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     assert loop_artifact is not None
     assert "_summarize_recent_feedback" in loop_artifact.code
     assert "\"recent_feedback\": _summarize_recent_feedback(limit=40)" in loop_artifact.code
+    assert "if intent_principal != \"alpha_1\":" in loop_artifact.code
     assert "avoid repeating actions with recent error codes" in loop_artifact.code

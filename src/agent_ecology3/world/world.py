@@ -461,6 +461,9 @@ def _summarize_recent_feedback(limit=30):
         result = event.get("result")
         if not isinstance(intent, dict) or not isinstance(result, dict):
             continue
+        intent_principal = intent.get("principal_id")
+        if intent_principal != "{principal_id}":
+            continue
         summary["actions_attempted"] += 1
         action_type = intent.get("action_type")
         if isinstance(action_type, str) and action_type:

@@ -93,7 +93,7 @@ After initial baseline validation, autonomous loop behavior was hardened to avoi
 
 8. Legacy-informed loop policy signal + traceability:
 - `src/agent_ecology3/world/world.py`
-- Loop state snapshot now includes compact `recent_feedback` (attempt/failure/error-code/action-type summary) for better next-action selection.
+- Loop state snapshot now includes compact principal-scoped `recent_feedback` (attempt/failure/error-code/action-type summary) for better next-action selection.
 - Prompt instructions explicitly steer away from repeating recently failing action patterns.
 - `src/agent_ecology3/world/action_executor.py`
 - Added dedicated `loop_decision` event with decision payload, fallback metadata, and resulting action status.
