@@ -90,3 +90,27 @@ After initial baseline validation, autonomous loop behavior was hardened to avoi
 - Loop artifacts are `kernel_protected` to prevent accidental overwrite of executable loop code.
 - Fallback action selection validates artifact existence via `kernel_state` to reduce not-found churn.
 - Read target selection skips principal artifacts to avoid avoidable permission failures.
+
+## Legacy AE Review Notes (2026-02-20)
+
+Original `archive/agent_ecology` was reviewed for prompt/policy behaviors worth carrying forward into AE3 without restoring old architecture.
+
+1. Richer local observation in loop prompts:
+- Source pattern: `archive/agent_ecology/llm_agent_policy.py` (`AgentObservation.to_prompt`).
+- Candidate AE3 addition: include compact recent-success/recent-failure summaries (not full event dumps) in loop prompt context.
+
+2. Tighter action contract before execution:
+- Source pattern: `archive/agent_ecology/llm_agent_policy.py` (`LLMAction` constrained schema).
+- Candidate AE3 addition: keep parser normalization, but add stricter pre-exec action gating so malformed/unsafe actions are corrected earlier.
+
+3. Deterministic fallback with explicit cause:
+- Source pattern: `archive/agent_ecology/llm_agent_policy.py` (`_fallback_decision`).
+- Candidate AE3 addition: preserve deterministic exploration fallback, but annotate fallback cause in a dedicated decision record.
+
+4. Dedicated policy decision trace:
+- Source pattern: `archive/agent_ecology/llm_agent_policy.py` (`LLMAgentState.record_decision`).
+- Candidate AE3 addition: add a compact decision-trace event (decision payload, normalization path, fallback trigger) to improve emergence analysis.
+
+5. Keep AE3 strengths while porting signal:
+- Keep: contract-governed access, kernel-protected loop artifacts, and `llm_client`-anchored accounting in syscall path.
+- Do not reintroduce: old split world/policy runtime or parallel accounting paths.
