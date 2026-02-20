@@ -20,7 +20,6 @@ All six approved removals from AE2 are applied as AE3 design constraints:
 ```bash
 cd /home/brian/projects/agent_ecology3
 pip install -e .
-cp .env.example .env
 python run.py --duration 120
 # or: agent-ecology3 --duration 120
 ```

@@ -7,6 +7,7 @@ __pycache__/
 
 # Environment
 .env
+.env.example
 
 # Runtime outputs
 logs/
