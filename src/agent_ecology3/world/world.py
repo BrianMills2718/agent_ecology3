@@ -434,6 +434,50 @@ def _artifact_exists(artifact_id):
         return False
 
 
+def _summarize_recent_feedback(limit=30):
+    summary = {{
+        "actions_attempted": 0,
+        "action_failures": 0,
+        "recent_action_types": [],
+        "recent_error_codes": [],
+    }}
+    if "kernel_state" not in globals():
+        return summary
+    try:
+        events = kernel_state.recent_events(limit=limit)
+    except Exception:
+        return summary
+    if not isinstance(events, list):
+        return summary
+
+    action_types = []
+    error_codes = []
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        if event.get("event_type") != "action":
+            continue
+        intent = event.get("intent")
+        result = event.get("result")
+        if not isinstance(intent, dict) or not isinstance(result, dict):
+            continue
+        summary["actions_attempted"] += 1
+        action_type = intent.get("action_type")
+        if isinstance(action_type, str) and action_type:
+            action_types.append(action_type)
+        if result.get("success") is False:
+            summary["action_failures"] += 1
+            error_code = result.get("error_code")
+            if isinstance(error_code, str) and error_code:
+                error_codes.append(error_code)
+
+    if action_types:
+        summary["recent_action_types"] = action_types[-6:]
+    if error_codes:
+        summary["recent_error_codes"] = error_codes[-6:]
+    return summary
+
+
 def _fallback_action(state_snapshot):
     existing = _artifact_ids(state_snapshot)
     own_scratch_exists = "{scratch_id}" in existing or _artifact_exists("{scratch_id}")
@@ -520,6 +564,7 @@ def run():
                 "balance": kernel_state.get_balance(),
                 "resources": kernel_state.get_resources(),
                 "artifacts": kernel_state.list_artifacts(limit=12),
+                "recent_feedback": _summarize_recent_feedback(limit=40),
             }}
         except Exception:
             state_snapshot = {{}}
@@ -533,7 +578,8 @@ def run():
         "For query_kernel you must include query_type and params object. "
         "Do not modify *_loop artifacts. "
         "When writing artifacts, use ids prefixed with {principal_id}_. "
-        "Prefer interaction and production actions over status checks."
+        "Prefer interaction and production actions over status checks. "
+        "Use recent_feedback to avoid repeating actions with recent error codes."
     )
 
     decision = None

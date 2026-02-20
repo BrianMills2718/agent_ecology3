@@ -26,6 +26,18 @@ from .actions import (
 from .contracts import PermissionAction
 
 
+def _extract_action_name(payload: Any) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    action = payload.get("action_type")
+    if not isinstance(action, str):
+        action = payload.get("action")
+    if not isinstance(action, str):
+        return None
+    normalized = action.strip().lower()
+    return normalized or None
+
+
 class ActionExecutor:
     def __init__(self, world: Any) -> None:
         self.world = world
@@ -375,6 +387,37 @@ class ActionExecutor:
             self.world.ledger.transfer_scrip(payer, recipient, artifact.invoke_price)
         if payer != intent.principal_id and artifact.invoke_price > 0:
             self.world.delegation_manager.record_charge(payer, intent.principal_id, float(artifact.invoke_price))
+
+        if artifact.has_loop and intent.method == "run":
+            payload = exec_result.get("result")
+            if isinstance(payload, dict):
+                decision = payload.get("decision")
+                fallback = payload.get("fallback")
+                result_payload = payload.get("result")
+                result_success: bool | None = None
+                result_error_code: str | None = None
+                if isinstance(result_payload, dict):
+                    raw_success = result_payload.get("success")
+                    if isinstance(raw_success, bool):
+                        result_success = raw_success
+                    raw_error_code = result_payload.get("error_code")
+                    if isinstance(raw_error_code, str) and raw_error_code:
+                        result_error_code = raw_error_code
+                self.world.logger.log(
+                    "loop_decision",
+                    {
+                        "event_number": self.world.event_number,
+                        "principal_id": intent.principal_id,
+                        "artifact_id": artifact.id,
+                        "decision": decision if isinstance(decision, dict) else None,
+                        "decision_action": _extract_action_name(decision),
+                        "fallback_used": isinstance(fallback, dict),
+                        "fallback": fallback if isinstance(fallback, dict) else None,
+                        "fallback_action": _extract_action_name(fallback),
+                        "result_success": result_success,
+                        "result_error_code": result_error_code,
+                    },
+                )
 
         self.world.logger.log(
             "invoke_success",

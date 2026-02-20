@@ -91,6 +91,15 @@ After initial baseline validation, autonomous loop behavior was hardened to avoi
 - Fallback action selection validates artifact existence via `kernel_state` to reduce not-found churn.
 - Read target selection skips principal artifacts to avoid avoidable permission failures.
 
+8. Legacy-informed loop policy signal + traceability:
+- `src/agent_ecology3/world/world.py`
+- Loop state snapshot now includes compact `recent_feedback` (attempt/failure/error-code/action-type summary) for better next-action selection.
+- Prompt instructions explicitly steer away from repeating recently failing action patterns.
+- `src/agent_ecology3/world/action_executor.py`
+- Added dedicated `loop_decision` event with decision payload, fallback metadata, and resulting action status.
+- `tests/test_runtime_smoke.py`
+- Added runtime coverage for `loop_decision` presence and loop prompt feedback wiring.
+
 ## Legacy AE Review Notes (2026-02-20)
 
 Original `archive/agent_ecology` was reviewed for prompt/policy behaviors worth carrying forward into AE3 without restoring old architecture.

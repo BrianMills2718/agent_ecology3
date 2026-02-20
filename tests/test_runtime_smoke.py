@@ -73,6 +73,9 @@ def test_runner_executes_bootstrap_loop(tmp_path) -> None:
     assert "simulation_started" in event_types
     assert "simulation_stopped" in event_types
     assert "invoke_success" in event_types or "invoke_failure" in event_types
+    loop_decisions = [e for e in events if e.get("event_type") == "loop_decision"]
+    assert loop_decisions, "expected loop_decision trace events"
+    assert any(isinstance(e.get("decision_action"), str) and e.get("decision_action") for e in loop_decisions)
 
 
 def test_loop_artifact_is_kernel_protected(tmp_path) -> None:
@@ -95,3 +98,14 @@ def test_loop_artifact_is_kernel_protected(tmp_path) -> None:
     )
     assert overwrite.success is False
     assert overwrite.error_code == "not_authorized"
+
+
+def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    world = World(cfg, run_id="test_loop_prompt_feedback")
+
+    loop_artifact = world.artifacts.get("alpha_1_loop")
+    assert loop_artifact is not None
+    assert "_summarize_recent_feedback" in loop_artifact.code
+    assert "\"recent_feedback\": _summarize_recent_feedback(limit=40)" in loop_artifact.code
+    assert "avoid repeating actions with recent error codes" in loop_artifact.code
