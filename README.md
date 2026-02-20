@@ -31,6 +31,8 @@ python run.py --config config/config.yaml
 python run.py --duration 300 --agents 4
 python run.py --dashboard
 python run.py --dashboard-only
+python -m agent_ecology3.analysis.emergence_report --events logs/latest/events.jsonl --pretty
+python -m agent_ecology3.analysis.emergence_report --events logs --run-id run_20260220_183640 --pretty
 ```
 
 ## Autonomous Loop Behavior
