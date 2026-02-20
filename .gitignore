@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+
+# Environment
+.env
+
+# Runtime outputs
+logs/
+
+# Editor/system
+.DS_Store

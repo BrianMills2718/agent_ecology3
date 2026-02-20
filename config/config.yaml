@@ -1,0 +1,61 @@
+simulation:
+  default_duration_seconds: 120
+  max_runtime_seconds: 3600
+  summary_interval_seconds: 15
+  loop:
+    min_delay_seconds: 0.2
+    max_delay_seconds: 8.0
+    max_consecutive_errors: 5
+    resource_check_interval_seconds: 1.0
+
+principals:
+  count: 3
+  id_prefix: alpha_
+  starting_scrip: 100
+  starting_llm_budget: 2.0
+  starting_disk_quota_bytes: 250000
+
+resources:
+  rate_window_seconds: 60.0
+  rate_limits:
+    llm_calls_per_window: 120
+    llm_tokens_per_window: 200000
+    cpu_seconds_per_window: 12.0
+  stock:
+    total_llm_budget: 12.0
+    total_disk_bytes: 1000000
+
+llm:
+  default_model: gemini/gemini-2.5-flash
+  timeout_seconds: 60
+  allowed_models:
+    - gemini/gemini-2.5-flash
+    - openai/gpt-4o-mini
+    - anthropic/claude-3-5-sonnet-20241022
+  estimate_tokens_per_call: 900
+  enable_bootstrap_loop_llm: false
+
+contracts:
+  default_when_missing: kernel_contract_freeware
+  default_for_new_artifact: kernel_contract_freeware
+
+mint:
+  enabled: true
+  minimum_bid: 1
+  first_auction_delay_seconds: 20.0
+  bidding_window_seconds: 30.0
+  period_seconds: 60.0
+  mint_ratio: 10
+
+dashboard:
+  enabled: true
+  host: 0.0.0.0
+  port: 9000
+  jsonl_file: logs/latest/events.jsonl
+  poll_interval_seconds: 1.0
+
+logging:
+  logs_dir: logs
+  event_file_name: events.jsonl
+  summary_file_name: summary.jsonl
+  recent_event_limit: 500
