@@ -189,8 +189,20 @@ logging:
         encoding="utf-8",
     )
 
-    loaded = _load_runtime_config(str(cfg), agents_override=None, loop_llm_cooldown_override=1.5)
+    loaded = _load_runtime_config(
+        str(cfg),
+        agents_override=None,
+        llm_loop_override="on",
+        loop_llm_cooldown_override=1.5,
+    )
+    assert loaded.llm.enable_bootstrap_loop_llm is True
     assert loaded.llm.loop_llm_cooldown_seconds == 1.5
+
+    loaded = _load_runtime_config(str(cfg), agents_override=None, llm_loop_override="off")
+    assert loaded.llm.enable_bootstrap_loop_llm is False
 
     with pytest.raises(ValueError, match="--loop-llm-cooldown must be >= 0"):
         _load_runtime_config(str(cfg), agents_override=None, loop_llm_cooldown_override=-1.0)
+
+    with pytest.raises(ValueError, match="--llm-loop must be one of: on, off"):
+        _load_runtime_config(str(cfg), agents_override=None, llm_loop_override="maybe")
