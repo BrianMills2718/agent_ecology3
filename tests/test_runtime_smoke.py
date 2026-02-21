@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 
 from agent_ecology3.config import AppConfig
 from agent_ecology3.simulation import SimulationRunner
@@ -121,6 +122,7 @@ def test_loop_action_gate_rewrites_disallowed_llm_action(tmp_path) -> None:
     cfg = _make_config(tmp_path)
     cfg.llm.enable_bootstrap_loop_llm = True
     cfg.llm.loop_action_gate_enabled = True
+    cfg.llm.loop_llm_cooldown_seconds = 0.0
     world = World(cfg, run_id="test_loop_action_gate")
 
     world.call_llm_as_syscall = lambda **_: {
@@ -143,7 +145,7 @@ def test_loop_action_gate_rewrites_disallowed_llm_action(tmp_path) -> None:
     }
 
     gate_triggered = False
-    for _ in range(10):
+    for _ in range(30):
         invoke_result = world.execute_action_data(
             "alpha_1",
             {
@@ -159,6 +161,9 @@ def test_loop_action_gate_rewrites_disallowed_llm_action(tmp_path) -> None:
         loop_decision_events = [e for e in events if e.get("event_type") == "loop_decision"]
         assert loop_decision_events
         last = loop_decision_events[-1]
+        if bool(last.get("forced_explore")):
+            time.sleep(0.05)
+            continue
         if bool(last.get("gate_fallback_used")):
             gate_triggered = True
             assert str(last.get("gate_reason", "")).startswith("disallowed_action:mint")
@@ -167,3 +172,63 @@ def test_loop_action_gate_rewrites_disallowed_llm_action(tmp_path) -> None:
             break
 
     assert gate_triggered, "expected action gate to trigger on disallowed LLM action"
+
+
+def test_loop_llm_cooldown_skips_rapid_repeated_calls(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.enable_bootstrap_loop_llm = True
+    cfg.llm.loop_action_gate_enabled = True
+    cfg.llm.loop_llm_cooldown_seconds = 60.0
+    world = World(cfg, run_id="test_loop_llm_cooldown")
+
+    llm_call_count = {"n": 0}
+
+    def _fake_syscall(**_kwargs):
+        llm_call_count["n"] += 1
+        world.logger.log(
+            "llm_syscall",
+            {
+                "event_number": world.event_number,
+                "payer_id": "alpha_1",
+                "model": "test-model",
+                "duration_ms": 1.0,
+                "charged_cost": 0.0,
+            },
+        )
+        return {
+            "success": True,
+            "content": json.dumps(
+                {
+                    "action_type": "read_artifact",
+                    "artifact_id": "alpha_1_scratch",
+                }
+            ),
+            "usage": {"total_tokens": 10},
+            "cost": 0.0,
+            "charged_cost": 0.0,
+            "cost_source": "test",
+            "billing_mode": "subscription",
+            "cache_hit": False,
+            "undercharged_cost": 0.0,
+        }
+
+    world.call_llm_as_syscall = _fake_syscall
+
+    for _ in range(2):
+        invoke_result = world.execute_action_data(
+            "alpha_1",
+            {
+                "action_type": "invoke_artifact",
+                "artifact_id": "alpha_1_loop",
+                "method": "run",
+                "args": [],
+            },
+        )
+        assert invoke_result.success, invoke_result.message
+
+    assert llm_call_count["n"] == 1
+    loop_decisions = [e for e in world.logger.read_recent(50) if e.get("event_type") == "loop_decision"]
+    assert len(loop_decisions) >= 2
+    last = loop_decisions[-1]
+    assert last.get("decision_source") == "llm_cooldown_skip"
+    assert last.get("llm_attempted") is False

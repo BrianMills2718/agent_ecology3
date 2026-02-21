@@ -481,6 +481,58 @@ def _summarize_recent_feedback(limit=30):
     return summary
 
 
+def _parse_event_timestamp(event):
+    if not isinstance(event, dict):
+        return None
+    ts = event.get("timestamp")
+    if not isinstance(ts, str) or not ts:
+        return None
+    text = ts
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        import datetime
+        dt = datetime.datetime.fromisoformat(text)
+        return dt.timestamp()
+    except Exception:
+        return None
+
+
+def _recent_llm_call_age_seconds(limit=120):
+    if "kernel_state" not in globals():
+        return None
+    try:
+        events = kernel_state.recent_events(limit=limit)
+    except Exception:
+        return None
+    if not isinstance(events, list):
+        return None
+    now = time.time()
+    for event in reversed(events):
+        if not isinstance(event, dict):
+            continue
+        if event.get("event_type") != "llm_syscall":
+            continue
+        payer_id = event.get("payer_id")
+        if payer_id != "{principal_id}":
+            continue
+        event_ts = _parse_event_timestamp(event)
+        if event_ts is None:
+            return 0.0
+        return max(0.0, now - event_ts)
+    return None
+
+
+def _llm_cooldown_ready():
+    cooldown = float({self.config.llm.loop_llm_cooldown_seconds})
+    if cooldown <= 0:
+        return True
+    age = _recent_llm_call_age_seconds()
+    if age is None:
+        return True
+    return age >= cooldown
+
+
 def _canonical_action_type(decision):
     if not isinstance(decision, dict):
         return None
@@ -641,6 +693,9 @@ def run():
     decision_meta = {{
         "source": "none",
         "llm_success": False,
+        "llm_attempted": False,
+        "llm_cooldown_ready": True,
+        "llm_cooldown_seconds": float({self.config.llm.loop_llm_cooldown_seconds}),
         "forced_explore": False,
         "gate_fallback_used": False,
         "gate_reason": None,
@@ -649,20 +704,26 @@ def run():
         "feedback_enabled": feedback_enabled,
     }}
     if "_syscall_llm" in globals():
-        llm_result = _syscall_llm(
-            model="{self.config.llm.default_model}",
-            messages=[
-                {{"role": "system", "content": "Return only one valid JSON action object. No prose."}},
-                {{"role": "user", "content": prompt + "\\nState:\\n" + json.dumps(state_snapshot)}},
-            ],
-        )
-        decision_meta["source"] = "llm"
-        if llm_result.get("success"):
-            decision_meta["llm_success"] = True
-            raw_decision = _extract_json(llm_result.get("content", ""))
-            decision = raw_decision
+        ready = _llm_cooldown_ready()
+        decision_meta["llm_cooldown_ready"] = bool(ready)
+        if ready:
+            decision_meta["llm_attempted"] = True
+            llm_result = _syscall_llm(
+                model="{self.config.llm.default_model}",
+                messages=[
+                    {{"role": "system", "content": "Return only one valid JSON action object. No prose."}},
+                    {{"role": "user", "content": prompt + "\\nState:\\n" + json.dumps(state_snapshot)}},
+                ],
+            )
+            decision_meta["source"] = "llm"
+            if llm_result.get("success"):
+                decision_meta["llm_success"] = True
+                raw_decision = _extract_json(llm_result.get("content", ""))
+                decision = raw_decision
+            else:
+                decision_meta["source"] = "llm_error"
         else:
-            decision_meta["source"] = "llm_error"
+            decision_meta["source"] = "llm_cooldown_skip"
 
     if _should_force_explore(decision):
         decision_meta["forced_explore"] = True

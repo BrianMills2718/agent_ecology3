@@ -61,6 +61,7 @@ class LLMConfig(StrictModel):
     allowed_models: list[str] = Field(default_factory=list)
     estimate_tokens_per_call: int = 900
     enable_bootstrap_loop_llm: bool = False
+    loop_llm_cooldown_seconds: float = 3.0
     loop_prompt_feedback_enabled: bool = True
     loop_action_gate_enabled: bool = True
 

@@ -96,6 +96,7 @@ After initial baseline validation, autonomous loop behavior was hardened to avoi
 - Loop state snapshot now includes compact principal-scoped `recent_feedback` (attempt/failure/error-code/action-type summary) for better next-action selection.
 - Prompt instructions explicitly steer away from repeating recently failing action patterns.
 - Loop runtime now hard-gates generated actions to the approved loop-safe set and rewrites disallowed outputs to deterministic fallback with explicit gate reason metadata.
+- Loop LLM calls now include principal-scoped cooldown gating (`llm.loop_llm_cooldown_seconds`) so loops can continue deterministic actions between LLM decisions.
 - `src/agent_ecology3/world/action_executor.py`
 - Added dedicated `loop_decision` event with decision payload, fallback metadata, and resulting action status.
 - `tests/test_runtime_smoke.py`
@@ -173,3 +174,44 @@ Notes:
 1. LLM-enabled loop throughput is far lower than deterministic fallback loops at this duration/latency profile.
 2. Feedback+gate improved entropy slightly over no-feedback/no-gate in this run set.
 3. All runs reported zero action failures; therefore `fallback_rate` and `repeat_error_rate` remained `0.0`.
+
+## Throughput Profiling and Cooldown Optimization (2026-02-21)
+
+Latency profiling from long matrix (`logs/ablation_long_matrix_resume_summary.json`) showed network-bound LLM calls as the throughput bottleneck:
+
+1. `no_llm_loop`:
+- `actions_per_sec` mean: `185.48`
+- `invoke_run_latency_mean_ms`: `0.2794`
+
+2. `llm_no_feedback_no_gate`:
+- `actions_per_sec` mean: `3.1133`
+- `llm_latency_mean_ms` mean: `820.4172`
+- `invoke_run_latency_mean_ms`: `411.4324`
+
+3. `llm_feedback_plus_gate`:
+- `actions_per_sec` mean: `2.62`
+- `llm_latency_mean_ms` mean: `1355.829`
+- `invoke_run_latency_mean_ms`: `729.051`
+
+Follow-up cooldown benchmark:
+
+1. `cooldown_0` (`llm.loop_llm_cooldown_seconds=0`), `logs/cooldown_benchmark_1771640251.json`:
+- `actions_per_sec`: `2.9555`
+- `llm_calls_per_sec`: `1.2667`
+- `invoke_run_latency_mean_ms`: `408.3693`
+
+2. `cooldown_1` (`llm.loop_llm_cooldown_seconds=1`), `logs/cooldown_benchmark_1771640251.json`:
+- `actions_per_sec`: `3.7556`
+- `llm_calls_per_sec`: `1.4`
+- `invoke_run_latency_mean_ms`: `342.521`
+
+3. `cooldown_3` (`llm.loop_llm_cooldown_seconds=3`), `logs/cooldown_benchmark_3s_1771640376.json`:
+- `actions_per_sec`: `20.9`
+- `llm_calls_per_sec`: `1.2333`
+- `invoke_run_latency_mean_ms`: `78.0245`
+- `decision_success_rate`: `1.0`
+
+Decision:
+
+1. Set default `llm.loop_llm_cooldown_seconds` to `3.0` in AE3 baseline.
+2. Keep `loop_action_gate_enabled` and `loop_prompt_feedback_enabled` enabled by default.

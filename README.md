@@ -48,6 +48,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --analyze-expe
 - Each loop invocation emits a `loop_decision` event trace with chosen action, fallback usage, and result status.
 - Loop action output is hard-gated to `write_artifact`, `read_artifact`, `transfer`, `submit_to_mint`, and `query_kernel` (invalid actions are rewritten to deterministic fallback).
 - Gate and feedback behavior can be toggled with `llm.loop_action_gate_enabled` and `llm.loop_prompt_feedback_enabled`.
+- Loop LLM calls are rate-shaped per principal using `llm.loop_llm_cooldown_seconds` (default `3.0`) to prevent network latency from collapsing loop throughput.
 
 ## Experiment Integration
 
