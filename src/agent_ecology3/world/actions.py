@@ -19,6 +19,7 @@ class ActionType(str, Enum):
     SUBSCRIBE_ARTIFACT = "subscribe_artifact"
     UNSUBSCRIBE_ARTIFACT = "unsubscribe_artifact"
     TRANSFER = "transfer"
+    TRANSFER_RESOURCE = "transfer_resource"
     MINT = "mint"
     SUBMIT_TO_MINT = "submit_to_mint"
     UPDATE_METADATA = "update_metadata"
@@ -298,6 +299,41 @@ class TransferIntent(ActionIntent):
 
 
 @dataclass
+class TransferResourceIntent(ActionIntent):
+    recipient_id: str = ""
+    resource: str = ""
+    amount: float = 0.0
+    memo: str | None = None
+
+    def __init__(
+        self,
+        principal_id: str,
+        recipient_id: str,
+        resource: str,
+        amount: float,
+        memo: str | None = None,
+        reasoning: str = "",
+    ) -> None:
+        super().__init__(ActionType.TRANSFER_RESOURCE, principal_id, reasoning)
+        self.recipient_id = recipient_id
+        self.resource = resource
+        self.amount = amount
+        self.memo = memo
+
+    def to_dict(self) -> dict[str, Any]:
+        d = super().to_dict()
+        d.update(
+            {
+                "recipient_id": self.recipient_id,
+                "resource": self.resource,
+                "amount": self.amount,
+                "memo": self.memo,
+            }
+        )
+        return d
+
+
+@dataclass
 class MintIntent(ActionIntent):
     recipient_id: str = ""
     amount: int = 0
@@ -423,6 +459,22 @@ def _coerce_int(value: Any) -> int | None:
     return None
 
 
+def _coerce_float(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            return float(text)
+        except ValueError:
+            return None
+    return None
+
+
 def _infer_query_type(
     query_text: str,
     *,
@@ -467,6 +519,8 @@ def _normalize_payload(principal_id: str, payload: dict[str, Any]) -> dict[str, 
         data["query_type"] = data["queryType"]
     if "recipient_id" not in data and isinstance(data.get("recipient"), str):
         data["recipient_id"] = data["recipient"]
+    if "resource" not in data and isinstance(data.get("resource_name"), str):
+        data["resource"] = data["resource_name"]
     if "method" not in data and isinstance(data.get("fn"), str):
         data["method"] = data["fn"]
 
@@ -677,6 +731,21 @@ def parse_intent_from_json(principal_id: str, json_str: str) -> ActionIntent | s
             return "transfer memo must be string or null"
         return TransferIntent(principal_id, recipient_id, amount, memo, reasoning)
 
+    if action_type_raw == ActionType.TRANSFER_RESOURCE.value:
+        recipient_id = data.get("recipient_id")
+        resource = data.get("resource")
+        amount = _coerce_float(data.get("amount"))
+        memo = data.get("memo")
+        if not isinstance(recipient_id, str) or not recipient_id:
+            return "transfer_resource requires 'recipient_id'"
+        if not isinstance(resource, str) or not resource:
+            return "transfer_resource requires 'resource'"
+        if amount is None or amount <= 0:
+            return "transfer_resource requires positive numeric 'amount'"
+        if memo is not None and not isinstance(memo, str):
+            return "transfer_resource memo must be string or null"
+        return TransferResourceIntent(principal_id, recipient_id, resource, amount, memo, reasoning)
+
     if action_type_raw == ActionType.MINT.value:
         recipient_id = data.get("recipient_id")
         amount = _coerce_int(data.get("amount"))
@@ -711,5 +780,5 @@ def parse_intent_from_json(principal_id: str, json_str: str) -> ActionIntent | s
         f"Unknown action_type: {action_type_raw}. "
         "Valid actions: noop, read_artifact, write_artifact, edit_artifact, "
         "delete_artifact, invoke_artifact, query_kernel, subscribe_artifact, "
-        "unsubscribe_artifact, transfer, mint, submit_to_mint, update_metadata"
+        "unsubscribe_artifact, transfer, transfer_resource, mint, submit_to_mint, update_metadata"
     )

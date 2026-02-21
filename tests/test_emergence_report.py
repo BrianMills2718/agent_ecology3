@@ -40,6 +40,14 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
             "result_success": False,
             "result_error_code": "invalid_action",
         },
+        {
+            "timestamp": "2026-02-21T00:00:05+00:00",
+            "event_type": "resource_transfer",
+            "sender": "alpha_1",
+            "recipient": "alpha_2",
+            "resource": "llm_budget",
+            "amount": 0.4,
+        },
     ]
     events_path.write_text("".join(json.dumps(item) + "\n" for item in events), encoding="utf-8")
 
@@ -49,6 +57,9 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
     assert summary["fallback_rate"] == 0.5
     assert summary["decision_success_rate"] == 0.25
     assert summary["repeat_error_rate"] == 0.3333
+    assert summary["resource_transfers_total"] == 1
+    assert summary["llm_budget_transfer_amount"] == 0.4
+    assert summary["cross_llm_budget_transfer_amount"] == 0.4
 
     trends = summary["loop_decision_trends"]
     assert trends["alpha_1"]["decisions"] == 3

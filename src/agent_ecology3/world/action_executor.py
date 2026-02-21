@@ -19,6 +19,7 @@ from .actions import (
     SubscribeArtifactIntent,
     SubmitToMintIntent,
     TransferIntent,
+    TransferResourceIntent,
     UnsubscribeArtifactIntent,
     UpdateMetadataIntent,
     WriteArtifactIntent,
@@ -63,6 +64,8 @@ class ActionExecutor:
             result = self._unsubscribe(intent)
         elif isinstance(intent, TransferIntent):
             result = self._transfer(intent)
+        elif isinstance(intent, TransferResourceIntent):
+            result = self._transfer_resource(intent)
         elif isinstance(intent, MintIntent):
             result = self._mint(intent)
         elif isinstance(intent, SubmitToMintIntent):
@@ -567,6 +570,44 @@ class ActionExecutor:
             },
         )
         return ActionResult(True, f"transferred {intent.amount} scrip to {intent.recipient_id}")
+
+    def _transfer_resource(self, intent: TransferResourceIntent) -> ActionResult:
+        allowed_resources = {"llm_budget"}
+        resource = intent.resource.strip().lower()
+        amount = float(intent.amount)
+
+        if amount <= 0:
+            return ActionResult(False, "amount must be positive", error_code="invalid_argument")
+        if resource not in allowed_resources:
+            return ActionResult(
+                False,
+                f"resource '{resource}' is not transferable",
+                error_code="invalid_argument",
+            )
+        if not self.world.ledger.principal_exists(intent.principal_id):
+            return ActionResult(False, "sender is not a principal", error_code="not_found")
+        if not self.world.ledger.principal_exists(intent.recipient_id):
+            return ActionResult(False, "recipient is not a principal", error_code="not_found")
+        if not self.world.ledger.transfer_resource(intent.principal_id, intent.recipient_id, resource, amount):
+            return ActionResult(
+                False,
+                f"insufficient {resource}",
+                error_code="insufficient_funds",
+                retriable=True,
+            )
+
+        self.world.logger.log(
+            "resource_transfer",
+            {
+                "event_number": self.world.event_number,
+                "sender": intent.principal_id,
+                "recipient": intent.recipient_id,
+                "resource": resource,
+                "amount": amount,
+                "memo": intent.memo,
+            },
+        )
+        return ActionResult(True, f"transferred {amount} {resource} to {intent.recipient_id}")
 
     def _mint(self, intent: MintIntent) -> ActionResult:
         minter = self.world.artifacts.get(intent.principal_id)

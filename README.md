@@ -40,6 +40,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --events logs 
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --list-experiments --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --compare-experiments RUN_A RUN_B --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --analyze-experiments --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 30 --agents 4 --llm-loop on --loop-llm-cooldown 0 --log-experiment --pretty
 ```
 
 ## Autonomous Loop Behavior
@@ -49,7 +50,8 @@ PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --analyze-expe
 - Non-canonical `query_kernel` types are inferred to supported kernel queries to reduce invalid-action churn.
 - Loop prompt state includes principal-scoped `recent_feedback` (recent action attempts/failures and error codes) from in-memory runtime state to reduce repeated failed moves.
 - Each loop invocation emits a `loop_decision` event trace with chosen action, fallback usage, and result status.
-- Loop action output is hard-gated to `write_artifact`, `read_artifact`, `transfer`, `submit_to_mint`, and `query_kernel` (invalid actions are rewritten to deterministic fallback).
+- Loop action output is hard-gated to `write_artifact`, `read_artifact`, `transfer`, `transfer_resource`, `submit_to_mint`, and `query_kernel` (invalid actions are rewritten to deterministic fallback).
+- Scarce LLM rights can be contracted via `transfer_resource` (`resource=llm_budget`) between principals.
 - Gate and feedback behavior can be toggled with `llm.loop_action_gate_enabled` and `llm.loop_prompt_feedback_enabled`.
 - Loop LLM calls can be rate-shaped per principal using `llm.loop_llm_cooldown_seconds` (default `0.0`, disabled) with in-memory per-principal cooldown tracking (control path does not depend on JSONL reads).
 
@@ -58,6 +60,8 @@ PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --analyze-expe
 - AE3 emergence analysis integrates with `llm_client` experiment logging (`start_run`, `log_item`, `finish_run`) so run metrics land in the existing experiment registry and SQLite observability DB.
 - `emergence_report` can also query that registry via `--list-experiments`, `--detail-experiment`, and `--compare-experiments`.
 - `emergence_report` now includes loop-decision metrics from `loop_decision` events: `fallback_rate`, `decision_success_rate`, `repeat_error_rate`, and per-principal `loop_decision_trends`.
+- `emergence_report` also reports scarce-resource transfer metrics: `resource_transfers_total`, `llm_budget_transfer_amount`, and `cross_llm_budget_transfer_amount`.
+- `scarcity_matrix` runs repeated fixed-config baselines, logs each run to `llm_client`, aggregates mean/std/min/max metrics, and evaluates KPI lock checks in one command.
 - If `llm_client` is not installed in your active env, set `LLM_CLIENT_REPO=/home/brian/projects/llm_client` (or pass `--llm-client-repo`) so the analyzer can import directly from repo source.
 
 ## Project Layout

@@ -7,7 +7,12 @@ from pydantic import ValidationError
 
 from agent_ecology3.cli import _load_runtime_config
 from agent_ecology3.config import load_config
-from agent_ecology3.world.actions import QueryKernelIntent, TransferIntent, parse_intent_from_json
+from agent_ecology3.world.actions import (
+    QueryKernelIntent,
+    TransferIntent,
+    TransferResourceIntent,
+    parse_intent_from_json,
+)
 
 
 def test_config_rejects_unknown_keys(tmp_path) -> None:
@@ -120,6 +125,22 @@ def test_transfer_alias_coerces_numeric_amount() -> None:
     assert parsed.recipient_id == "alpha_2"
     assert parsed.amount == 3
     assert parsed.to_dict()["recipient_id"] == "alpha_2"
+
+
+def test_transfer_resource_alias_coerces_float_amount() -> None:
+    payload = {
+        "action": "transfer_resource",
+        "parameters": {
+            "recipient": "alpha_2",
+            "resource_name": "llm_budget",
+            "amount": "0.25",
+        },
+    }
+    parsed = parse_intent_from_json("alpha_1", json.dumps(payload))
+    assert isinstance(parsed, TransferResourceIntent)
+    assert parsed.recipient_id == "alpha_2"
+    assert parsed.resource == "llm_budget"
+    assert parsed.amount == 0.25
 
 
 def test_non_object_payload_rejected() -> None:

@@ -284,3 +284,18 @@ Stability guardrails (must hold while optimizing):
 
 1. `decision_success_rate >= 0.98` (baseline min observed `0.9796`).
 2. `repeat_error_rate = 0.0` (baseline observed across all 5 runs).
+
+## Overnight TODO Sweep (2026-02-21)
+
+Planned todo list and completion status:
+
+1. [x] Make scarce LLM rights explicitly contractable between principals.
+2. [x] Add first-class observability for scarce resource transfers.
+3. [x] Add one-command repeated baseline matrix runner with KPI lock evaluation.
+4. [x] Add/extend tests for parser, runtime behavior, emergence metrics, and matrix utilities.
+
+Implemented:
+
+1. Added `transfer_resource` action (`resource=llm_budget`) with validation and event logging (`resource_transfer`).
+2. Extended emergence metrics with `resource_transfers_total`, `llm_budget_transfer_amount`, and `cross_llm_budget_transfer_amount`.
+3. Added `analysis.scarcity_matrix` CLI to run repeated scarcity-first experiments, aggregate results, and evaluate KPI lock checks.

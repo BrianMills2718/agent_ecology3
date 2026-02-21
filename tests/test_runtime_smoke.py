@@ -4,6 +4,8 @@ import asyncio
 import json
 import time
 
+import pytest
+
 from agent_ecology3.config import AppConfig
 from agent_ecology3.simulation import SimulationRunner
 from agent_ecology3.world import World
@@ -115,6 +117,7 @@ def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     assert "feedback = kernel_state.get_recent_feedback(limit=limit)" in loop_artifact.code
     assert "return bool(kernel_state.llm_cooldown_ready())" in loop_artifact.code
     assert "allowed_actions = {" in loop_artifact.code
+    assert "\"transfer_resource\"" in loop_artifact.code
     assert "disallowed_action:" in loop_artifact.code
     assert "avoid repeating actions with recent error codes" in loop_artifact.code
 
@@ -297,3 +300,52 @@ def test_loop_llm_cooldown_ignores_log_volume(tmp_path) -> None:
     loop_decisions = [e for e in world.logger.read_recent(120) if e.get("event_type") == "loop_decision"]
     assert loop_decisions
     assert loop_decisions[-1].get("decision_source") == "llm_cooldown_skip"
+
+
+def test_transfer_resource_moves_llm_budget(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.principals.count = 2
+    world = World(cfg, run_id="test_transfer_resource")
+
+    before_sender = world.ledger.get_llm_budget("alpha_1")
+    before_recipient = world.ledger.get_llm_budget("alpha_2")
+
+    result = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "transfer_resource",
+            "recipient_id": "alpha_2",
+            "resource": "llm_budget",
+            "amount": 0.5,
+            "memo": "contracted budget",
+        },
+    )
+    assert result.success, result.message
+
+    assert world.ledger.get_llm_budget("alpha_1") == pytest.approx(before_sender - 0.5)
+    assert world.ledger.get_llm_budget("alpha_2") == pytest.approx(before_recipient + 0.5)
+
+    events = [e for e in world.logger.read_recent(40) if e.get("event_type") == "resource_transfer"]
+    assert events
+    last = events[-1]
+    assert last.get("resource") == "llm_budget"
+    assert last.get("sender") == "alpha_1"
+    assert last.get("recipient") == "alpha_2"
+
+
+def test_transfer_resource_rejects_non_transferable_resource(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.principals.count = 2
+    world = World(cfg, run_id="test_transfer_resource_invalid")
+
+    result = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "transfer_resource",
+            "recipient_id": "alpha_2",
+            "resource": "llm_calls",
+            "amount": 1,
+        },
+    )
+    assert result.success is False
+    assert result.error_code == "invalid_argument"

@@ -524,6 +524,7 @@ def _normalize_loop_decision(decision, state_snapshot):
         "write_artifact",
         "read_artifact",
         "transfer",
+        "transfer_resource",
         "submit_to_mint",
         "query_kernel",
     }}
@@ -545,6 +546,26 @@ def _normalize_loop_decision(decision, state_snapshot):
             return _fallback_action(state_snapshot), "query_kernel_missing_query_type"
         if not isinstance(params, dict):
             return _fallback_action(state_snapshot), "query_kernel_invalid_params"
+    if action_type == "transfer_resource":
+        recipient_id = normalized.get("recipient_id")
+        resource = normalized.get("resource")
+        amount = normalized.get("amount")
+        memo = normalized.get("memo")
+        if not isinstance(recipient_id, str) or not recipient_id.strip():
+            return _fallback_action(state_snapshot), "transfer_resource_missing_recipient_id"
+        if not isinstance(resource, str) or not resource.strip():
+            return _fallback_action(state_snapshot), "transfer_resource_missing_resource"
+        try:
+            amount_value = float(amount)
+        except Exception:
+            return _fallback_action(state_snapshot), "transfer_resource_invalid_amount"
+        if amount_value <= 0:
+            return _fallback_action(state_snapshot), "transfer_resource_non_positive_amount"
+        if memo is not None and not isinstance(memo, str):
+            return _fallback_action(state_snapshot), "transfer_resource_invalid_memo"
+        normalized["recipient_id"] = recipient_id.strip()
+        normalized["resource"] = resource.strip().lower()
+        normalized["amount"] = amount_value
 
     return normalized, None
 
@@ -645,10 +666,11 @@ def run():
     prompt = (
         "You are agent {principal_id} in an economy simulation. "
         "Return exactly one JSON action object and never use noop. "
-        "Valid action_type values include write_artifact, read_artifact, transfer, "
+        "Valid action_type values include write_artifact, read_artifact, transfer, transfer_resource, "
         "submit_to_mint, query_kernel. "
         "Do not invoke artifacts directly. "
         "For query_kernel you must include query_type and params object. "
+        "For transfer_resource include recipient_id, resource, and amount. "
         "Do not modify *_loop artifacts. "
         "When writing artifacts, use ids prefixed with {principal_id}_. "
         "Prefer interaction and production actions over status checks."

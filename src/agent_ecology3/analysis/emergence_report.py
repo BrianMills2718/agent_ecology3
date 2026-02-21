@@ -31,6 +31,7 @@ def summarize_events(path: Path) -> dict[str, Any]:
     errors: Counter[str] = Counter()
     query_types: Counter[str] = Counter()
     transfer_edges: Counter[tuple[str, str]] = Counter()
+    resource_transfer_edges: Counter[tuple[str, str, str]] = Counter()
     read_edges: Counter[tuple[str, str]] = Counter()
     final_scrip: dict[str, int] = {}
     owner_map: dict[str, str] = {}
@@ -53,6 +54,8 @@ def summarize_events(path: Path) -> dict[str, Any]:
     writes = 0
     reads_success = 0
     transfers = 0
+    resource_transfers_total = 0
+    llm_budget_transfer_amount = 0.0
     mint_submissions = 0
     kernel_queries_success = 0
     loop_decisions_total = 0
@@ -109,6 +112,18 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 amount = int(event.get("amount") or 0)
                 if isinstance(sender, str) and isinstance(recipient, str):
                     transfer_edges[(sender, recipient)] += amount
+                continue
+
+            if event_type == "resource_transfer":
+                resource_transfers_total += 1
+                sender = event.get("sender")
+                recipient = event.get("recipient")
+                resource = event.get("resource")
+                amount = float(event.get("amount") or 0.0)
+                if isinstance(sender, str) and isinstance(recipient, str) and isinstance(resource, str):
+                    resource_transfer_edges[(resource, sender, recipient)] += amount
+                    if resource == "llm_budget":
+                        llm_budget_transfer_amount += amount
                 continue
 
             if event_type == "mint_submission":
@@ -187,6 +202,11 @@ def summarize_events(path: Path) -> dict[str, Any]:
 
     cross_read_events = sum(v for (src, dst), v in read_edges.items() if src != dst)
     cross_transfer_amount = sum(v for (src, dst), v in transfer_edges.items() if src != dst)
+    cross_llm_budget_transfer_amount = sum(
+        amount
+        for (resource, src, dst), amount in resource_transfer_edges.items()
+        if resource == "llm_budget" and src != dst
+    )
 
     principals = sorted(set(final_scrip) | set(per_principal_actions) | set(per_principal_llm_calls))
     per_principal: dict[str, dict[str, int]] = {}
@@ -233,6 +253,9 @@ def summarize_events(path: Path) -> dict[str, Any]:
         "writes": writes,
         "reads_success": reads_success,
         "transfers": transfers,
+        "resource_transfers_total": resource_transfers_total,
+        "llm_budget_transfer_amount": round(llm_budget_transfer_amount, 6),
+        "cross_llm_budget_transfer_amount": round(cross_llm_budget_transfer_amount, 6),
         "mint_submissions": mint_submissions,
         "kernel_queries_success": kernel_queries_success,
         "loop_decisions_total": loop_decisions_total,
@@ -246,6 +269,10 @@ def summarize_events(path: Path) -> dict[str, Any]:
         "cross_transfer_amount": cross_transfer_amount,
         "transfer_edges": {
             f"{src}->{dst}": amount for (src, dst), amount in sorted(transfer_edges.items())
+        },
+        "resource_transfer_edges": {
+            f"{resource}:{src}->{dst}": round(amount, 6)
+            for (resource, src, dst), amount in sorted(resource_transfer_edges.items())
         },
         "read_edges": {
             f"{src}->{dst}": count for (src, dst), count in sorted(read_edges.items())
@@ -281,6 +308,9 @@ def _experiment_numeric_metrics(summary: dict[str, Any]) -> dict[str, float]:
         "writes",
         "reads_success",
         "transfers",
+        "resource_transfers_total",
+        "llm_budget_transfer_amount",
+        "cross_llm_budget_transfer_amount",
         "mint_submissions",
         "kernel_queries_success",
         "cross_read_events",
