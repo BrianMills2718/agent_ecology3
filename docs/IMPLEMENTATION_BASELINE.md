@@ -238,3 +238,49 @@ Baseline validation run after switching default cooldown to `0.0`:
 - `mint_submissions`: `2`
 - `fallback_rate`: `0.0208`
 - `decision_success_rate`: `1.0`
+
+## Scarcity-First Matrix (5 Runs, 2026-02-21)
+
+Repeated baseline command (5x):
+
+1. `python run.py --duration 30 --agents 4 --llm-loop on --loop-llm-cooldown 0`
+2. For each run: `PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --events logs --run-id <run_id> --log-experiment`
+
+Artifacts:
+
+1. Matrix summary: `logs/scarcity_baseline_matrix_1771652262_summary.json`
+2. AE3 run ids:
+- `run_20260221_053742`
+- `run_20260221_053819`
+- `run_20260221_053856`
+- `run_20260221_053933`
+- `run_20260221_054010`
+3. llm_client run ids:
+- `bfcbfd56b476`
+- `ae64d8756595`
+- `4e0b9c883ffe`
+- `0493bce2938a`
+- `a80fe9362f02`
+
+Aggregate (mean ± stdev):
+
+1. `action_entropy_bits`: `2.134 ± 0.0385`
+2. `cross_read_events`: `17.2 ± 2.7857`
+3. `cross_transfer_amount`: `3.8 ± 1.4697`
+4. `mint_submissions`: `3.6 ± 1.7436`
+5. `decision_success_rate`: `0.9959 ± 0.0082`
+6. `repeat_error_rate`: `0.0 ± 0.0`
+7. `fallback_rate`: `0.0289 ± 0.0274`
+
+## KPI Lock (v1, Scarcity Optimization)
+
+Primary optimization KPIs:
+
+1. `cross_transfer_amount` (increase): baseline mean `3.8`.
+2. `mint_submissions` (increase): baseline mean `3.6`.
+3. `action_entropy_bits` (maintain/increase): baseline mean `2.134`.
+
+Stability guardrails (must hold while optimizing):
+
+1. `decision_success_rate >= 0.98` (baseline min observed `0.9796`).
+2. `repeat_error_rate = 0.0` (baseline observed across all 5 runs).
