@@ -29,6 +29,7 @@ python run.py --duration 120
 ```bash
 python run.py --config config/config.yaml
 python run.py --duration 300 --agents 4
+python run.py --duration 300 --agents 4 --loop-llm-cooldown 2.0
 python run.py --dashboard
 python run.py --dashboard-only
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --events logs/latest/events.jsonl --pretty

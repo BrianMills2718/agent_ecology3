@@ -20,6 +20,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="config/config.yaml", help="Path to config YAML")
     parser.add_argument("--duration", type=float, default=None, help="Seconds to run simulation")
     parser.add_argument("--agents", type=int, default=None, help="Override principal count")
+    parser.add_argument(
+        "--loop-llm-cooldown",
+        type=float,
+        default=None,
+        help="Override llm.loop_llm_cooldown_seconds (set 0 to disable cooldown)",
+    )
     parser.add_argument("--dashboard", action="store_true", help="Run simulation with dashboard server")
     parser.add_argument("--dashboard-only", action="store_true", help="Run dashboard only (read existing JSONL logs)")
     parser.add_argument("--host", default=None, help="Dashboard host override")
@@ -27,12 +33,20 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_runtime_config(path: str, agents_override: int | None) -> AppConfig:
+def _load_runtime_config(
+    path: str,
+    agents_override: int | None,
+    loop_llm_cooldown_override: float | None = None,
+) -> AppConfig:
     config = load_config(path)
     if agents_override is not None:
         if agents_override <= 0:
             raise ValueError("--agents must be > 0")
         config.principals.count = agents_override
+    if loop_llm_cooldown_override is not None:
+        if loop_llm_cooldown_override < 0:
+            raise ValueError("--loop-llm-cooldown must be >= 0")
+        config.llm.loop_llm_cooldown_seconds = float(loop_llm_cooldown_override)
     return config
 
 
@@ -103,7 +117,11 @@ def main() -> int:
 
     os.chdir(Path(__file__).resolve().parents[2])
 
-    config = _load_runtime_config(args.config, args.agents)
+    config = _load_runtime_config(
+        args.config,
+        args.agents,
+        args.loop_llm_cooldown,
+    )
 
     if args.dashboard_only:
         asyncio.run(_serve_dashboard_only(config, args.host, args.port))
