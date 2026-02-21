@@ -172,6 +172,7 @@ class World:
         self._action_feedback_maxlen = max(60, int(config.logging.recent_event_limit))
         self._action_feedback: dict[str, deque[dict[str, Any]]] = {}
         self._action_count = 0
+        self._llm_syscall_count = 0
 
         self.rate_tracker = RateTracker(window_seconds=config.resources.rate_window_seconds)
         self.rate_tracker.configure_limit("llm_calls", config.resources.rate_limits.llm_calls_per_window)
@@ -1022,6 +1023,24 @@ def run():
                 raise RuntimeError(f"llm_client import failed: {exc}") from exc
 
             trace_id = f"ae3/{self.run_id}/event_{self.event_number}/payer/{payer_id}"
+            agent_kwargs: dict[str, Any] = {}
+            lowered_model = model.strip().lower()
+            is_agent_model = (
+                lowered_model == "claude-code"
+                or lowered_model.startswith("claude-code/")
+                or lowered_model == "codex"
+                or lowered_model.startswith("codex/")
+                or lowered_model == "openai-agents"
+                or lowered_model.startswith("openai-agents/")
+            )
+            if is_agent_model:
+                if self.config.llm.agent_cwd:
+                    agent_kwargs["cwd"] = self.config.llm.agent_cwd
+                if self.config.llm.agent_max_turns is not None:
+                    agent_kwargs["max_turns"] = int(self.config.llm.agent_max_turns)
+                if self.config.llm.agent_permission_mode:
+                    agent_kwargs["permission_mode"] = self.config.llm.agent_permission_mode
+
             llm_result = call_llm(
                 model=model,
                 messages=messages,
@@ -1030,6 +1049,7 @@ def run():
                 task="agent_ecology3_syscall",
                 trace_id=trace_id,
                 max_budget=0.0,
+                **agent_kwargs,
             )
             content = llm_result.content or ""
             usage_raw = llm_result.usage if isinstance(llm_result.usage, dict) else {}
@@ -1109,6 +1129,7 @@ def run():
                     "tokens": usage,
                 },
             )
+            self._llm_syscall_count += 1
             return {
                 "success": True,
                 "content": content,
@@ -1149,6 +1170,9 @@ def run():
         if self.mint_auction is not None:
             _ = self.mint_auction.update()
 
+    def get_llm_syscall_count(self) -> int:
+        return int(self._llm_syscall_count)
+
     def log_summary_snapshot(self) -> None:
         snapshot = SummarySnapshot(
             timestamp=self.now_iso(),
@@ -1168,6 +1192,7 @@ def run():
         return {
             "run_id": self.run_id,
             "event_number": self.event_number,
+            "llm_syscall_count": self.get_llm_syscall_count(),
             "principal_count": len(self.principal_ids),
             "artifact_count": len(artifacts),
             "principals": self.principal_ids,

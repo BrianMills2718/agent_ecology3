@@ -30,6 +30,7 @@ python run.py --duration 120
 python run.py --config config/config.yaml
 python run.py --duration 300 --agents 4
 python run.py --duration 300 --agents 4 --llm-loop on
+python run.py --duration 300 --agents 4 --model claude-code/opus --llm-loop on
 python run.py --duration 300 --agents 4 --loop-llm-cooldown 2.0
 python run.py --duration 300 --agents 4 --llm-loop on --loop-llm-cooldown 2.0
 python run.py --dashboard
@@ -41,6 +42,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --list-experim
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --compare-experiments RUN_A RUN_B --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --analyze-experiments --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 30 --agents 4 --llm-loop on --loop-llm-cooldown 0 --log-experiment --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 3 --duration 900 --agents 4 --model claude-code/opus --target-llm-calls 200 --llm-loop on --loop-llm-cooldown 0 --log-experiment --pretty
 ```
 
 ## Autonomous Loop Behavior
@@ -54,6 +56,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --dura
 - Scarce LLM rights can be contracted via `transfer_resource` (`resource=llm_budget`) between principals.
 - Gate and feedback behavior can be toggled with `llm.loop_action_gate_enabled` and `llm.loop_prompt_feedback_enabled`.
 - Loop LLM calls can be rate-shaped per principal using `llm.loop_llm_cooldown_seconds` (default `0.0`, disabled) with in-memory per-principal cooldown tracking (control path does not depend on JSONL reads).
+- Agent SDK loop-call options can be forwarded from config with `llm.agent_cwd`, `llm.agent_max_turns`, and `llm.agent_permission_mode`.
 
 ## Experiment Integration
 
@@ -62,6 +65,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --dura
 - `emergence_report` now includes loop-decision metrics from `loop_decision` events: `fallback_rate`, `decision_success_rate`, `repeat_error_rate`, and per-principal `loop_decision_trends`.
 - `emergence_report` also reports scarce-resource transfer metrics: `resource_transfers_total`, `llm_budget_transfer_amount`, and `cross_llm_budget_transfer_amount`.
 - `scarcity_matrix` runs repeated fixed-config baselines, logs each run to `llm_client`, aggregates mean/std/min/max metrics, and evaluates KPI lock checks in one command.
+- `scarcity_matrix` supports both wall-clock runs and call-budget-normalized runs via `--target-llm-calls`; this reduces model-latency bias in emergence comparisons.
 - If `llm_client` is not installed in your active env, set `LLM_CLIENT_REPO=/home/brian/projects/llm_client` (or pass `--llm-client-repo`) so the analyzer can import directly from repo source.
 
 ## Project Layout

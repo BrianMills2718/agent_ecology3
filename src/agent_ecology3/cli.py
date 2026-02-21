@@ -20,6 +20,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="config/config.yaml", help="Path to config YAML")
     parser.add_argument("--duration", type=float, default=None, help="Seconds to run simulation")
     parser.add_argument("--agents", type=int, default=None, help="Override principal count")
+    parser.add_argument("--model", default=None, help="Override llm.default_model for this run")
     parser.add_argument(
         "--llm-loop",
         choices=("on", "off"),
@@ -42,6 +43,7 @@ def _parse_args() -> argparse.Namespace:
 def _load_runtime_config(
     path: str,
     agents_override: int | None,
+    model_override: str | None = None,
     llm_loop_override: str | None = None,
     loop_llm_cooldown_override: float | None = None,
 ) -> AppConfig:
@@ -58,6 +60,13 @@ def _load_runtime_config(
             config.llm.enable_bootstrap_loop_llm = False
         else:
             raise ValueError("--llm-loop must be one of: on, off")
+    if model_override is not None:
+        model = str(model_override).strip()
+        if not model:
+            raise ValueError("--model must be a non-empty string")
+        config.llm.default_model = model
+        if config.llm.allowed_models and model not in config.llm.allowed_models:
+            config.llm.allowed_models.append(model)
     if loop_llm_cooldown_override is not None:
         if loop_llm_cooldown_override < 0:
             raise ValueError("--loop-llm-cooldown must be >= 0")
@@ -135,6 +144,7 @@ def main() -> int:
     config = _load_runtime_config(
         args.config,
         args.agents,
+        args.model,
         args.llm_loop,
         args.loop_llm_cooldown,
     )

@@ -115,6 +115,7 @@ def _build_config(
     agents: int,
     llm_loop: bool,
     loop_llm_cooldown: float,
+    model_override: str | None,
 ) -> AppConfig:
     cfg = load_config(config_path)
     if agents <= 0:
@@ -124,18 +125,72 @@ def _build_config(
     cfg.principals.count = int(agents)
     cfg.llm.enable_bootstrap_loop_llm = bool(llm_loop)
     cfg.llm.loop_llm_cooldown_seconds = float(loop_llm_cooldown)
+    if model_override:
+        model = str(model_override).strip()
+        if not model:
+            raise ValueError("--model must be a non-empty string")
+        cfg.llm.default_model = model
+        if cfg.llm.allowed_models and model not in cfg.llm.allowed_models:
+            cfg.llm.allowed_models.append(model)
     return cfg
 
 
-def _run_single(cfg: AppConfig, duration: float) -> tuple[str, Path, dict[str, Any]]:
+async def _run_until_llm_calls(
+    runner: SimulationRunner,
+    *,
+    target_duration: float,
+    target_llm_calls: int,
+) -> tuple[World, str]:
+    run_task = asyncio.create_task(runner.run(target_duration))
+    stop_reason = "duration_reached"
+    try:
+        while not run_task.done():
+            if runner.world.get_llm_syscall_count() >= target_llm_calls:
+                stop_reason = "llm_call_target_reached"
+                runner.stop()
+                break
+            await asyncio.sleep(0.1)
+        world = await run_task
+    finally:
+        if not run_task.done():
+            runner.stop()
+            world = await run_task
+    if stop_reason != "llm_call_target_reached" and world.get_llm_syscall_count() >= target_llm_calls:
+        stop_reason = "llm_call_target_reached"
+    return world, stop_reason
+
+
+def _run_single(
+    cfg: AppConfig,
+    duration: float,
+    *,
+    target_llm_calls: int,
+) -> tuple[str, Path, dict[str, Any], dict[str, Any]]:
     if duration <= 0:
         raise ValueError("--duration must be > 0")
     world = World(cfg.model_copy(deep=True))
     runner = SimulationRunner(world)
-    asyncio.run(runner.run(duration))
+    stop_reason = "duration_reached"
+    if target_llm_calls > 0:
+        world, stop_reason = asyncio.run(
+            _run_until_llm_calls(
+                runner,
+                target_duration=duration,
+                target_llm_calls=target_llm_calls,
+            )
+        )
+    else:
+        asyncio.run(runner.run(duration))
     events_path = Path(world.logger.output_path)
     summary = summarize_events(events_path)
-    return world.run_id, events_path, summary
+    run_meta = {
+        "elapsed_seconds": round(float(runner.elapsed_seconds), 6),
+        "stop_reason": stop_reason,
+        "target_llm_calls": int(target_llm_calls),
+        "llm_calls_observed": int(world.get_llm_syscall_count()),
+        "llm_calls_target_reached": bool(target_llm_calls > 0 and world.get_llm_syscall_count() >= target_llm_calls),
+    }
+    return world.run_id, events_path, summary, run_meta
 
 
 def _parse_args() -> argparse.Namespace:
@@ -144,8 +199,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--runs", type=int, default=5, help="Number of runs")
     parser.add_argument("--duration", type=float, default=30.0, help="Seconds per run")
     parser.add_argument("--agents", type=int, default=4, help="Principal count override")
+    parser.add_argument("--model", default=None, help="Override llm.default_model for matrix runs")
     parser.add_argument("--llm-loop", choices=("on", "off"), default="on", help="Enable/disable loop LLM")
     parser.add_argument("--loop-llm-cooldown", type=float, default=0.0, help="Loop LLM cooldown override")
+    parser.add_argument(
+        "--target-llm-calls",
+        type=int,
+        default=0,
+        help="If >0, stop each run once this many successful llm_syscall events are observed (duration is safety cap)",
+    )
     parser.add_argument("--log-experiment", action="store_true", help="Log each run summary into llm_client experiments")
     parser.add_argument("--experiment-dataset", default="agent_ecology3_emergence", help="llm_client dataset label")
     parser.add_argument("--experiment-project", default="agent_ecology3", help="llm_client project label")
@@ -172,7 +234,11 @@ def main() -> int:
         agents=int(args.agents),
         llm_loop=llm_loop_enabled,
         loop_llm_cooldown=float(args.loop_llm_cooldown),
+        model_override=args.model,
     )
+    target_llm_calls = int(args.target_llm_calls)
+    if target_llm_calls < 0:
+        raise ValueError("--target-llm-calls must be >= 0")
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -185,7 +251,11 @@ def main() -> int:
     with jsonl_path.open("w", encoding="utf-8") as matrix_stream, run_ids_path.open("w", encoding="utf-8") as run_stream:
         for idx in range(1, runs + 1):
             print(f"[scarcity-matrix] run {idx}/{runs}")
-            run_id, events_path, summary = _run_single(cfg, float(args.duration))
+            run_id, events_path, summary, run_meta = _run_single(
+                cfg,
+                float(args.duration),
+                target_llm_calls=target_llm_calls,
+            )
             run_stream.write(run_id + "\n")
 
             experiment_run_id: str | None = None
@@ -209,6 +279,7 @@ def main() -> int:
                 "ae3_run_id": run_id,
                 "events_path": str(events_path),
                 "experiment_run_id": experiment_run_id,
+                "run_meta": run_meta,
                 "metrics": _metrics_from_summary(summary),
             }
             rows.append(record)
@@ -230,8 +301,10 @@ def main() -> int:
         "settings": {
             "duration": float(args.duration),
             "agents": int(args.agents),
+            "model": str(cfg.llm.default_model),
             "llm_loop": llm_loop_enabled,
             "loop_llm_cooldown": float(args.loop_llm_cooldown),
+            "target_llm_calls": target_llm_calls,
             "log_experiment": bool(args.log_experiment),
         },
         "run_records": rows,

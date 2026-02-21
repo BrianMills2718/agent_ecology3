@@ -56,10 +56,13 @@ class ResourcesConfig(StrictModel):
 
 
 class LLMConfig(StrictModel):
-    default_model: str = "gemini/gemini-2.5-flash"
+    default_model: str = "openrouter/deepseek/deepseek-chat"
     timeout_seconds: int = 60
     allowed_models: list[str] = Field(default_factory=list)
     estimate_tokens_per_call: int = 900
+    agent_cwd: str | None = None
+    agent_max_turns: int | None = Field(default=None, ge=1)
+    agent_permission_mode: str | None = None
     enable_bootstrap_loop_llm: bool = False
     loop_llm_cooldown_seconds: float = 0.0
     loop_prompt_feedback_enabled: bool = True
