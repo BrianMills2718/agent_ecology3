@@ -428,6 +428,10 @@ def _pick_read_target(state_snapshot):
         artifact_id = item.get("id")
         if not isinstance(artifact_id, str) or not artifact_id:
             continue
+        if artifact_id.endswith("_loop"):
+            continue
+        if bool(item.get("executable", False)):
+            continue
         if artifact_id.count("_") < 2:
             continue
         if artifact_id.startswith(own_prefix):
@@ -648,6 +652,35 @@ def _should_force_explore(decision):
     return False
 
 
+def _should_nudge_market_action(decision, state_snapshot):
+    if not isinstance(state_snapshot, dict):
+        return False
+    raw_balance = state_snapshot.get("balance")
+    if not isinstance(raw_balance, int) or raw_balance < 1:
+        return False
+    own_scratch_exists = _artifact_exists("{scratch_id}")
+    if not own_scratch_exists:
+        artifacts = state_snapshot.get("artifacts")
+        if isinstance(artifacts, list):
+            own_scratch_exists = any(
+                isinstance(item, dict) and item.get("id") == "{scratch_id}"
+                for item in artifacts
+            )
+    if not own_scratch_exists:
+        return False
+
+    feedback = state_snapshot.get("recent_feedback")
+    if isinstance(feedback, dict):
+        recent_actions = feedback.get("recent_action_types")
+        if isinstance(recent_actions, list) and "submit_to_mint" in [str(x) for x in recent_actions]:
+            return False
+
+    action = _canonical_action_type(decision)
+    if action in ("query_kernel", "read_artifact", "write_artifact", None):
+        return ((int(time.time()) + {slot}) % 3) == 0
+    return False
+
+
 def run():
     feedback_enabled = {self.config.llm.loop_prompt_feedback_enabled}
     state_snapshot = {{}}
@@ -671,6 +704,7 @@ def run():
         "Do not invoke artifacts directly. "
         "For query_kernel you must include query_type and params object. "
         "For transfer_resource include recipient_id, resource, and amount. "
+        "Maintain market activity: use submit_to_mint regularly when your scratch artifact exists and you can afford bid>=1. "
         "Do not modify *_loop artifacts. "
         "When writing artifacts, use ids prefixed with {principal_id}_. "
         "Prefer interaction and production actions over status checks."
@@ -729,6 +763,14 @@ def run():
     if gate_reason is not None:
         decision_meta["gate_fallback_used"] = True
         decision_meta["gate_reason"] = gate_reason
+    elif _should_nudge_market_action(decision, state_snapshot):
+        decision_meta["gate_fallback_used"] = True
+        decision_meta["gate_reason"] = "market_nudge_submit_to_mint"
+        decision = {{
+            "action_type": "submit_to_mint",
+            "artifact_id": "{scratch_id}",
+            "bid": 1,
+        }}
 
     result = invoke("kernel_act", decision)
     if not result.get("success"):
