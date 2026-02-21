@@ -112,7 +112,8 @@ def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     assert loop_artifact is not None
     assert "_summarize_recent_feedback" in loop_artifact.code
     assert "state_snapshot[\"recent_feedback\"] = _summarize_recent_feedback(limit=40)" in loop_artifact.code
-    assert "if intent_principal != \"alpha_1\":" in loop_artifact.code
+    assert "feedback = kernel_state.get_recent_feedback(limit=limit)" in loop_artifact.code
+    assert "return bool(kernel_state.llm_cooldown_ready())" in loop_artifact.code
     assert "allowed_actions = {" in loop_artifact.code
     assert "disallowed_action:" in loop_artifact.code
     assert "avoid repeating actions with recent error codes" in loop_artifact.code
@@ -185,6 +186,7 @@ def test_loop_llm_cooldown_skips_rapid_repeated_calls(tmp_path) -> None:
 
     def _fake_syscall(**_kwargs):
         llm_call_count["n"] += 1
+        world.mark_llm_call_attempt("alpha_1")
         world.logger.log(
             "llm_syscall",
             {
@@ -232,3 +234,66 @@ def test_loop_llm_cooldown_skips_rapid_repeated_calls(tmp_path) -> None:
     last = loop_decisions[-1]
     assert last.get("decision_source") == "llm_cooldown_skip"
     assert last.get("llm_attempted") is False
+
+
+def test_loop_llm_cooldown_ignores_log_volume(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.enable_bootstrap_loop_llm = True
+    cfg.llm.loop_action_gate_enabled = True
+    cfg.llm.loop_llm_cooldown_seconds = 60.0
+    world = World(cfg, run_id="test_loop_llm_cooldown_log_volume")
+
+    llm_call_count = {"n": 0}
+
+    def _fake_syscall(**_kwargs):
+        llm_call_count["n"] += 1
+        world.mark_llm_call_attempt("alpha_1")
+        return {
+            "success": True,
+            "content": json.dumps(
+                {
+                    "action_type": "read_artifact",
+                    "artifact_id": "alpha_1_scratch",
+                }
+            ),
+            "usage": {"total_tokens": 10},
+            "cost": 0.0,
+            "charged_cost": 0.0,
+            "cost_source": "test",
+            "billing_mode": "subscription",
+            "cache_hit": False,
+            "undercharged_cost": 0.0,
+        }
+
+    world.call_llm_as_syscall = _fake_syscall
+
+    for _ in range(2):
+        invoke_result = world.execute_action_data(
+            "alpha_1",
+            {
+                "action_type": "invoke_artifact",
+                "artifact_id": "alpha_1_loop",
+                "method": "run",
+                "args": [],
+            },
+        )
+        assert invoke_result.success, invoke_result.message
+
+    for i in range(400):
+        world.logger.log("noise_event", {"event_number": world.event_number, "noise_index": i})
+
+    invoke_result = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "invoke_artifact",
+            "artifact_id": "alpha_1_loop",
+            "method": "run",
+            "args": [],
+        },
+    )
+    assert invoke_result.success, invoke_result.message
+    assert llm_call_count["n"] == 1
+
+    loop_decisions = [e for e in world.logger.read_recent(120) if e.get("event_type") == "loop_decision"]
+    assert loop_decisions
+    assert loop_decisions[-1].get("decision_source") == "llm_cooldown_skip"

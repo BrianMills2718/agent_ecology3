@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -88,6 +89,15 @@ class KernelStateView:
             "cpu_seconds_remaining": self._world.ledger.get_resource_remaining(self._principal_id, "cpu_seconds"),
         }
 
+    def get_recent_feedback(self, limit: int = 30) -> dict[str, Any]:
+        return self._world.get_recent_feedback_summary(self._principal_id, limit=limit)
+
+    def get_llm_call_age_seconds(self) -> float | None:
+        return self._world.get_llm_call_age_seconds(self._principal_id)
+
+    def llm_cooldown_ready(self) -> bool:
+        return self._world.is_llm_cooldown_ready(self._principal_id)
+
     def recent_events(self, limit: int = 20) -> list[dict[str, Any]]:
         return self._world.logger.read_recent(limit)
 
@@ -158,6 +168,10 @@ class World:
         self.frozen_agents: set[str] = set()
         self.disk_quotas: dict[str, int] = {}
         self.installed_libraries: dict[str, list[dict[str, Any]]] = {}
+        self._last_llm_call_ts: dict[str, float] = {}
+        self._action_feedback_maxlen = max(60, int(config.logging.recent_event_limit))
+        self._action_feedback: dict[str, deque[dict[str, Any]]] = {}
+        self._action_count = 0
 
         self.rate_tracker = RateTracker(window_seconds=config.resources.rate_window_seconds)
         self.rate_tracker.configure_limit("llm_calls", config.resources.rate_limits.llm_calls_per_window)
@@ -444,89 +458,43 @@ def _summarize_recent_feedback(limit=30):
     if "kernel_state" not in globals():
         return summary
     try:
-        events = kernel_state.recent_events(limit=limit)
+        feedback = kernel_state.get_recent_feedback(limit=limit)
     except Exception:
         return summary
-    if not isinstance(events, list):
+    if not isinstance(feedback, dict):
         return summary
-
-    action_types = []
-    error_codes = []
-    for event in events:
-        if not isinstance(event, dict):
-            continue
-        if event.get("event_type") != "action":
-            continue
-        intent = event.get("intent")
-        result = event.get("result")
-        if not isinstance(intent, dict) or not isinstance(result, dict):
-            continue
-        intent_principal = intent.get("principal_id")
-        if intent_principal != "{principal_id}":
-            continue
-        summary["actions_attempted"] += 1
-        action_type = intent.get("action_type")
-        if isinstance(action_type, str) and action_type:
-            action_types.append(action_type)
-        if result.get("success") is False:
-            summary["action_failures"] += 1
-            error_code = result.get("error_code")
-            if isinstance(error_code, str) and error_code:
-                error_codes.append(error_code)
-
-    if action_types:
-        summary["recent_action_types"] = action_types[-6:]
-    if error_codes:
-        summary["recent_error_codes"] = error_codes[-6:]
+    for key in ("actions_attempted", "action_failures", "recent_action_types", "recent_error_codes"):
+        if key in feedback:
+            summary[key] = feedback[key]
     return summary
 
 
-def _parse_event_timestamp(event):
-    if not isinstance(event, dict):
-        return None
-    ts = event.get("timestamp")
-    if not isinstance(ts, str) or not ts:
-        return None
-    text = ts
-    if text.endswith("Z"):
-        text = text[:-1] + "+00:00"
-    try:
-        import datetime
-        dt = datetime.datetime.fromisoformat(text)
-        return dt.timestamp()
-    except Exception:
-        return None
-
-
-def _recent_llm_call_age_seconds(limit=120):
+def _recent_llm_call_age_seconds():
     if "kernel_state" not in globals():
         return None
     try:
-        events = kernel_state.recent_events(limit=limit)
+        age = kernel_state.get_llm_call_age_seconds()
     except Exception:
         return None
-    if not isinstance(events, list):
+    if age is None:
         return None
-    now = time.time()
-    for event in reversed(events):
-        if not isinstance(event, dict):
-            continue
-        if event.get("event_type") != "llm_syscall":
-            continue
-        payer_id = event.get("payer_id")
-        if payer_id != "{principal_id}":
-            continue
-        event_ts = _parse_event_timestamp(event)
-        if event_ts is None:
-            return 0.0
-        return max(0.0, now - event_ts)
-    return None
+    try:
+        age_value = float(age)
+    except Exception:
+        return None
+    return max(0.0, age_value)
 
 
 def _llm_cooldown_ready():
     cooldown = float({self.config.llm.loop_llm_cooldown_seconds})
     if cooldown <= 0:
         return True
+    if "kernel_state" not in globals():
+        return True
+    try:
+        return bool(kernel_state.llm_cooldown_ready())
+    except Exception:
+        pass
     age = _recent_llm_call_age_seconds()
     if age is None:
         return True
@@ -695,6 +663,7 @@ def run():
         "llm_success": False,
         "llm_attempted": False,
         "llm_cooldown_ready": True,
+        "llm_cooldown_age_seconds": None,
         "llm_cooldown_seconds": float({self.config.llm.loop_llm_cooldown_seconds}),
         "forced_explore": False,
         "gate_fallback_used": False,
@@ -704,6 +673,7 @@ def run():
         "feedback_enabled": feedback_enabled,
     }}
     if "_syscall_llm" in globals():
+        decision_meta["llm_cooldown_age_seconds"] = _recent_llm_call_age_seconds()
         ready = _llm_cooldown_ready()
         decision_meta["llm_cooldown_ready"] = bool(ready)
         if ready:
@@ -806,6 +776,76 @@ def run():
         used = self.artifacts.get_owner_usage(principal_id)
         quota = self.get_disk_quota(principal_id)
         return max(0, quota - used)
+
+    def mark_llm_call_attempt(self, principal_id: str, when_seconds: float | None = None) -> None:
+        timestamp = time.time() if when_seconds is None else float(when_seconds)
+        self._last_llm_call_ts[principal_id] = timestamp
+
+    def get_llm_call_age_seconds(self, principal_id: str, now_seconds: float | None = None) -> float | None:
+        last = self._last_llm_call_ts.get(principal_id)
+        if last is None:
+            return None
+        now = time.time() if now_seconds is None else float(now_seconds)
+        return max(0.0, now - last)
+
+    def is_llm_cooldown_ready(self, principal_id: str, now_seconds: float | None = None) -> bool:
+        cooldown_seconds = float(self.config.llm.loop_llm_cooldown_seconds)
+        if cooldown_seconds <= 0:
+            return True
+        age = self.get_llm_call_age_seconds(principal_id, now_seconds=now_seconds)
+        if age is None:
+            return True
+        return age >= cooldown_seconds
+
+    def record_action_feedback(
+        self,
+        principal_id: str,
+        *,
+        action_type: str | None,
+        success: bool,
+        error_code: str | None,
+    ) -> None:
+        if principal_id not in self._action_feedback:
+            self._action_feedback[principal_id] = deque(maxlen=self._action_feedback_maxlen)
+        self._action_feedback[principal_id].append(
+            {
+                "timestamp": self.now_iso(),
+                "action_type": action_type,
+                "success": bool(success),
+                "error_code": error_code,
+            }
+        )
+        self._action_count += 1
+
+    def get_recent_feedback_summary(self, principal_id: str, limit: int = 30) -> dict[str, Any]:
+        summary = {
+            "actions_attempted": 0,
+            "action_failures": 0,
+            "recent_action_types": [],
+            "recent_error_codes": [],
+        }
+        rows = self._action_feedback.get(principal_id)
+        if not rows:
+            return summary
+
+        take = max(1, int(limit))
+        tail = list(rows)[-take:]
+        action_types: list[str] = []
+        error_codes: list[str] = []
+        for row in tail:
+            summary["actions_attempted"] += 1
+            action_type = row.get("action_type")
+            if isinstance(action_type, str) and action_type:
+                action_types.append(action_type)
+            if row.get("success") is False:
+                summary["action_failures"] += 1
+                error_code = row.get("error_code")
+                if isinstance(error_code, str) and error_code:
+                    error_codes.append(error_code)
+
+        summary["recent_action_types"] = action_types[-6:]
+        summary["recent_error_codes"] = error_codes[-6:]
+        return summary
 
     def get_principal_quotas(self, principal_id: str) -> dict[str, dict[str, float | int]]:
         return {
@@ -951,6 +991,7 @@ def run():
                 ),
             }
 
+        self.mark_llm_call_attempt(payer_id)
         start = time.perf_counter()
         try:
             try:
@@ -1090,7 +1131,7 @@ def run():
         snapshot = SummarySnapshot(
             timestamp=self.now_iso(),
             event_number=self.event_number,
-            action_count=len([e for e in self.logger.read_recent(500) if e.get("event_type") == "action"]),
+            action_count=self._action_count,
             principal_count=len(self.principal_ids),
             artifact_count=len([a for a in self.artifacts.artifacts.values() if not a.deleted]),
             total_scrip=sum(self.ledger.get_all_scrip().values()),

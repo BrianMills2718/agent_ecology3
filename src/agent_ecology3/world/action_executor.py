@@ -628,12 +628,21 @@ class ActionExecutor:
         return ActionResult(True, f"metadata '{intent.key}' updated")
 
     def _log_action(self, intent: ActionIntent, result: ActionResult) -> None:
+        intent_payload = intent.to_dict()
+        result_payload = result.to_dict()
+        error_code_raw = result_payload.get("error_code")
+        self.world.record_action_feedback(
+            intent.principal_id,
+            action_type=_extract_action_name(intent_payload),
+            success=result.success,
+            error_code=error_code_raw if isinstance(error_code_raw, str) else None,
+        )
         self.world.logger.log(
             "action",
             {
                 "event_number": self.world.event_number,
-                "intent": intent.to_dict(),
-                "result": result.to_dict(),
+                "intent": intent_payload,
+                "result": result_payload,
                 "scrip_after": self.world.ledger.get_scrip(intent.principal_id),
             },
         )

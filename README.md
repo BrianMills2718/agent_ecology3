@@ -47,11 +47,11 @@ PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --analyze-expe
 - Loop artifacts can call LLM when `llm.enable_bootstrap_loop_llm: true`.
 - The parser accepts both canonical AE3 action JSON and common LLM variants (`action` + `parameters`) and normalizes to internal intents.
 - Non-canonical `query_kernel` types are inferred to supported kernel queries to reduce invalid-action churn.
-- Loop prompt state includes principal-scoped `recent_feedback` (recent action attempts/failures and error codes) to reduce repeated failed moves.
+- Loop prompt state includes principal-scoped `recent_feedback` (recent action attempts/failures and error codes) from in-memory runtime state to reduce repeated failed moves.
 - Each loop invocation emits a `loop_decision` event trace with chosen action, fallback usage, and result status.
 - Loop action output is hard-gated to `write_artifact`, `read_artifact`, `transfer`, `submit_to_mint`, and `query_kernel` (invalid actions are rewritten to deterministic fallback).
 - Gate and feedback behavior can be toggled with `llm.loop_action_gate_enabled` and `llm.loop_prompt_feedback_enabled`.
-- Loop LLM calls are rate-shaped per principal using `llm.loop_llm_cooldown_seconds` (default `3.0`) to prevent network latency from collapsing loop throughput.
+- Loop LLM calls are rate-shaped per principal using `llm.loop_llm_cooldown_seconds` (default `3.0`) with in-memory per-principal cooldown tracking (control path does not depend on JSONL reads).
 
 ## Experiment Integration
 

@@ -96,7 +96,7 @@ After initial baseline validation, autonomous loop behavior was hardened to avoi
 - Loop state snapshot now includes compact principal-scoped `recent_feedback` (attempt/failure/error-code/action-type summary) for better next-action selection.
 - Prompt instructions explicitly steer away from repeating recently failing action patterns.
 - Loop runtime now hard-gates generated actions to the approved loop-safe set and rewrites disallowed outputs to deterministic fallback with explicit gate reason metadata.
-- Loop LLM calls now include principal-scoped cooldown gating (`llm.loop_llm_cooldown_seconds`) so loops can continue deterministic actions between LLM decisions.
+- Loop LLM calls now include principal-scoped cooldown gating (`llm.loop_llm_cooldown_seconds`) backed by in-memory per-principal state (not event-log scans in the loop hot path), so loops can continue deterministic actions between LLM decisions.
 - `src/agent_ecology3/world/action_executor.py`
 - Added dedicated `loop_decision` event with decision payload, fallback metadata, and resulting action status.
 - `tests/test_runtime_smoke.py`
