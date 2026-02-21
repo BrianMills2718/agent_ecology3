@@ -391,9 +391,12 @@ class ActionExecutor:
         if artifact.has_loop and intent.method == "run":
             payload = exec_result.get("result")
             if isinstance(payload, dict):
+                raw_decision = payload.get("raw_decision")
                 decision = payload.get("decision")
                 fallback = payload.get("fallback")
                 result_payload = payload.get("result")
+                decision_meta = payload.get("decision_meta")
+                meta_dict = decision_meta if isinstance(decision_meta, dict) else {}
                 result_success: bool | None = None
                 result_error_code: str | None = None
                 if isinstance(result_payload, dict):
@@ -403,15 +406,28 @@ class ActionExecutor:
                     raw_error_code = result_payload.get("error_code")
                     if isinstance(raw_error_code, str) and raw_error_code:
                         result_error_code = raw_error_code
+                gate_fallback_used = bool(meta_dict.get("gate_fallback_used", False))
+                recovery_fallback_used = isinstance(fallback, dict) or bool(meta_dict.get("recovery_fallback_used", False))
+                fallback_used = gate_fallback_used or recovery_fallback_used
                 self.world.logger.log(
                     "loop_decision",
                     {
                         "event_number": self.world.event_number,
                         "principal_id": intent.principal_id,
                         "artifact_id": artifact.id,
+                        "raw_decision": raw_decision if isinstance(raw_decision, dict) else None,
+                        "raw_decision_action": _extract_action_name(raw_decision),
                         "decision": decision if isinstance(decision, dict) else None,
                         "decision_action": _extract_action_name(decision),
-                        "fallback_used": isinstance(fallback, dict),
+                        "fallback_used": fallback_used,
+                        "gate_fallback_used": gate_fallback_used,
+                        "recovery_fallback_used": recovery_fallback_used,
+                        "forced_explore": bool(meta_dict.get("forced_explore", False)),
+                        "gate_reason": meta_dict.get("gate_reason"),
+                        "decision_source": meta_dict.get("source"),
+                        "action_gate_enabled": bool(meta_dict.get("action_gate_enabled", False)),
+                        "feedback_enabled": bool(meta_dict.get("feedback_enabled", False)),
+                        "llm_success": bool(meta_dict.get("llm_success", False)),
                         "fallback": fallback if isinstance(fallback, dict) else None,
                         "fallback_action": _extract_action_name(fallback),
                         "result_success": result_success,

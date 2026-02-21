@@ -34,6 +34,8 @@ llm:
     - anthropic/claude-3-5-sonnet-20241022
   estimate_tokens_per_call: 900
   enable_bootstrap_loop_llm: false
+  loop_prompt_feedback_enabled: true
+  loop_action_gate_enabled: true
 
 contracts:
   default_when_missing: kernel_contract_freeware

@@ -46,11 +46,14 @@ PYTHONPATH=src python -m agent_ecology3.analysis.emergence_report --analyze-expe
 - Non-canonical `query_kernel` types are inferred to supported kernel queries to reduce invalid-action churn.
 - Loop prompt state includes principal-scoped `recent_feedback` (recent action attempts/failures and error codes) to reduce repeated failed moves.
 - Each loop invocation emits a `loop_decision` event trace with chosen action, fallback usage, and result status.
+- Loop action output is hard-gated to `write_artifact`, `read_artifact`, `transfer`, `submit_to_mint`, and `query_kernel` (invalid actions are rewritten to deterministic fallback).
+- Gate and feedback behavior can be toggled with `llm.loop_action_gate_enabled` and `llm.loop_prompt_feedback_enabled`.
 
 ## Experiment Integration
 
 - AE3 emergence analysis integrates with `llm_client` experiment logging (`start_run`, `log_item`, `finish_run`) so run metrics land in the existing experiment registry and SQLite observability DB.
 - `emergence_report` can also query that registry via `--list-experiments`, `--detail-experiment`, and `--compare-experiments`.
+- `emergence_report` now includes loop-decision metrics from `loop_decision` events: `fallback_rate`, `decision_success_rate`, `repeat_error_rate`, and per-principal `loop_decision_trends`.
 - If `llm_client` is not installed in your active env, set `LLM_CLIENT_REPO=/home/brian/projects/llm_client` (or pass `--llm-client-repo`) so the analyzer can import directly from repo source.
 
 ## Project Layout

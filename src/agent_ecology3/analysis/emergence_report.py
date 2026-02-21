@@ -38,6 +38,12 @@ def summarize_events(path: Path) -> dict[str, Any]:
     per_principal_errors: Counter[str] = Counter()
     per_principal_llm_calls: Counter[str] = Counter()
     model_counts: Counter[str] = Counter()
+    per_principal_loop_decisions: Counter[str] = Counter()
+    per_principal_loop_fallbacks: Counter[str] = Counter()
+    per_principal_loop_successes: Counter[str] = Counter()
+    per_principal_loop_errors: Counter[str] = Counter()
+    per_principal_loop_repeat_errors: Counter[str] = Counter()
+    last_loop_error_by_principal: dict[str, str] = {}
 
     first_ts: str | None = None
     last_ts: str | None = None
@@ -49,6 +55,11 @@ def summarize_events(path: Path) -> dict[str, Any]:
     transfers = 0
     mint_submissions = 0
     kernel_queries_success = 0
+    loop_decisions_total = 0
+    loop_fallbacks_total = 0
+    loop_success_total = 0
+    loop_error_total = 0
+    loop_repeat_error_total = 0
 
     with path.open("r", encoding="utf-8") as handle:
         for raw in handle:
@@ -108,6 +119,39 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 kernel_queries_success += 1
                 continue
 
+            if event_type == "loop_decision":
+                loop_decisions_total += 1
+                principal = event.get("principal_id")
+                if isinstance(principal, str):
+                    per_principal_loop_decisions[principal] += 1
+
+                if bool(event.get("fallback_used")):
+                    loop_fallbacks_total += 1
+                    if isinstance(principal, str):
+                        per_principal_loop_fallbacks[principal] += 1
+
+                result_success = event.get("result_success")
+                if isinstance(result_success, bool) and result_success:
+                    loop_success_total += 1
+                    if isinstance(principal, str):
+                        per_principal_loop_successes[principal] += 1
+                    if isinstance(principal, str):
+                        last_loop_error_by_principal.pop(principal, None)
+                else:
+                    error_code = event.get("result_error_code")
+                    if isinstance(error_code, str) and error_code:
+                        loop_error_total += 1
+                        if isinstance(principal, str):
+                            per_principal_loop_errors[principal] += 1
+                            previous_error = last_loop_error_by_principal.get(principal)
+                            if previous_error == error_code:
+                                loop_repeat_error_total += 1
+                                per_principal_loop_repeat_errors[principal] += 1
+                            last_loop_error_by_principal[principal] = error_code
+                    elif isinstance(principal, str):
+                        last_loop_error_by_principal.pop(principal, None)
+                continue
+
             if event_type != "action":
                 continue
 
@@ -154,7 +198,29 @@ def summarize_events(path: Path) -> dict[str, Any]:
             "final_scrip": int(final_scrip.get(principal, 0)),
         }
 
+    loop_principals = sorted(set(per_principal_loop_decisions) | set(per_principal))
+    loop_decision_trends: dict[str, dict[str, float | int]] = {}
+    for principal in loop_principals:
+        decisions = int(per_principal_loop_decisions.get(principal, 0))
+        fallbacks = int(per_principal_loop_fallbacks.get(principal, 0))
+        successes = int(per_principal_loop_successes.get(principal, 0))
+        errors_count = int(per_principal_loop_errors.get(principal, 0))
+        repeat_errors = int(per_principal_loop_repeat_errors.get(principal, 0))
+        loop_decision_trends[principal] = {
+            "decisions": decisions,
+            "fallbacks": fallbacks,
+            "successes": successes,
+            "errors": errors_count,
+            "repeat_errors": repeat_errors,
+            "fallback_rate": round((fallbacks / decisions), 4) if decisions > 0 else 0.0,
+            "decision_success_rate": round((successes / decisions), 4) if decisions > 0 else 0.0,
+            "repeat_error_rate": round((repeat_errors / errors_count), 4) if errors_count > 0 else 0.0,
+        }
+
     dominant_model = model_counts.most_common(1)[0][0] if model_counts else "unknown"
+    fallback_rate = round((loop_fallbacks_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
+    decision_success_rate = round((loop_success_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
+    repeat_error_rate = round((loop_repeat_error_total / loop_error_total), 4) if loop_error_total > 0 else 0.0
 
     return {
         "events_total": sum(event_types.values()),
@@ -169,6 +235,11 @@ def summarize_events(path: Path) -> dict[str, Any]:
         "transfers": transfers,
         "mint_submissions": mint_submissions,
         "kernel_queries_success": kernel_queries_success,
+        "loop_decisions_total": loop_decisions_total,
+        "fallback_rate": fallback_rate,
+        "decision_success_rate": decision_success_rate,
+        "repeat_error_rate": repeat_error_rate,
+        "loop_decision_trends": loop_decision_trends,
         "query_types": dict(query_types),
         "errors": dict(errors),
         "cross_read_events": cross_read_events,
@@ -214,6 +285,10 @@ def _experiment_numeric_metrics(summary: dict[str, Any]) -> dict[str, float]:
         "kernel_queries_success",
         "cross_read_events",
         "cross_transfer_amount",
+        "loop_decisions_total",
+        "fallback_rate",
+        "decision_success_rate",
+        "repeat_error_rate",
     )
     out: dict[str, float] = {}
     for key in keys:
@@ -265,6 +340,7 @@ def _log_summary_to_llm_client(
         "errors": summary.get("errors"),
         "query_types": summary.get("query_types"),
         "model_counts": summary.get("model_counts"),
+        "loop_decision_trends": summary.get("loop_decision_trends"),
     }
     trace_id = f"ae3/{ae3_run_id}" if ae3_run_id else None
     log_item(

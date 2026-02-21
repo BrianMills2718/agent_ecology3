@@ -95,6 +95,7 @@ After initial baseline validation, autonomous loop behavior was hardened to avoi
 - `src/agent_ecology3/world/world.py`
 - Loop state snapshot now includes compact principal-scoped `recent_feedback` (attempt/failure/error-code/action-type summary) for better next-action selection.
 - Prompt instructions explicitly steer away from repeating recently failing action patterns.
+- Loop runtime now hard-gates generated actions to the approved loop-safe set and rewrites disallowed outputs to deterministic fallback with explicit gate reason metadata.
 - `src/agent_ecology3/world/action_executor.py`
 - Added dedicated `loop_decision` event with decision payload, fallback metadata, and resulting action status.
 - `tests/test_runtime_smoke.py`
@@ -123,3 +124,52 @@ Original `archive/agent_ecology` was reviewed for prompt/policy behaviors worth 
 5. Keep AE3 strengths while porting signal:
 - Keep: contract-governed access, kernel-protected loop artifacts, and `llm_client`-anchored accounting in syscall path.
 - Do not reintroduce: old split world/policy runtime or parallel accounting paths.
+
+## Loop Ablation Matrix (2026-02-21)
+
+Matrix design (5 runs each, 8s duration, 3 principals):
+
+1. `no_llm_loop`:
+- `llm.enable_bootstrap_loop_llm=false`
+
+2. `llm_no_feedback_no_gate`:
+- `llm.enable_bootstrap_loop_llm=true`
+- `llm.loop_prompt_feedback_enabled=false`
+- `llm.loop_action_gate_enabled=false`
+
+3. `llm_feedback_plus_gate`:
+- `llm.enable_bootstrap_loop_llm=true`
+- `llm.loop_prompt_feedback_enabled=true`
+- `llm.loop_action_gate_enabled=true`
+
+Aggregate means:
+
+1. `no_llm_loop`:
+- `actions_total`: 1489.6
+- `action_entropy_bits`: 1.8794
+- `cross_read_events`: 554.6
+- `cross_transfer_amount`: 112.8
+- `mint_submissions`: 115.2
+- `llm_calls`: 0.0
+
+2. `llm_no_feedback_no_gate`:
+- `actions_total`: 27.6
+- `action_entropy_bits`: 1.7408
+- `cross_read_events`: 2.4
+- `cross_transfer_amount`: 0.2
+- `mint_submissions`: 0.6
+- `llm_calls`: 12.6
+
+3. `llm_feedback_plus_gate`:
+- `actions_total`: 28.2
+- `action_entropy_bits`: 1.8006
+- `cross_read_events`: 2.8
+- `cross_transfer_amount`: 0.2
+- `mint_submissions`: 0.0
+- `llm_calls`: 12.8
+
+Notes:
+
+1. LLM-enabled loop throughput is far lower than deterministic fallback loops at this duration/latency profile.
+2. Feedback+gate improved entropy slightly over no-feedback/no-gate in this run set.
+3. All runs reported zero action failures; therefore `fallback_rate` and `repeat_error_rate` remained `0.0`.

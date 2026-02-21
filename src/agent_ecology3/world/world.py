@@ -481,6 +481,54 @@ def _summarize_recent_feedback(limit=30):
     return summary
 
 
+def _canonical_action_type(decision):
+    if not isinstance(decision, dict):
+        return None
+    action = decision.get("action_type")
+    if not isinstance(action, str):
+        action = decision.get("action")
+    if not isinstance(action, str):
+        return None
+    lowered = action.strip().lower()
+    return lowered or None
+
+
+def _normalize_loop_decision(decision, state_snapshot):
+    action_gate_enabled = {self.config.llm.loop_action_gate_enabled}
+    if not action_gate_enabled:
+        return decision, None
+    if not isinstance(decision, dict):
+        return _fallback_action(state_snapshot), "decision_not_object"
+
+    allowed_actions = {{
+        "write_artifact",
+        "read_artifact",
+        "transfer",
+        "submit_to_mint",
+        "query_kernel",
+    }}
+    action_type = _canonical_action_type(decision)
+    if action_type is None:
+        return _fallback_action(state_snapshot), "missing_action_type"
+    if action_type not in allowed_actions:
+        return _fallback_action(state_snapshot), "disallowed_action:" + action_type
+
+    normalized = dict(decision)
+    normalized["action_type"] = action_type
+    if "action" in normalized:
+        normalized.pop("action")
+
+    if action_type == "query_kernel":
+        query_type = normalized.get("query_type")
+        params = normalized.get("params")
+        if not isinstance(query_type, str) or not query_type.strip():
+            return _fallback_action(state_snapshot), "query_kernel_missing_query_type"
+        if not isinstance(params, dict):
+            return _fallback_action(state_snapshot), "query_kernel_invalid_params"
+
+    return normalized, None
+
+
 def _fallback_action(state_snapshot):
     existing = _artifact_ids(state_snapshot)
     own_scratch_exists = "{scratch_id}" in existing or _artifact_exists("{scratch_id}")
@@ -560,6 +608,7 @@ def _should_force_explore(decision):
 
 
 def run():
+    feedback_enabled = {self.config.llm.loop_prompt_feedback_enabled}
     state_snapshot = {{}}
     if "kernel_state" in globals():
         try:
@@ -567,8 +616,9 @@ def run():
                 "balance": kernel_state.get_balance(),
                 "resources": kernel_state.get_resources(),
                 "artifacts": kernel_state.list_artifacts(limit=12),
-                "recent_feedback": _summarize_recent_feedback(limit=40),
             }}
+            if feedback_enabled:
+                state_snapshot["recent_feedback"] = _summarize_recent_feedback(limit=40)
         except Exception:
             state_snapshot = {{}}
 
@@ -581,11 +631,23 @@ def run():
         "For query_kernel you must include query_type and params object. "
         "Do not modify *_loop artifacts. "
         "When writing artifacts, use ids prefixed with {principal_id}_. "
-        "Prefer interaction and production actions over status checks. "
-        "Use recent_feedback to avoid repeating actions with recent error codes."
+        "Prefer interaction and production actions over status checks."
     )
+    if feedback_enabled:
+        prompt += " Use recent_feedback to avoid repeating actions with recent error codes."
 
+    raw_decision = None
     decision = None
+    decision_meta = {{
+        "source": "none",
+        "llm_success": False,
+        "forced_explore": False,
+        "gate_fallback_used": False,
+        "gate_reason": None,
+        "recovery_fallback_used": False,
+        "action_gate_enabled": {self.config.llm.loop_action_gate_enabled},
+        "feedback_enabled": feedback_enabled,
+    }}
     if "_syscall_llm" in globals():
         llm_result = _syscall_llm(
             model="{self.config.llm.default_model}",
@@ -594,18 +656,45 @@ def run():
                 {{"role": "user", "content": prompt + "\\nState:\\n" + json.dumps(state_snapshot)}},
             ],
         )
+        decision_meta["source"] = "llm"
         if llm_result.get("success"):
-            decision = _extract_json(llm_result.get("content", ""))
+            decision_meta["llm_success"] = True
+            raw_decision = _extract_json(llm_result.get("content", ""))
+            decision = raw_decision
+        else:
+            decision_meta["source"] = "llm_error"
 
     if _should_force_explore(decision):
+        decision_meta["forced_explore"] = True
+        if decision_meta["source"] == "llm":
+            decision_meta["source"] = "forced_explore_from_llm"
+        elif decision_meta["source"] == "none":
+            decision_meta["source"] = "forced_explore_without_llm"
         decision = _fallback_action(state_snapshot)
+
+    decision, gate_reason = _normalize_loop_decision(decision, state_snapshot)
+    if gate_reason is not None:
+        decision_meta["gate_fallback_used"] = True
+        decision_meta["gate_reason"] = gate_reason
 
     result = invoke("kernel_act", decision)
     if not result.get("success"):
         fallback = _fallback_action(state_snapshot)
         recovery = invoke("kernel_act", fallback)
-        return {{"decision": decision, "fallback": fallback, "result": recovery}}
-    return {{"decision": decision, "result": result}}
+        decision_meta["recovery_fallback_used"] = True
+        return {{
+            "raw_decision": raw_decision if isinstance(raw_decision, dict) else None,
+            "decision": decision,
+            "fallback": fallback,
+            "result": recovery,
+            "decision_meta": decision_meta,
+        }}
+    return {{
+        "raw_decision": raw_decision if isinstance(raw_decision, dict) else None,
+        "decision": decision,
+        "result": result,
+        "decision_meta": decision_meta,
+    }}
 '''
 
     def _bootstrap_loop_artifacts(self) -> None:

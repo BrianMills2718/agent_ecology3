@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 from agent_ecology3.config import AppConfig
 from agent_ecology3.simulation import SimulationRunner
@@ -76,6 +77,8 @@ def test_runner_executes_bootstrap_loop(tmp_path) -> None:
     loop_decisions = [e for e in events if e.get("event_type") == "loop_decision"]
     assert loop_decisions, "expected loop_decision trace events"
     assert any(isinstance(e.get("decision_action"), str) and e.get("decision_action") for e in loop_decisions)
+    assert all("fallback_used" in e for e in loop_decisions)
+    assert all("decision_source" in e for e in loop_decisions)
 
 
 def test_loop_artifact_is_kernel_protected(tmp_path) -> None:
@@ -107,6 +110,60 @@ def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     loop_artifact = world.artifacts.get("alpha_1_loop")
     assert loop_artifact is not None
     assert "_summarize_recent_feedback" in loop_artifact.code
-    assert "\"recent_feedback\": _summarize_recent_feedback(limit=40)" in loop_artifact.code
+    assert "state_snapshot[\"recent_feedback\"] = _summarize_recent_feedback(limit=40)" in loop_artifact.code
     assert "if intent_principal != \"alpha_1\":" in loop_artifact.code
+    assert "allowed_actions = {" in loop_artifact.code
+    assert "disallowed_action:" in loop_artifact.code
     assert "avoid repeating actions with recent error codes" in loop_artifact.code
+
+
+def test_loop_action_gate_rewrites_disallowed_llm_action(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.enable_bootstrap_loop_llm = True
+    cfg.llm.loop_action_gate_enabled = True
+    world = World(cfg, run_id="test_loop_action_gate")
+
+    world.call_llm_as_syscall = lambda **_: {
+        "success": True,
+        "content": json.dumps(
+            {
+                "action_type": "mint",
+                "recipient_id": "alpha_2",
+                "amount": 1,
+                "reason": "disallowed for loop",
+            }
+        ),
+        "usage": {"total_tokens": 10},
+        "cost": 0.0,
+        "charged_cost": 0.0,
+        "cost_source": "test",
+        "billing_mode": "subscription",
+        "cache_hit": False,
+        "undercharged_cost": 0.0,
+    }
+
+    gate_triggered = False
+    for _ in range(10):
+        invoke_result = world.execute_action_data(
+            "alpha_1",
+            {
+                "action_type": "invoke_artifact",
+                "artifact_id": "alpha_1_loop",
+                "method": "run",
+                "args": [],
+            },
+        )
+        assert invoke_result.success, invoke_result.message
+
+        events = world.logger.read_recent(50)
+        loop_decision_events = [e for e in events if e.get("event_type") == "loop_decision"]
+        assert loop_decision_events
+        last = loop_decision_events[-1]
+        if bool(last.get("gate_fallback_used")):
+            gate_triggered = True
+            assert str(last.get("gate_reason", "")).startswith("disallowed_action:mint")
+            assert last.get("raw_decision_action") == "mint"
+            assert last.get("decision_action") != "mint"
+            break
+
+    assert gate_triggered, "expected action gate to trigger on disallowed LLM action"
