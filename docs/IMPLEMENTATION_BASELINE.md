@@ -213,5 +213,28 @@ Follow-up cooldown benchmark:
 
 Decision:
 
-1. Set default `llm.loop_llm_cooldown_seconds` to `3.0` in AE3 baseline.
+1. Keep `llm.loop_llm_cooldown_seconds` as an optional tuning knob, but set baseline default to `0.0` (no artificial throttle) for scarcity-first experiments.
 2. Keep `loop_action_gate_enabled` and `loop_prompt_feedback_enabled` enabled by default.
+
+## Scarcity-First Baseline Run (2026-02-21)
+
+Baseline validation run after switching default cooldown to `0.0`:
+
+1. Command:
+- `python run.py --duration 30 --agents 4 --llm-loop on --loop-llm-cooldown 0`
+
+2. Run artifacts:
+- AE3 run id: `run_20260221_052928`
+- Events: `logs/run_20260221_052928/events.jsonl`
+- Experiment registry run: `97cc1294894c` (`project=agent_ecology3`, `dataset=agent_ecology3_emergence`)
+
+3. Key emergence summary:
+- `actions_total`: `117`
+- `action_entropy_bits`: `2.101`
+- `llm_calls`: `48`
+- `llm_cost`: `0.024906`
+- `cross_read_events`: `14`
+- `cross_transfer_amount`: `3`
+- `mint_submissions`: `2`
+- `fallback_rate`: `0.0208`
+- `decision_success_rate`: `1.0`
