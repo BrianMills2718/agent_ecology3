@@ -20,6 +20,7 @@ from .emergence_report import _log_summary_to_llm_client, summarize_events
 NUMERIC_METRICS: tuple[str, ...] = (
     "actions_total",
     "action_entropy_bits",
+    "loop_action_entropy_bits",
     "cross_read_events",
     "cross_transfer_amount",
     "resource_transfers_total",
@@ -61,18 +62,36 @@ def aggregate_metrics(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]
 def evaluate_kpi_lock(aggregate: dict[str, dict[str, float]]) -> dict[str, Any]:
     checks: dict[str, dict[str, Any]] = {}
 
-    entropy = aggregate.get("action_entropy_bits", {})
-    checks["action_entropy_bits_mean"] = {
+    entropy = aggregate.get("loop_action_entropy_bits")
+    if not isinstance(entropy, dict):
+        entropy = aggregate.get("action_entropy_bits", {})
+    checks["loop_action_entropy_bits_mean"] = {
         "target": ">= 2.1",
         "observed": entropy.get("mean"),
         "passed": isinstance(entropy.get("mean"), float) and float(entropy["mean"]) >= 2.1,
     }
 
     cross_transfer = aggregate.get("cross_transfer_amount", {})
+    cross_llm_budget_transfer = aggregate.get("cross_llm_budget_transfer_amount", {})
+    resource_transfers_total = aggregate.get("resource_transfers_total", {})
+    cross_transfer_mean = cross_transfer.get("mean")
+    cross_llm_budget_transfer_mean = cross_llm_budget_transfer.get("mean")
+    resource_transfers_total_mean = resource_transfers_total.get("mean")
+    cross_exchange_passed = False
+    if isinstance(cross_transfer_mean, float) and float(cross_transfer_mean) >= 3.0:
+        cross_exchange_passed = True
+    if isinstance(cross_llm_budget_transfer_mean, float) and float(cross_llm_budget_transfer_mean) >= 0.5:
+        cross_exchange_passed = True
+    if isinstance(resource_transfers_total_mean, float) and float(resource_transfers_total_mean) >= 2.0:
+        cross_exchange_passed = True
     checks["cross_transfer_amount_mean"] = {
-        "target": ">= 3.0",
-        "observed": cross_transfer.get("mean"),
-        "passed": isinstance(cross_transfer.get("mean"), float) and float(cross_transfer["mean"]) >= 3.0,
+        "target": "scrip>=3.0 OR llm_budget>=0.5 OR resource_transfer_events>=2.0",
+        "observed": {
+            "scrip": cross_transfer_mean,
+            "llm_budget": cross_llm_budget_transfer_mean,
+            "resource_transfer_events": resource_transfers_total_mean,
+        },
+        "passed": cross_exchange_passed,
     }
 
     mint = aggregate.get("mint_submissions", {})

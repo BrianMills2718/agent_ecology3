@@ -57,14 +57,18 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 3 --dura
 - Gate and feedback behavior can be toggled with `llm.loop_action_gate_enabled` and `llm.loop_prompt_feedback_enabled`.
 - Loop LLM calls can be rate-shaped per principal using `llm.loop_llm_cooldown_seconds` (default `0.0`, disabled) with in-memory per-principal cooldown tracking (control path does not depend on JSONL reads).
 - Agent SDK loop-call options can be forwarded from config with `llm.agent_cwd`, `llm.agent_max_turns`, and `llm.agent_permission_mode`.
+- For `claude-code/*` loop calls, AE3 now injects an MCP stdio `ae3_action` tool bridge so agent-mode tool calls are captured and parsed symmetrically with non-agent tool calls.
+- Each principal now boots with cognitive artifacts (`*_strategy`, `*_state`, `*_notebook`) carrying role specialization, objective progress, and a persistent journal.
+- Loop prompts consume this memory snapshot (`memory.next_objective`, `memory.objectives`, `memory.stagnation_count`) to reduce one-action collapse and encourage discover->read->produce->trade->mint cycles.
 
 ## Experiment Integration
 
 - AE3 emergence analysis integrates with `llm_client` experiment logging (`start_run`, `log_item`, `finish_run`) so run metrics land in the existing experiment registry and SQLite observability DB.
 - `emergence_report` can also query that registry via `--list-experiments`, `--detail-experiment`, and `--compare-experiments`.
-- `emergence_report` now includes loop-decision metrics from `loop_decision` events: `fallback_rate`, `decision_success_rate`, `repeat_error_rate`, and per-principal `loop_decision_trends`.
+- `emergence_report` now includes loop-decision metrics from `loop_decision` events: `fallback_rate`, `decision_success_rate`, `repeat_error_rate`, per-principal `loop_decision_trends`, and `loop_action_entropy_bits`.
 - `emergence_report` also reports scarce-resource transfer metrics: `resource_transfers_total`, `llm_budget_transfer_amount`, and `cross_llm_budget_transfer_amount`.
 - `scarcity_matrix` runs repeated fixed-config baselines, logs each run to `llm_client`, aggregates mean/std/min/max metrics, and evaluates KPI lock checks in one command.
+- KPI lock entropy now evaluates loop decisions (`loop_action_entropy_bits`) instead of all low-level action events, and exchange pressure passes on scrip flow, llm_budget flow, or sufficient cross-resource transfer events.
 - `scarcity_matrix` supports both wall-clock runs and call-budget-normalized runs via `--target-llm-calls`; this reduces model-latency bias in emergence comparisons.
 - If `llm_client` is not installed in your active env, set `LLM_CLIENT_REPO=/home/brian/projects/llm_client` (or pass `--llm-client-repo`) so the analyzer can import directly from repo source.
 

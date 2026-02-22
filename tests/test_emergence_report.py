@@ -12,6 +12,7 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
             "timestamp": "2026-02-21T00:00:01+00:00",
             "event_type": "loop_decision",
             "principal_id": "alpha_1",
+            "decision_action": "query_kernel",
             "fallback_used": False,
             "result_success": True,
             "result_error_code": None,
@@ -20,6 +21,7 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
             "timestamp": "2026-02-21T00:00:02+00:00",
             "event_type": "loop_decision",
             "principal_id": "alpha_1",
+            "decision_action": "read_artifact",
             "fallback_used": True,
             "result_success": False,
             "result_error_code": "not_authorized",
@@ -28,6 +30,7 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
             "timestamp": "2026-02-21T00:00:03+00:00",
             "event_type": "loop_decision",
             "principal_id": "alpha_1",
+            "decision_action": "read_artifact",
             "fallback_used": False,
             "result_success": False,
             "result_error_code": "not_authorized",
@@ -36,6 +39,7 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
             "timestamp": "2026-02-21T00:00:04+00:00",
             "event_type": "loop_decision",
             "principal_id": "alpha_2",
+            "decision_action": "submit_to_mint",
             "fallback_used": True,
             "result_success": False,
             "result_error_code": "invalid_action",
@@ -57,6 +61,8 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
     assert summary["fallback_rate"] == 0.5
     assert summary["decision_success_rate"] == 0.25
     assert summary["repeat_error_rate"] == 0.3333
+    assert summary["loop_action_entropy_bits"] == 1.5
+    assert summary["loop_action_types"]["read_artifact"] == 2
     assert summary["resource_transfers_total"] == 1
     assert summary["llm_budget_transfer_amount"] == 0.4
     assert summary["cross_llm_budget_transfer_amount"] == 0.4

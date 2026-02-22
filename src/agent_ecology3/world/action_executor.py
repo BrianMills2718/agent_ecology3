@@ -432,6 +432,7 @@ class ActionExecutor:
                         "feedback_enabled": bool(meta_dict.get("feedback_enabled", False)),
                         "llm_attempted": bool(meta_dict.get("llm_attempted", False)),
                         "llm_success": bool(meta_dict.get("llm_success", False)),
+                        "llm_action_source": meta_dict.get("llm_action_source"),
                         "llm_cooldown_ready": bool(meta_dict.get("llm_cooldown_ready", True)),
                         "llm_cooldown_seconds": float(meta_dict.get("llm_cooldown_seconds", 0.0) or 0.0),
                         "fallback": fallback if isinstance(fallback, dict) else None,
@@ -440,6 +441,26 @@ class ActionExecutor:
                         "result_error_code": result_error_code,
                     },
                 )
+                try:
+                    self.world.record_loop_cognitive_state(
+                        principal_id=intent.principal_id,
+                        decision=decision if isinstance(decision, dict) else None,
+                        action_type=_extract_action_name(decision),
+                        result_success=result_success,
+                        result_error_code=result_error_code,
+                        decision_source=meta_dict.get("source") if isinstance(meta_dict.get("source"), str) else None,
+                        fallback_used=fallback_used,
+                    )
+                except Exception as exc:
+                    self.world.logger.log(
+                        "loop_memory_update_error",
+                        {
+                            "event_number": self.world.event_number,
+                            "principal_id": intent.principal_id,
+                            "artifact_id": artifact.id,
+                            "error": str(exc),
+                        },
+                    )
 
         self.world.logger.log(
             "invoke_success",
@@ -491,7 +512,9 @@ class ActionExecutor:
         return ActionResult(True, f"deleted '{intent.artifact_id}'", data={"freed_bytes": freed})
 
     def _query(self, intent: QueryKernelIntent) -> ActionResult:
-        payload = self.world.query_handler.execute(intent.query_type, intent.params)
+        params = dict(intent.params or {})
+        params.setdefault("_principal_id", intent.principal_id)
+        payload = self.world.query_handler.execute(intent.query_type, params)
         if payload.get("success", False):
             self.world.logger.log(
                 "kernel_query",

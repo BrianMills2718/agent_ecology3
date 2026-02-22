@@ -4,6 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
+from .contracts import PermissionAction
+
+
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        return lowered in {"1", "true", "yes", "on"}
+    return False
+
 
 class KernelQueryHandler:
     def __init__(self, world: Any) -> None:
@@ -23,9 +36,18 @@ class KernelQueryHandler:
     def _query_artifacts(self, params: dict[str, Any]) -> dict[str, Any]:
         owner = params.get("owner")
         artifact_type = params.get("type")
+        if not isinstance(artifact_type, str):
+            maybe_alias = params.get("artifact_type")
+            if isinstance(maybe_alias, str):
+                artifact_type = maybe_alias
         executable = params.get("executable")
         limit = int(params.get("limit", 50))
         offset = int(params.get("offset", 0))
+        principal_id = params.get("_principal_id")
+        if not isinstance(principal_id, str) or not principal_id:
+            principal_id = None
+        readable_only = _coerce_bool(params.get("readable_only", False))
+        include_permissions = _coerce_bool(params.get("include_permissions", False))
 
         items = []
         for artifact in self.world.artifacts.artifacts.values():
@@ -37,17 +59,30 @@ class KernelQueryHandler:
                 continue
             if executable is not None and artifact.executable != bool(executable):
                 continue
-            items.append(
-                {
-                    "id": artifact.id,
-                    "type": artifact.type,
-                    "owner": artifact.owner,
-                    "created_by": artifact.created_by,
-                    "executable": artifact.executable,
-                    "content_size": len(artifact.content),
-                    "code_preview": artifact.code[:220] if artifact.code else "",
-                }
-            )
+            readable = None
+            read_reason = None
+            if principal_id is not None:
+                perm = self.world.contract_engine.check(principal_id, PermissionAction.READ, artifact)
+                readable = bool(perm.allowed)
+                read_reason = perm.reason
+                if readable_only and not readable:
+                    continue
+
+            row = {
+                "id": artifact.id,
+                "type": artifact.type,
+                "owner": artifact.owner,
+                "created_by": artifact.created_by,
+                "executable": artifact.executable,
+                "content_size": len(artifact.content),
+                "code_preview": artifact.code[:220] if artifact.code else "",
+            }
+            if principal_id is not None and (include_permissions or readable_only):
+                row["readable"] = bool(readable)
+            if principal_id is not None and include_permissions:
+                row["read_reason"] = read_reason
+                row["access_contract_id"] = artifact.access_contract_id
+            items.append(row)
 
         total = len(items)
         items = items[offset : offset + limit]

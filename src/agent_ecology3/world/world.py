@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from collections import deque
 from datetime import datetime, timezone
@@ -25,6 +26,29 @@ from .logger import EventLogger, SummarySnapshot
 from .mint import MintAuction, MintScorer
 from .queries import KernelQueryHandler
 from .rates import RateTracker
+
+ROLE_PROFILES: tuple[dict[str, str], ...] = (
+    {
+        "name": "market_maker",
+        "specialization": "resource pricing and bilateral trade clearing",
+        "focus": "broker transfers and keep markets liquid",
+    },
+    {
+        "name": "toolsmith",
+        "specialization": "reusable utilities and service artifacts",
+        "focus": "ship useful artifacts and attract downstream usage",
+    },
+    {
+        "name": "auditor",
+        "specialization": "artifact inspection and quality assessment",
+        "focus": "read others' artifacts, identify gaps, and publish improvements",
+    },
+    {
+        "name": "scout",
+        "specialization": "ecosystem discovery and coordination",
+        "focus": "find opportunities and connect counterparties",
+    },
+)
 
 
 class KernelStateRouter:
@@ -63,10 +87,21 @@ class KernelStateView:
                 return content
         return None
 
-    def list_artifacts(self, owner: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
-        params: dict[str, Any] = {"limit": limit}
+    def list_artifacts(
+        self,
+        owner: str | None = None,
+        limit: int = 50,
+        *,
+        readable_only: bool = False,
+        include_permissions: bool = False,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"limit": limit, "_principal_id": self._principal_id}
         if owner:
             params["owner"] = owner
+        if readable_only:
+            params["readable_only"] = True
+        if include_permissions:
+            params["include_permissions"] = True
         result = self._world.query_handler.execute("artifacts", params)
         if not result.get("success"):
             return []
@@ -247,6 +282,314 @@ class World:
                 access_contract_id=KERNEL_CONTRACT_SELF_OWNED,
                 has_standing=True,
             )
+            self._bootstrap_principal_cognition(principal_id, slot=idx + 1)
+
+    def _role_profile(self, slot: int) -> dict[str, str]:
+        if not ROLE_PROFILES:
+            return {"name": "generalist", "specialization": "adaptive execution", "focus": "respond to opportunities"}
+        idx = max(0, slot - 1) % len(ROLE_PROFILES)
+        return dict(ROLE_PROFILES[idx])
+
+    def _slot_for_principal(self, principal_id: str) -> int:
+        prefix = self.config.principals.id_prefix
+        if principal_id.startswith(prefix):
+            suffix = principal_id[len(prefix) :].strip()
+            try:
+                slot = int(suffix)
+            except Exception:
+                slot = 1
+            return max(1, slot)
+        return 1
+
+    def _default_strategy_text(self, principal_id: str, slot: int) -> str:
+        profile = self._role_profile(slot)
+        role_name = profile.get("name", "generalist")
+        role_playbook: list[str] = []
+        if role_name == "market_maker":
+            role_playbook = [
+                "Prioritize bilateral deals and move scrip where expected utility is higher.",
+                "Use transfer or transfer_resource to clear small trades instead of waiting.",
+                "Track counterparties that repeatedly reciprocate and trade with them first.",
+            ]
+        elif role_name == "toolsmith":
+            role_playbook = [
+                "Publish reusable artifacts and improve them when usage is low.",
+                "Set read_price or invoke_price on useful artifacts to test market demand.",
+                "Submit high-utility artifacts to mint after at least one external read.",
+            ]
+        elif role_name == "auditor":
+            role_playbook = [
+                "Read external artifacts, publish concise audit notes, and iterate.",
+                "Flag low-quality or stale artifacts and create improved versions.",
+                "Trade insights for scrip or llm_budget when possible.",
+            ]
+        elif role_name == "scout":
+            role_playbook = [
+                "Discover new artifacts and surface promising opportunities early.",
+                "Connect agents with complementary needs using small coordinating transfers.",
+                "Avoid repeated status checks when objective progress is blocked.",
+            ]
+        return "\n".join(
+            [
+                f"You are {principal_id}, a self-interested economic agent.",
+                f"Specialization: {profile['name']} ({profile['specialization']}).",
+                f"Primary focus: {profile['focus']}.",
+                "",
+                "Objectives:",
+                "1. Preserve and grow scrip and scarce execution rights.",
+                "2. Reuse before build: query/read external artifacts before creating new ones.",
+                "3. Build or trade only when it improves expected future utility.",
+                "4. Avoid repeating the same low-yield action pattern.",
+                "5. Track objective progress in state and notebook artifacts.",
+                "",
+                "Role playbook:",
+                *[f"- {line}" for line in role_playbook],
+                "",
+                "Cycle goals:",
+                "- discover ecosystem artifacts",
+                "- consume at least one external artifact",
+                "- produce at least one reusable artifact",
+                "- execute at least one trade",
+                "- submit at least one mint candidate when affordable",
+            ]
+        )
+
+    def _default_state_payload(self, principal_id: str, slot: int) -> dict[str, Any]:
+        profile = self._role_profile(slot)
+        return {
+            "principal_id": principal_id,
+            "iteration": 0,
+            "cycle": 1,
+            "role": profile["name"],
+            "specialization": profile["specialization"],
+            "current_focus": profile["focus"],
+            "objectives": {
+                "discover": False,
+                "cross_agent_read": False,
+                "produce": False,
+                "trade": False,
+                "mint": False,
+            },
+            "next_objective": "discover",
+            "recent_actions": [],
+            "action_counts": {},
+            "stagnation_count": 0,
+            "last_result_success": None,
+            "last_result_error_code": None,
+        }
+
+    def _default_notebook_payload(self, principal_id: str, slot: int) -> dict[str, Any]:
+        profile = self._role_profile(slot)
+        return {
+            "key_facts": {
+                "principal_id": principal_id,
+                "role": profile["name"],
+                "specialization": profile["specialization"],
+            },
+            "journal": [f"bootstrap: {principal_id} initialized as {profile['name']}"],
+        }
+
+    def _bootstrap_principal_cognition(self, principal_id: str, *, slot: int) -> None:
+        strategy_id = f"{principal_id}_strategy"
+        state_id = f"{principal_id}_state"
+        notebook_id = f"{principal_id}_notebook"
+        self.artifacts.write(
+            strategy_id,
+            "strategy",
+            self._default_strategy_text(principal_id, slot),
+            created_by=principal_id,
+            owner=principal_id,
+            access_contract_id=KERNEL_CONTRACT_SELF_OWNED,
+        )
+        self.artifacts.write(
+            state_id,
+            "state",
+            json.dumps(self._default_state_payload(principal_id, slot), ensure_ascii=True),
+            created_by=principal_id,
+            owner=principal_id,
+            access_contract_id=KERNEL_CONTRACT_SELF_OWNED,
+        )
+        self.artifacts.write(
+            notebook_id,
+            "notebook",
+            json.dumps(self._default_notebook_payload(principal_id, slot), ensure_ascii=True),
+            created_by=principal_id,
+            owner=principal_id,
+            access_contract_id=KERNEL_CONTRACT_SELF_OWNED,
+        )
+
+    def _parse_json_artifact(self, artifact_id: str) -> dict[str, Any] | None:
+        artifact = self.artifacts.get(artifact_id)
+        if artifact is None or artifact.deleted or not isinstance(artifact.content, str):
+            return None
+        raw = artifact.content.strip()
+        if not raw:
+            return None
+        try:
+            payload = json.loads(raw)
+        except Exception:
+            return None
+        if isinstance(payload, dict):
+            return payload
+        return None
+
+    def _update_objectives_from_action(
+        self,
+        principal_id: str,
+        objectives: dict[str, bool],
+        action_type: str,
+        decision: dict[str, Any] | None,
+        *,
+        success: bool,
+    ) -> dict[str, bool]:
+        updated = dict(objectives)
+        if not success:
+            return updated
+
+        if action_type == "query_kernel":
+            updated["discover"] = True
+        elif action_type == "read_artifact":
+            artifact_id = ""
+            if isinstance(decision, dict):
+                raw_artifact_id = decision.get("artifact_id")
+                if isinstance(raw_artifact_id, str):
+                    artifact_id = raw_artifact_id
+            if artifact_id and not artifact_id.startswith(f"{principal_id}_"):
+                updated["cross_agent_read"] = True
+        elif action_type == "write_artifact":
+            updated["produce"] = True
+        elif action_type in {"transfer", "transfer_resource"}:
+            updated["trade"] = True
+        elif action_type == "submit_to_mint":
+            updated["mint"] = True
+
+        return updated
+
+    @staticmethod
+    def _next_incomplete_objective(objectives: dict[str, bool]) -> str:
+        ordered = ("discover", "cross_agent_read", "produce", "trade", "mint")
+        for key in ordered:
+            if not bool(objectives.get(key, False)):
+                return key
+        return "discover"
+
+    def record_loop_cognitive_state(
+        self,
+        *,
+        principal_id: str,
+        decision: dict[str, Any] | None,
+        action_type: str | None,
+        result_success: bool | None,
+        result_error_code: str | None,
+        decision_source: str | None,
+        fallback_used: bool,
+    ) -> None:
+        state_id = f"{principal_id}_state"
+        notebook_id = f"{principal_id}_notebook"
+        state = self._parse_json_artifact(state_id)
+        slot = self._slot_for_principal(principal_id)
+        if not isinstance(state, dict):
+            state = self._default_state_payload(principal_id, slot=slot)
+
+        notebook = self._parse_json_artifact(notebook_id)
+        if not isinstance(notebook, dict):
+            notebook = self._default_notebook_payload(principal_id, slot=slot)
+
+        normalized_action = (action_type or "unknown").strip().lower()
+        action_success = bool(result_success) if isinstance(result_success, bool) else False
+        iteration = int(state.get("iteration", 0)) + 1
+        state["iteration"] = iteration
+
+        action_counts_raw = state.get("action_counts")
+        action_counts = dict(action_counts_raw) if isinstance(action_counts_raw, dict) else {}
+        action_counts[normalized_action] = int(action_counts.get(normalized_action, 0)) + 1
+        state["action_counts"] = action_counts
+
+        recent_actions_raw = state.get("recent_actions")
+        recent_actions = list(recent_actions_raw) if isinstance(recent_actions_raw, list) else []
+        recent_actions.append(
+            {
+                "iteration": iteration,
+                "action_type": normalized_action,
+                "success": action_success,
+                "error_code": result_error_code,
+                "source": decision_source,
+                "fallback_used": bool(fallback_used),
+            }
+        )
+        recent_actions = [item for item in recent_actions if isinstance(item, dict)][-20:]
+        state["recent_actions"] = recent_actions
+
+        repeat_count = 0
+        for row in reversed(recent_actions):
+            current = row.get("action_type")
+            if not isinstance(current, str):
+                break
+            if current != normalized_action:
+                break
+            repeat_count += 1
+        state["stagnation_count"] = repeat_count
+        state["last_result_success"] = action_success
+        state["last_result_error_code"] = result_error_code
+
+        objectives_raw = state.get("objectives")
+        objectives = dict(objectives_raw) if isinstance(objectives_raw, dict) else {}
+        objectives.setdefault("discover", False)
+        objectives.setdefault("cross_agent_read", False)
+        objectives.setdefault("produce", False)
+        objectives.setdefault("trade", False)
+        objectives.setdefault("mint", False)
+        objectives = self._update_objectives_from_action(
+            principal_id,
+            objectives,
+            normalized_action,
+            decision,
+            success=action_success,
+        )
+        if all(bool(objectives.get(key, False)) for key in ("discover", "cross_agent_read", "produce", "trade", "mint")):
+            state["cycle"] = int(state.get("cycle", 1)) + 1
+            objectives = {
+                "discover": False,
+                "cross_agent_read": False,
+                "produce": False,
+                "trade": False,
+                "mint": False,
+            }
+        state["objectives"] = objectives
+        state["next_objective"] = self._next_incomplete_objective(objectives)
+
+        key_facts_raw = notebook.get("key_facts")
+        key_facts = dict(key_facts_raw) if isinstance(key_facts_raw, dict) else {}
+        key_facts["last_action_type"] = normalized_action
+        key_facts["next_objective"] = state["next_objective"]
+        key_facts["stagnation_count"] = state["stagnation_count"]
+        key_facts["cycle"] = state.get("cycle", 1)
+        notebook["key_facts"] = key_facts
+
+        journal_raw = notebook.get("journal")
+        journal = list(journal_raw) if isinstance(journal_raw, list) else []
+        journal.append(
+            f"i{iteration} {normalized_action} success={action_success} "
+            f"objective={state['next_objective']} source={decision_source or 'unknown'}"
+        )
+        notebook["journal"] = [str(item) for item in journal][-80:]
+
+        self.artifacts.write(
+            state_id,
+            "state",
+            json.dumps(state, ensure_ascii=True),
+            created_by="SYSTEM_KERNEL",
+            owner=principal_id,
+            access_contract_id=KERNEL_CONTRACT_SELF_OWNED,
+        )
+        self.artifacts.write(
+            notebook_id,
+            "notebook",
+            json.dumps(notebook, ensure_ascii=True),
+            created_by="SYSTEM_KERNEL",
+            owner=principal_id,
+            access_contract_id=KERNEL_CONTRACT_SELF_OWNED,
+        )
 
     def _bootstrap_kernel_services(self) -> None:
         def kernel_act_run(args: list[Any], principal_id: str) -> dict[str, Any]:
@@ -368,8 +711,42 @@ class World:
 
     def _default_loop_code(self, principal_id: str, slot: int) -> str:
         scratch_id = f"{principal_id}_scratch"
+        strategy_id = f"{principal_id}_strategy"
+        state_id = f"{principal_id}_state"
+        notebook_id = f"{principal_id}_notebook"
         principal_prefix = self.config.principals.id_prefix
         principal_count = max(1, self.config.principals.count)
+        loop_tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "ae3_action",
+                    "description": "Submit one AE3 kernel action payload.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "action_type": {"type": "string"},
+                            "artifact_id": {"type": "string"},
+                            "artifact_type": {"type": "string"},
+                            "content": {"type": "string"},
+                            "read_price": {"type": "integer"},
+                            "invoke_price": {"type": "integer"},
+                            "access_contract_id": {"type": "string"},
+                            "recipient_id": {"type": "string"},
+                            "amount": {"type": "number"},
+                            "memo": {"type": "string"},
+                            "resource": {"type": "string"},
+                            "bid": {"type": "integer"},
+                            "query_type": {"type": "string"},
+                            "params": {"type": "object"},
+                        },
+                        "required": ["action_type"],
+                        "additionalProperties": True,
+                    },
+                },
+            }
+        ]
+        loop_tools_json = json.dumps(loop_tools, ensure_ascii=True)
         return f'''import json
 import time
 
@@ -385,6 +762,143 @@ def _extract_json(text):
         return json.loads(text[start:end+2])
     except Exception:
         return None
+
+
+def _parse_tool_arguments(raw):
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return None
+        try:
+            parsed = json.loads(text)
+        except Exception:
+            parsed = _extract_json(text)
+        if isinstance(parsed, dict):
+            return parsed
+    return None
+
+
+def _extract_action_from_tool_calls(tool_calls):
+    if not isinstance(tool_calls, list):
+        return None
+    allowed = {{
+        "write_artifact",
+        "read_artifact",
+        "transfer",
+        "transfer_resource",
+        "submit_to_mint",
+        "query_kernel",
+    }}
+    for tool_call in tool_calls:
+        if not isinstance(tool_call, dict):
+            continue
+        function = tool_call.get("function")
+        if not isinstance(function, dict):
+            continue
+        name = function.get("name")
+        if not isinstance(name, str):
+            continue
+        parsed_args = _parse_tool_arguments(function.get("arguments"))
+        if not isinstance(parsed_args, dict):
+            continue
+        normalized_name = name.strip().lower()
+        if normalized_name == "ae3_action" or normalized_name.endswith("ae3_action"):
+            return parsed_args
+        if normalized_name in allowed:
+            action = dict(parsed_args)
+            action["action_type"] = normalized_name
+            return action
+    return None
+
+
+def _loop_action_tools():
+    try:
+        return json.loads({loop_tools_json!r})
+    except Exception:
+        return []
+
+
+def _read_text_artifact(artifact_id):
+    if "kernel_state" not in globals():
+        return ""
+    try:
+        payload = kernel_state.read_artifact(artifact_id)
+    except Exception:
+        return ""
+    if isinstance(payload, str):
+        return payload
+    return ""
+
+
+def _read_json_artifact(artifact_id, default_value):
+    payload = _read_text_artifact(artifact_id)
+    if not isinstance(payload, str) or not payload.strip():
+        return default_value
+    try:
+        parsed = json.loads(payload)
+    except Exception:
+        return default_value
+    if isinstance(default_value, dict) and isinstance(parsed, dict):
+        return parsed
+    if isinstance(default_value, list) and isinstance(parsed, list):
+        return parsed
+    return default_value
+
+
+def _build_memory_snapshot(state_memory, notebook_memory):
+    snapshot = {{
+        "role": "",
+        "specialization": "",
+        "current_focus": "",
+        "next_objective": "discover",
+        "objectives": {{}},
+        "stagnation_count": 0,
+        "recent_actions": [],
+        "key_facts": {{}},
+        "journal_tail": [],
+    }}
+    if isinstance(state_memory, dict):
+        for key in ("role", "specialization", "current_focus", "next_objective"):
+            value = state_memory.get(key)
+            if isinstance(value, str):
+                snapshot[key] = value
+        objectives = state_memory.get("objectives")
+        if isinstance(objectives, dict):
+            snapshot["objectives"] = {{
+                "discover": bool(objectives.get("discover", False)),
+                "cross_agent_read": bool(objectives.get("cross_agent_read", False)),
+                "produce": bool(objectives.get("produce", False)),
+                "trade": bool(objectives.get("trade", False)),
+                "mint": bool(objectives.get("mint", False)),
+            }}
+        raw_stagnation = state_memory.get("stagnation_count")
+        if isinstance(raw_stagnation, int):
+            snapshot["stagnation_count"] = max(0, raw_stagnation)
+        recent_actions = state_memory.get("recent_actions")
+        if isinstance(recent_actions, list):
+            rows = [item for item in recent_actions if isinstance(item, dict)]
+            snapshot["recent_actions"] = rows[-6:]
+    if isinstance(notebook_memory, dict):
+        key_facts = notebook_memory.get("key_facts")
+        if isinstance(key_facts, dict):
+            trimmed = {{}}
+            for idx, key in enumerate(sorted(key_facts.keys())):
+                if idx >= 8:
+                    break
+                value = key_facts.get(key)
+                if isinstance(value, (str, int, float, bool)) or value is None:
+                    trimmed[key] = value
+            snapshot["key_facts"] = trimmed
+        journal = notebook_memory.get("journal")
+        if isinstance(journal, list):
+            tail = []
+            for item in journal[-6:]:
+                if isinstance(item, str):
+                    tail.append(item[:180])
+            snapshot["journal_tail"] = tail
+    return snapshot
 
 
 def _neighbor_principal():
@@ -428,6 +942,9 @@ def _pick_read_target(state_snapshot):
             continue
         artifact_id = item.get("id")
         if not isinstance(artifact_id, str) or not artifact_id:
+            continue
+        readable = item.get("readable")
+        if readable is False:
             continue
         if artifact_id.count("_") < 2:
             continue
@@ -540,6 +1057,34 @@ def _normalize_loop_decision(decision, state_snapshot):
     if "action" in normalized:
         normalized.pop("action")
 
+    if action_type == "write_artifact":
+        artifact_id = normalized.get("artifact_id")
+        artifact_type = normalized.get("artifact_type")
+        content = normalized.get("content")
+        if not isinstance(artifact_id, str) or not artifact_id.strip():
+            artifact_id = "{scratch_id}"
+        artifact_id = artifact_id.strip()
+        if not artifact_id.startswith("{principal_id}_"):
+            artifact_id = "{principal_id}_" + artifact_id.replace(" ", "_")
+        if not isinstance(artifact_type, str) or not artifact_type.strip():
+            artifact_type = "note"
+        if not isinstance(content, str) or not content.strip():
+            content = "note from {principal_id} turn " + str(int(time.time()) + {slot})
+        normalized["artifact_id"] = artifact_id
+        normalized["artifact_type"] = artifact_type.strip().lower()
+        normalized["content"] = content
+        for price_key in ("read_price", "invoke_price"):
+            if price_key not in normalized:
+                continue
+            try:
+                price_value = int(float(normalized.get(price_key)))
+            except Exception:
+                price_value = 0
+            normalized[price_key] = max(0, price_value)
+        access_contract_id = normalized.get("access_contract_id")
+        if access_contract_id is not None and not isinstance(access_contract_id, str):
+            normalized.pop("access_contract_id", None)
+
     if action_type == "query_kernel":
         query_type = normalized.get("query_type")
         params = normalized.get("params")
@@ -547,6 +1092,35 @@ def _normalize_loop_decision(decision, state_snapshot):
             return _fallback_action(state_snapshot), "query_kernel_missing_query_type"
         if not isinstance(params, dict):
             return _fallback_action(state_snapshot), "query_kernel_invalid_params"
+        query_type = query_type.strip().lower()
+        params = dict(params)
+        if query_type == "discover_artifacts":
+            query_type = "artifacts"
+        alias_type = params.get("artifact_type")
+        if "type" not in params and isinstance(alias_type, str) and alias_type.strip():
+            params["type"] = alias_type.strip()
+        if query_type == "artifacts":
+            params.setdefault("readable_only", True)
+        if query_type in {{"balances", "resources", "quotas", "libraries", "principal"}}:
+            params.setdefault("principal_id", "{principal_id}")
+        normalized["query_type"] = query_type
+        normalized["params"] = params
+    if action_type == "transfer":
+        recipient_id = normalized.get("recipient_id")
+        amount = normalized.get("amount")
+        memo = normalized.get("memo")
+        if not isinstance(recipient_id, str) or not recipient_id.strip():
+            return _fallback_action(state_snapshot), "transfer_missing_recipient_id"
+        try:
+            amount_value = int(float(amount))
+        except Exception:
+            return _fallback_action(state_snapshot), "transfer_invalid_amount"
+        if amount_value <= 0:
+            return _fallback_action(state_snapshot), "transfer_non_positive_amount"
+        if memo is not None and not isinstance(memo, str):
+            return _fallback_action(state_snapshot), "transfer_invalid_memo"
+        normalized["recipient_id"] = recipient_id.strip()
+        normalized["amount"] = amount_value
     if action_type == "transfer_resource":
         recipient_id = normalized.get("recipient_id")
         resource = normalized.get("resource")
@@ -567,6 +1141,20 @@ def _normalize_loop_decision(decision, state_snapshot):
         normalized["recipient_id"] = recipient_id.strip()
         normalized["resource"] = resource.strip().lower()
         normalized["amount"] = amount_value
+    if action_type == "submit_to_mint":
+        artifact_id = normalized.get("artifact_id")
+        bid = normalized.get("bid")
+        if not isinstance(artifact_id, str) or not artifact_id.strip():
+            artifact_id = "{scratch_id}"
+        artifact_id = artifact_id.strip()
+        try:
+            bid_value = int(float(bid))
+        except Exception:
+            bid_value = 1
+        if bid_value <= 0:
+            bid_value = 1
+        normalized["artifact_id"] = artifact_id
+        normalized["bid"] = bid_value
 
     return normalized, None
 
@@ -576,16 +1164,63 @@ def _fallback_action(state_snapshot):
     own_scratch_exists = "{scratch_id}" in existing or _artifact_exists("{scratch_id}")
     read_target = _pick_read_target(state_snapshot)
     balance = 0
+    next_objective = "discover"
     if isinstance(state_snapshot, dict):
         raw_balance = state_snapshot.get("balance")
         if isinstance(raw_balance, int):
             balance = raw_balance
+        memory = state_snapshot.get("memory")
+        if isinstance(memory, dict):
+            raw_next_objective = memory.get("next_objective")
+            if isinstance(raw_next_objective, str) and raw_next_objective.strip():
+                next_objective = raw_next_objective.strip().lower()
     neighbor = _neighbor_principal()
     neighbor_scratch = neighbor + "_scratch"
     if _artifact_exists(neighbor_scratch):
         read_target = neighbor_scratch
     turn = int(time.time()) + {slot}
-    phase = turn % 4
+    if next_objective == "cross_agent_read" and read_target is not None:
+        return {{
+            "action_type": "read_artifact",
+            "artifact_id": read_target,
+        }}
+    if next_objective == "produce":
+        return {{
+            "action_type": "write_artifact",
+            "artifact_id": "{scratch_id}",
+            "artifact_type": "note",
+            "content": "utility note from {principal_id} turn " + str(turn),
+        }}
+    if next_objective == "trade" and balance > 1:
+        if (turn % 2) == 0:
+            return {{
+                "action_type": "transfer",
+                "recipient_id": neighbor,
+                "amount": 1,
+                "memo": "trade pulse",
+            }}
+        return {{
+            "action_type": "transfer_resource",
+            "recipient_id": neighbor,
+            "resource": "llm_budget",
+            "amount": 0.1,
+            "memo": "llm budget rebalance",
+        }}
+    if next_objective == "mint":
+        if own_scratch_exists and balance >= 1:
+            return {{
+                "action_type": "submit_to_mint",
+                "artifact_id": "{scratch_id}",
+                "bid": 1,
+            }}
+        return {{
+            "action_type": "write_artifact",
+            "artifact_id": "{scratch_id}",
+            "artifact_type": "note",
+            "content": "mint prep from {principal_id} turn " + str(turn),
+        }}
+
+    phase = turn % 5
     if phase == 0 or not own_scratch_exists:
         return {{
             "action_type": "write_artifact",
@@ -613,11 +1248,31 @@ def _fallback_action(state_snapshot):
                 "artifact_type": "note",
                 "content": "low balance hold for {principal_id} turn " + str(turn),
             }}
+        if (turn % 2) == 0:
+            return {{
+                "action_type": "transfer_resource",
+                "recipient_id": neighbor,
+                "resource": "llm_budget",
+                "amount": 0.1,
+                "memo": "resource pulse",
+            }}
         return {{
             "action_type": "transfer",
             "recipient_id": neighbor,
             "amount": 1,
             "memo": "coordination pulse",
+        }}
+    if phase == 3:
+        if read_target is not None:
+            return {{
+                "action_type": "read_artifact",
+                "artifact_id": read_target,
+            }}
+        return {{
+            "action_type": "write_artifact",
+            "artifact_id": "{scratch_id}",
+            "artifact_type": "note",
+            "content": "discovery marker from {principal_id} turn " + str(turn),
         }}
     if not own_scratch_exists or balance < 1:
         return {{
@@ -633,11 +1288,27 @@ def _fallback_action(state_snapshot):
     }}
 
 
-def _should_force_explore(decision):
-    if ((int(time.time()) + {slot}) % 5) == 0:
-        return True
+def _should_force_explore(decision, state_snapshot):
     if not isinstance(decision, dict):
         return True
+    memory = {{}}
+    recent_feedback = {{}}
+    if isinstance(state_snapshot, dict):
+        raw_memory = state_snapshot.get("memory")
+        if isinstance(raw_memory, dict):
+            memory = raw_memory
+        raw_feedback = state_snapshot.get("recent_feedback")
+        if isinstance(raw_feedback, dict):
+            recent_feedback = raw_feedback
+    next_objective = str(memory.get("next_objective", "")).strip().lower()
+    stagnation_count = 0
+    raw_stagnation_count = memory.get("stagnation_count")
+    if isinstance(raw_stagnation_count, int):
+        stagnation_count = max(0, raw_stagnation_count)
+    recent_action_types = []
+    raw_recent_action_types = recent_feedback.get("recent_action_types")
+    if isinstance(raw_recent_action_types, list):
+        recent_action_types = [str(item).strip().lower() for item in raw_recent_action_types if isinstance(item, str)]
     action = decision.get("action_type")
     if not isinstance(action, str):
         action = decision.get("action")
@@ -645,37 +1316,66 @@ def _should_force_explore(decision):
     if action in ("", "noop"):
         return True
     if action == "query_kernel":
+        if next_objective not in ("", "discover"):
+            return True
+        if recent_action_types.count("query_kernel") >= 2:
+            return True
+        if stagnation_count >= 2:
+            return True
         return ((int(time.time()) + {slot}) % 3) == 0
+    if stagnation_count >= 4:
+        return True
     return False
 
 
 def run():
     feedback_enabled = {self.config.llm.loop_prompt_feedback_enabled}
+    strategy_text = _read_text_artifact("{strategy_id}")
+    state_memory = _read_json_artifact("{state_id}", {{}})
+    notebook_memory = _read_json_artifact("{notebook_id}", {{}})
+    memory_snapshot = _build_memory_snapshot(state_memory, notebook_memory)
     state_snapshot = {{}}
     if "kernel_state" in globals():
         try:
             state_snapshot = {{
                 "balance": kernel_state.get_balance(),
                 "resources": kernel_state.get_resources(),
-                "artifacts": kernel_state.list_artifacts(limit=12),
+                "artifacts": kernel_state.list_artifacts(
+                    limit=24,
+                    readable_only=True,
+                    include_permissions=True,
+                ),
+                "memory": memory_snapshot,
             }}
             if feedback_enabled:
                 state_snapshot["recent_feedback"] = _summarize_recent_feedback(limit=40)
         except Exception:
             state_snapshot = {{}}
+    if "memory" not in state_snapshot:
+        state_snapshot["memory"] = memory_snapshot
 
     prompt = (
         "You are agent {principal_id} in an economy simulation. "
-        "Return exactly one JSON action object and never use noop. "
+        "Act strategically to maximize long-run survival and economic power under scarcity. "
+        "Choose exactly one action and never use noop. "
         "Valid action_type values include write_artifact, read_artifact, transfer, transfer_resource, "
         "submit_to_mint, query_kernel. "
         "Do not invoke artifacts directly. "
         "For query_kernel you must include query_type and params object. "
+        "When querying artifacts, prefer query_type='artifacts' with params.readable_only=true. "
+        "For submit_to_mint include artifact_id and bid. "
+        "When useful, monetize artifacts by setting read_price/invoke_price on write_artifact. "
         "For transfer_resource include recipient_id, resource, and amount. "
         "Do not modify *_loop artifacts. "
         "When writing artifacts, use ids prefixed with {principal_id}_. "
-        "Prefer interaction and production actions over status checks."
+        "Use memory.next_objective and memory.objectives to choose the next economically useful move. "
+        "Once discovery is complete, avoid repeating query_kernel unless you need new counterparties. "
+        "Prefer cross-agent interaction and production actions over status checks. "
+        "If memory.stagnation_count >= 3, choose a different action_type than your most recent action. "
+        "If tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object."
     )
+    if isinstance(strategy_text, str) and strategy_text.strip():
+        prompt = "Strategy:\\n" + strategy_text[:2400] + "\\n\\n" + prompt
     if feedback_enabled:
         prompt += " Use recent_feedback to avoid repeating actions with recent error codes."
 
@@ -689,6 +1389,7 @@ def run():
         "llm_cooldown_age_seconds": None,
         "llm_cooldown_seconds": float({self.config.llm.loop_llm_cooldown_seconds}),
         "forced_explore": False,
+        "llm_action_source": "none",
         "gate_fallback_used": False,
         "gate_reason": None,
         "recovery_fallback_used": False,
@@ -704,21 +1405,33 @@ def run():
             llm_result = _syscall_llm(
                 model="{self.config.llm.default_model}",
                 messages=[
-                    {{"role": "system", "content": "Return only one valid JSON action object. No prose."}},
+                    {{
+                        "role": "system",
+                        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+                    }},
                     {{"role": "user", "content": prompt + "\\nState:\\n" + json.dumps(state_snapshot)}},
                 ],
+                tools=_loop_action_tools(),
             )
             decision_meta["source"] = "llm"
             if llm_result.get("success"):
                 decision_meta["llm_success"] = True
                 raw_decision = _extract_json(llm_result.get("content", ""))
-                decision = raw_decision
+                tool_decision = _extract_action_from_tool_calls(llm_result.get("tool_calls"))
+                if isinstance(tool_decision, dict):
+                    decision_meta["llm_action_source"] = "tool_call"
+                    decision = tool_decision
+                elif isinstance(raw_decision, dict):
+                    decision_meta["llm_action_source"] = "json"
+                    decision = raw_decision
+                else:
+                    decision_meta["llm_action_source"] = "unparsed"
             else:
                 decision_meta["source"] = "llm_error"
         else:
             decision_meta["source"] = "llm_cooldown_skip"
 
-    if _should_force_explore(decision):
+    if _should_force_explore(decision, state_snapshot):
         decision_meta["forced_explore"] = True
         if decision_meta["source"] == "llm":
             decision_meta["source"] = "forced_explore_from_llm"
@@ -957,6 +1670,53 @@ def run():
             rough_chars += len(str(content))
         return max(20, rough_chars // 4)
 
+    @staticmethod
+    def _is_agent_model(lowered_model: str) -> bool:
+        return (
+            lowered_model == "claude-code"
+            or lowered_model.startswith("claude-code/")
+            or lowered_model == "codex"
+            or lowered_model.startswith("codex/")
+            or lowered_model == "openai-agents"
+            or lowered_model.startswith("openai-agents/")
+        )
+
+    @staticmethod
+    def _is_claude_agent_model(lowered_model: str) -> bool:
+        return lowered_model == "claude-code" or lowered_model.startswith("claude-code/")
+
+    @staticmethod
+    def _tools_include_ae3_action(tools: list[dict[str, Any]] | None) -> bool:
+        if not isinstance(tools, list):
+            return False
+        for entry in tools:
+            if not isinstance(entry, dict):
+                continue
+            fn = entry.get("function")
+            if not isinstance(fn, dict):
+                continue
+            name = fn.get("name")
+            if not isinstance(name, str):
+                continue
+            normalized = name.strip().lower()
+            if normalized == "ae3_action" or normalized.endswith("ae3_action"):
+                return True
+        return False
+
+    @staticmethod
+    def _build_loop_mcp_servers() -> dict[str, dict[str, Any]] | None:
+        server_script = Path(__file__).resolve().parents[1] / "mcp" / "loop_action_server.py"
+        if not server_script.exists():
+            return None
+        return {
+            "ae3-loop-action": {
+                "type": "stdio",
+                "command": sys.executable,
+                "args": [str(server_script)],
+                "env": {"PYTHONUNBUFFERED": "1"},
+            }
+        }
+
     def call_llm_as_syscall(
         self,
         *,
@@ -1025,14 +1785,7 @@ def run():
             trace_id = f"ae3/{self.run_id}/event_{self.event_number}/payer/{payer_id}"
             agent_kwargs: dict[str, Any] = {}
             lowered_model = model.strip().lower()
-            is_agent_model = (
-                lowered_model == "claude-code"
-                or lowered_model.startswith("claude-code/")
-                or lowered_model == "codex"
-                or lowered_model.startswith("codex/")
-                or lowered_model == "openai-agents"
-                or lowered_model.startswith("openai-agents/")
-            )
+            is_agent_model = self._is_agent_model(lowered_model)
             if is_agent_model:
                 if self.config.llm.agent_cwd:
                     agent_kwargs["cwd"] = self.config.llm.agent_cwd
@@ -1040,6 +1793,10 @@ def run():
                     agent_kwargs["max_turns"] = int(self.config.llm.agent_max_turns)
                 if self.config.llm.agent_permission_mode:
                     agent_kwargs["permission_mode"] = self.config.llm.agent_permission_mode
+                if self._is_claude_agent_model(lowered_model) and self._tools_include_ae3_action(tools):
+                    mcp_servers = self._build_loop_mcp_servers()
+                    if mcp_servers:
+                        agent_kwargs["mcp_servers"] = mcp_servers
 
             llm_result = call_llm(
                 model=model,
@@ -1052,6 +1809,19 @@ def run():
                 **agent_kwargs,
             )
             content = llm_result.content or ""
+            tool_calls: list[dict[str, Any]] = []
+            tool_calls_raw = getattr(llm_result, "tool_calls", None)
+            if isinstance(tool_calls_raw, list):
+                for entry in tool_calls_raw:
+                    if isinstance(entry, dict):
+                        tool_calls.append(entry)
+                    elif hasattr(entry, "model_dump"):
+                        try:
+                            dumped = entry.model_dump()
+                        except Exception:
+                            continue
+                        if isinstance(dumped, dict):
+                            tool_calls.append(dumped)
             usage_raw = llm_result.usage if isinstance(llm_result.usage, dict) else {}
             prompt_tokens = int(usage_raw.get("prompt_tokens", usage_raw.get("input_tokens", 0)) or 0)
             completion_tokens = int(usage_raw.get("completion_tokens", usage_raw.get("output_tokens", 0)) or 0)
@@ -1127,6 +1897,7 @@ def run():
                     "undercharged_cost": undercharged_cost,
                     "duration_ms": duration_ms,
                     "tokens": usage,
+                    "tool_calls_count": len(tool_calls),
                 },
             )
             self._llm_syscall_count += 1
@@ -1141,6 +1912,7 @@ def run():
                 "cache_hit": cache_hit,
                 "undercharged_cost": undercharged_cost,
                 "usage": usage,
+                "tool_calls": tool_calls,
                 "duration_ms": duration_ms,
             }
         except Exception as exc:

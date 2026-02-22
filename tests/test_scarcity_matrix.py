@@ -56,7 +56,7 @@ def test_evaluate_kpi_lock_reports_pass_and_fail() -> None:
     }
     result = evaluate_kpi_lock(failing)
     assert result["passed"] is False
-    assert result["checks"]["action_entropy_bits_mean"]["passed"] is False
+    assert result["checks"]["loop_action_entropy_bits_mean"]["passed"] is False
     assert result["checks"]["repeat_error_rate_max"]["passed"] is False
 
 

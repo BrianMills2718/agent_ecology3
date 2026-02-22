@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 import time
+import types
 
 import pytest
 
@@ -106,6 +108,24 @@ def test_loop_artifact_is_kernel_protected(tmp_path) -> None:
     assert overwrite.error_code == "not_authorized"
 
 
+def test_bootstrap_cognitive_artifacts_exist(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    world = World(cfg, run_id="test_cognitive_bootstrap")
+
+    strategy = world.artifacts.get("alpha_1_strategy")
+    state = world.artifacts.get("alpha_1_state")
+    notebook = world.artifacts.get("alpha_1_notebook")
+    assert strategy is not None
+    assert state is not None
+    assert notebook is not None
+    assert "Specialization:" in strategy.content
+    state_payload = json.loads(state.content)
+    notebook_payload = json.loads(notebook.content)
+    assert state_payload.get("next_objective") == "discover"
+    assert isinstance(state_payload.get("objectives"), dict)
+    assert isinstance(notebook_payload.get("journal"), list)
+
+
 def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     cfg = _make_config(tmp_path)
     world = World(cfg, run_id="test_loop_prompt_feedback")
@@ -120,6 +140,81 @@ def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     assert "\"transfer_resource\"" in loop_artifact.code
     assert "disallowed_action:" in loop_artifact.code
     assert "avoid repeating actions with recent error codes" in loop_artifact.code
+    assert "_build_memory_snapshot" in loop_artifact.code
+    assert "memory.next_objective" in loop_artifact.code
+    assert "readable_only=True" in loop_artifact.code
+    assert "include_permissions=True" in loop_artifact.code
+    assert "params.setdefault(\"readable_only\", True)" in loop_artifact.code
+
+
+def test_query_artifacts_readable_only_filters_unreadable(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.principals.count = 2
+    world = World(cfg, run_id="test_query_artifacts_readable_only")
+
+    shared = world.execute_action_data(
+        "alpha_2",
+        {
+            "action_type": "write_artifact",
+            "artifact_id": "alpha_2_shared_note",
+            "artifact_type": "note",
+            "content": "shared",
+            "executable": False,
+        },
+    )
+    assert shared.success, shared.message
+
+    query = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "query_kernel",
+            "query_type": "artifacts",
+            "params": {"readable_only": True, "include_permissions": True, "limit": 200},
+        },
+    )
+    assert query.success, query.message
+    assert isinstance(query.data, dict)
+    rows = query.data.get("results", [])
+    assert isinstance(rows, list)
+    assert rows
+
+    row_ids = [row.get("id") for row in rows if isinstance(row, dict)]
+    assert "alpha_2_shared_note" in row_ids
+    assert "alpha_2_strategy" not in row_ids
+    assert "alpha_2_state" not in row_ids
+    assert "alpha_2_notebook" not in row_ids
+
+    for row in rows:
+        assert isinstance(row, dict)
+        assert row.get("readable") is True
+
+
+def test_loop_updates_cognitive_state_and_notebook(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    world = World(cfg, run_id="test_loop_memory_update")
+
+    state_before = json.loads(world.artifacts.get("alpha_1_state").content)  # type: ignore[union-attr]
+    notebook_before = json.loads(world.artifacts.get("alpha_1_notebook").content)  # type: ignore[union-attr]
+
+    invoke_result = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "invoke_artifact",
+            "artifact_id": "alpha_1_loop",
+            "method": "run",
+            "args": [],
+        },
+    )
+    assert invoke_result.success, invoke_result.message
+
+    state_after = json.loads(world.artifacts.get("alpha_1_state").content)  # type: ignore[union-attr]
+    notebook_after = json.loads(world.artifacts.get("alpha_1_notebook").content)  # type: ignore[union-attr]
+    assert int(state_after.get("iteration", 0)) >= int(state_before.get("iteration", 0)) + 1
+    assert isinstance(state_after.get("recent_actions"), list)
+    assert state_after["recent_actions"], "recent_actions should record loop decisions"
+    assert isinstance(notebook_after.get("journal"), list)
+    assert len(notebook_after["journal"]) >= len(notebook_before.get("journal", []))
+
 
 
 def test_loop_action_gate_rewrites_disallowed_llm_action(tmp_path) -> None:
@@ -300,6 +395,105 @@ def test_loop_llm_cooldown_ignores_log_volume(tmp_path) -> None:
     loop_decisions = [e for e in world.logger.read_recent(120) if e.get("event_type") == "loop_decision"]
     assert loop_decisions
     assert loop_decisions[-1].get("decision_source") == "llm_cooldown_skip"
+
+
+def _stub_llm_result(
+    *,
+    content: str = "{}",
+    tool_calls: list[dict[str, object]] | None = None,
+) -> object:
+    class _Result:
+        pass
+
+    result = _Result()
+    result.content = content
+    result.tool_calls = tool_calls or []
+    result.usage = {"prompt_tokens": 6, "completion_tokens": 4, "total_tokens": 10}
+    result.cost = 0.0
+    result.marginal_cost = 0.0
+    result.cost_source = "subscription_included"
+    result.billing_mode = "subscription_included"
+    result.cache_hit = False
+    return result
+
+
+def test_syscall_injects_claude_mcp_server_for_ae3_action_tool(tmp_path, monkeypatch) -> None:
+    cfg = _make_config(tmp_path)
+    world = World(cfg, run_id="test_claude_mcp_bridge")
+
+    captured: dict[str, object] = {}
+
+    def _fake_call_llm(**kwargs):
+        captured.update(kwargs)
+        return _stub_llm_result(content='{"action_type":"write_artifact","artifact_id":"alpha_1_scratch"}')
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.call_llm = _fake_call_llm
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model="claude-code/opus",
+        messages=[{"role": "user", "content": "test"}],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "ae3_action",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"action_type": {"type": "string"}},
+                    },
+                },
+            }
+        ],
+    )
+    assert result.get("success") is True
+    mcp_servers = captured.get("mcp_servers")
+    assert isinstance(mcp_servers, dict)
+    bridge = mcp_servers.get("ae3-loop-action")
+    assert isinstance(bridge, dict)
+    assert bridge.get("type") == "stdio"
+    assert bridge.get("command")
+    args = bridge.get("args")
+    assert isinstance(args, list)
+    assert args
+    assert str(args[0]).endswith("loop_action_server.py")
+
+
+def test_syscall_does_not_inject_mcp_server_for_non_claude_model(tmp_path, monkeypatch) -> None:
+    cfg = _make_config(tmp_path)
+    world = World(cfg, run_id="test_non_claude_no_mcp_bridge")
+
+    captured: dict[str, object] = {}
+
+    def _fake_call_llm(**kwargs):
+        captured.update(kwargs)
+        return _stub_llm_result(content='{"action_type":"write_artifact","artifact_id":"alpha_1_scratch"}')
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.call_llm = _fake_call_llm
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model="openrouter/deepseek/deepseek-chat",
+        messages=[{"role": "user", "content": "test"}],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "ae3_action",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"action_type": {"type": "string"}},
+                    },
+                },
+            }
+        ],
+    )
+    assert result.get("success") is True
+    assert "mcp_servers" not in captured
 
 
 def test_transfer_resource_moves_llm_budget(tmp_path) -> None:

@@ -586,6 +586,10 @@ def _normalize_payload(principal_id: str, payload: dict[str, Any]) -> dict[str, 
                     query_type = "balances"
                     params.setdefault("principal_id", principal_id)
 
+        artifact_type = params.get("artifact_type")
+        if "type" not in params and isinstance(artifact_type, str) and artifact_type.strip():
+            params["type"] = artifact_type.strip()
+
         data["query_type"] = query_type.strip().lower()
         data["params"] = params
 

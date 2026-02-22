@@ -28,6 +28,7 @@ def _infer_owner(artifact_id: str, owner_map: dict[str, str]) -> str | None:
 def summarize_events(path: Path) -> dict[str, Any]:
     event_types: Counter[str] = Counter()
     action_types: Counter[str] = Counter()
+    loop_action_types: Counter[str] = Counter()
     errors: Counter[str] = Counter()
     query_types: Counter[str] = Counter()
     transfer_edges: Counter[tuple[str, str]] = Counter()
@@ -139,6 +140,9 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 principal = event.get("principal_id")
                 if isinstance(principal, str):
                     per_principal_loop_decisions[principal] += 1
+                decision_action = event.get("decision_action")
+                if isinstance(decision_action, str) and decision_action:
+                    loop_action_types[decision_action] += 1
 
                 if bool(event.get("fallback_used")):
                     loop_fallbacks_total += 1
@@ -200,6 +204,13 @@ def summarize_events(path: Path) -> dict[str, Any]:
             p = count / action_total
             entropy_bits -= p * math.log(p, 2)
 
+    loop_action_total = sum(loop_action_types.values())
+    loop_entropy_bits = 0.0
+    if loop_action_total > 0:
+        for count in loop_action_types.values():
+            p = count / loop_action_total
+            loop_entropy_bits -= p * math.log(p, 2)
+
     cross_read_events = sum(v for (src, dst), v in read_edges.items() if src != dst)
     cross_transfer_amount = sum(v for (src, dst), v in transfer_edges.items() if src != dst)
     cross_llm_budget_transfer_amount = sum(
@@ -248,6 +259,8 @@ def summarize_events(path: Path) -> dict[str, Any]:
         "actions_total": action_total,
         "action_types": dict(action_types),
         "action_entropy_bits": round(entropy_bits, 3),
+        "loop_action_types": dict(loop_action_types),
+        "loop_action_entropy_bits": round(loop_entropy_bits, 3),
         "llm_calls": llm_calls,
         "llm_cost": round(llm_cost, 6),
         "writes": writes,
