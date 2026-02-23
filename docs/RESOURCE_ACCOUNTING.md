@@ -45,7 +45,7 @@ Definition:
 Recommended split:
 1. LLM calls: real call count + real usage/cost when provider returns usage; fallback estimate when absent.
 2. LLM tokens: provider-reported tokens when available; fallback `chars/4` estimate.
-3. LLM budget: real billed cost when available; fallback estimated price table.
+3. LLM budget: real billed cost when available; in subscription-included mode, settle against configurable estimated units so budget scarcity can still bind.
 4. CPU: measured process CPU seconds (already available).
 5. Disk: real UTF-8 byte counts (already available).
 

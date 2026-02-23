@@ -215,9 +215,13 @@ logging:
         agents_override=None,
         llm_loop_override="on",
         loop_llm_cooldown_override=1.5,
+        loop_forced_explore_override="reduced",
+        loop_policy_seed_override=17,
     )
     assert loaded.llm.enable_bootstrap_loop_llm is True
     assert loaded.llm.loop_llm_cooldown_seconds == 1.5
+    assert loaded.llm.loop_forced_explore_mode == "reduced"
+    assert loaded.llm.loop_policy_seed == 17
 
     loaded = _load_runtime_config(str(cfg), agents_override=None, llm_loop_override="off")
     assert loaded.llm.enable_bootstrap_loop_llm is False
@@ -227,6 +231,9 @@ logging:
 
     with pytest.raises(ValueError, match="--llm-loop must be one of: on, off"):
         _load_runtime_config(str(cfg), agents_override=None, llm_loop_override="maybe")
+
+    with pytest.raises(ValueError, match="--loop-forced-explore must be one of: baseline, reduced, off"):
+        _load_runtime_config(str(cfg), agents_override=None, loop_forced_explore_override="invalid")
 
 
 def test_cli_model_override_updates_default_and_allowed_models(tmp_path) -> None:
@@ -295,3 +302,19 @@ logging:
 
     with pytest.raises(ValueError, match="--model must be a non-empty string"):
         _load_runtime_config(str(cfg), agents_override=None, model_override="   ")
+
+
+def test_subscription_budget_config_fields_load(tmp_path) -> None:
+    cfg = tmp_path / "subscription.yaml"
+    cfg.write_text(
+        """
+llm:
+  subscription_budget_charge_mode: none
+  subscription_estimated_cost_multiplier: 0.75
+""",
+        encoding="utf-8",
+    )
+
+    loaded = load_config(cfg)
+    assert loaded.llm.subscription_budget_charge_mode == "none"
+    assert loaded.llm.subscription_estimated_cost_multiplier == pytest.approx(0.75)

@@ -310,24 +310,28 @@ class World:
                 "Prioritize bilateral deals and move scrip where expected utility is higher.",
                 "Use transfer or transfer_resource to clear small trades instead of waiting.",
                 "Track counterparties that repeatedly reciprocate and trade with them first.",
+                "Actively buy external artifacts (validators, audits, opportunity reports) and broker resale.",
             ]
         elif role_name == "toolsmith":
             role_playbook = [
                 "Publish reusable artifacts and improve them when usage is low.",
                 "Set read_price or invoke_price on useful artifacts to test market demand.",
                 "Submit high-utility artifacts to mint after at least one external read.",
+                "Specialize in utility artifacts others can reuse with minimal edits.",
             ]
         elif role_name == "auditor":
             role_playbook = [
                 "Read external artifacts, publish concise audit notes, and iterate.",
                 "Flag low-quality or stale artifacts and create improved versions.",
                 "Trade insights for scrip or llm_budget when possible.",
+                "Package audit findings as priced artifacts for counterparties who need verification.",
             ]
         elif role_name == "scout":
             role_playbook = [
                 "Discover new artifacts and surface promising opportunities early.",
                 "Connect agents with complementary needs using small coordinating transfers.",
                 "Avoid repeated status checks when objective progress is blocked.",
+                "Sell concise opportunity briefs to agents with matching specialization.",
             ]
         return "\n".join(
             [
@@ -901,10 +905,31 @@ def _build_memory_snapshot(state_memory, notebook_memory):
     return snapshot
 
 
-def _neighbor_principal():
+def _loop_turn(state_snapshot):
+    memory = {{}}
+    if isinstance(state_snapshot, dict):
+        raw_memory = state_snapshot.get("memory")
+        if isinstance(raw_memory, dict):
+            memory = raw_memory
+    raw_iteration = memory.get("iteration")
+    turn = None
+    if isinstance(raw_iteration, int):
+        turn = raw_iteration
+    else:
+        try:
+            turn = int(float(raw_iteration))
+        except Exception:
+            turn = None
+    if turn is None:
+        turn = int(time.time())
+    seed_bias = int({self.config.llm.loop_policy_seed})
+    return int(turn) + {slot} + (seed_bias * 7919)
+
+
+def _neighbor_principal(state_snapshot):
     if {principal_count} <= 1:
         return "{principal_id}"
-    turn = int(time.time()) + {slot}
+    turn = _loop_turn(state_snapshot)
     idx = (turn % {principal_count}) + 1
     candidate = "{principal_prefix}" + str(idx)
     if candidate == "{principal_id}":
@@ -933,10 +958,19 @@ def _pick_read_target(state_snapshot):
     own_prefix = "{principal_id}_"
     if not isinstance(state_snapshot, dict):
         return None
+    balance = 0
+    raw_balance = state_snapshot.get("balance")
+    if isinstance(raw_balance, int):
+        balance = raw_balance
     artifacts = state_snapshot.get("artifacts")
     if not isinstance(artifacts, list):
         return None
-    preferred = None
+    priced_non_scratch = None
+    priced_non_scratch_price = None
+    priced_scratch = None
+    priced_scratch_price = None
+    free_non_scratch = None
+    free_scratch = None
     for item in artifacts:
         if not isinstance(item, dict):
             continue
@@ -950,11 +984,38 @@ def _pick_read_target(state_snapshot):
             continue
         if artifact_id.startswith(own_prefix):
             continue
+        read_price_value = 0
+        try:
+            read_price_value = int(float(item.get("read_price") or 0))
+        except Exception:
+            read_price_value = 0
+        if read_price_value > 0 and balance >= read_price_value:
+            if artifact_id.endswith("_scratch"):
+                if priced_scratch is None or priced_scratch_price is None or read_price_value < priced_scratch_price:
+                    priced_scratch = artifact_id
+                    priced_scratch_price = read_price_value
+                continue
+            if (
+                priced_non_scratch is None
+                or priced_non_scratch_price is None
+                or read_price_value < priced_non_scratch_price
+            ):
+                priced_non_scratch = artifact_id
+                priced_non_scratch_price = read_price_value
+            continue
         if artifact_id.endswith("_scratch"):
-            return artifact_id
-        if preferred is None:
-            preferred = artifact_id
-    return preferred
+            if free_scratch is None:
+                free_scratch = artifact_id
+            continue
+        if free_non_scratch is None:
+            free_non_scratch = artifact_id
+    if priced_non_scratch is not None:
+        return priced_non_scratch
+    if priced_scratch is not None:
+        return priced_scratch
+    if free_non_scratch is not None:
+        return free_non_scratch
+    return free_scratch
 
 
 def _artifact_exists(artifact_id):
@@ -1073,6 +1134,8 @@ def _normalize_loop_decision(decision, state_snapshot):
         normalized["artifact_id"] = artifact_id
         normalized["artifact_type"] = artifact_type.strip().lower()
         normalized["content"] = content
+        if "read_price" not in normalized and not artifact_id.endswith("_scratch"):
+            normalized["read_price"] = 1
         for price_key in ("read_price", "invoke_price"):
             if price_key not in normalized:
                 continue
@@ -1174,11 +1237,11 @@ def _fallback_action(state_snapshot):
             raw_next_objective = memory.get("next_objective")
             if isinstance(raw_next_objective, str) and raw_next_objective.strip():
                 next_objective = raw_next_objective.strip().lower()
-    neighbor = _neighbor_principal()
+    neighbor = _neighbor_principal(state_snapshot)
     neighbor_scratch = neighbor + "_scratch"
     if _artifact_exists(neighbor_scratch):
         read_target = neighbor_scratch
-    turn = int(time.time()) + {slot}
+    turn = _loop_turn(state_snapshot)
     if next_objective == "cross_agent_read" and read_target is not None:
         return {{
             "action_type": "read_artifact",
@@ -1189,7 +1252,8 @@ def _fallback_action(state_snapshot):
             "action_type": "write_artifact",
             "artifact_id": "{scratch_id}",
             "artifact_type": "note",
-            "content": "utility note from {principal_id} turn " + str(turn),
+            "content": "reusable utility note from {principal_id} turn " + str(turn),
+            "read_price": 1,
         }}
     if next_objective == "trade" and balance > 1:
         if (turn % 2) == 0:
@@ -1289,8 +1353,21 @@ def _fallback_action(state_snapshot):
 
 
 def _should_force_explore(decision, state_snapshot):
+    mode = "{self.config.llm.loop_forced_explore_mode}"
+    if mode == "off":
+        return False, None
+    query_repeat_limit = 2
+    query_stagnation_limit = 2
+    hard_stagnation_limit = 4
+    query_jitter_modulo = 3
+    if mode == "reduced":
+        query_repeat_limit = 3
+        query_stagnation_limit = 3
+        hard_stagnation_limit = 6
+        query_jitter_modulo = 0
+
     if not isinstance(decision, dict):
-        return True
+        return True, "decision_not_object"
     memory = {{}}
     recent_feedback = {{}}
     if isinstance(state_snapshot, dict):
@@ -1314,18 +1391,20 @@ def _should_force_explore(decision, state_snapshot):
         action = decision.get("action")
     action = str(action or "").strip().lower()
     if action in ("", "noop"):
-        return True
+        return True, "action_missing_or_noop"
     if action == "query_kernel":
         if next_objective not in ("", "discover"):
-            return True
-        if recent_action_types.count("query_kernel") >= 2:
-            return True
-        if stagnation_count >= 2:
-            return True
-        return ((int(time.time()) + {slot}) % 3) == 0
-    if stagnation_count >= 4:
-        return True
-    return False
+            return True, "query_kernel_outside_discovery_objective"
+        if recent_action_types.count("query_kernel") >= query_repeat_limit:
+            return True, "query_kernel_repeated"
+        if stagnation_count >= query_stagnation_limit:
+            return True, "query_kernel_stagnation"
+        if query_jitter_modulo > 0 and (_loop_turn(state_snapshot) % query_jitter_modulo) == 0:
+            return True, "query_kernel_periodic_nudge"
+        return False, None
+    if stagnation_count >= hard_stagnation_limit:
+        return True, "stagnation_high"
+    return False, None
 
 
 def run():
@@ -1365,6 +1444,7 @@ def run():
         "When querying artifacts, prefer query_type='artifacts' with params.readable_only=true. "
         "For submit_to_mint include artifact_id and bid. "
         "When useful, monetize artifacts by setting read_price/invoke_price on write_artifact. "
+        "If writing a reusable artifact (not heartbeat/scratch), set read_price >= 1 to test demand. "
         "For transfer_resource include recipient_id, resource, and amount. "
         "Do not modify *_loop artifacts. "
         "When writing artifacts, use ids prefixed with {principal_id}_. "
@@ -1389,6 +1469,7 @@ def run():
         "llm_cooldown_age_seconds": None,
         "llm_cooldown_seconds": float({self.config.llm.loop_llm_cooldown_seconds}),
         "forced_explore": False,
+        "forced_explore_reason": None,
         "llm_action_source": "none",
         "gate_fallback_used": False,
         "gate_reason": None,
@@ -1431,8 +1512,10 @@ def run():
         else:
             decision_meta["source"] = "llm_cooldown_skip"
 
-    if _should_force_explore(decision, state_snapshot):
+    force_explore, force_reason = _should_force_explore(decision, state_snapshot)
+    if force_explore:
         decision_meta["forced_explore"] = True
+        decision_meta["forced_explore_reason"] = force_reason
         if decision_meta["source"] == "llm":
             decision_meta["source"] = "forced_explore_from_llm"
         elif decision_meta["source"] == "none":
@@ -1837,6 +1920,25 @@ def run():
                 actual_cost = 0.0
                 self.ledger.refund_resource_usage(payer_id, "llm_calls", 1.0)
 
+            budget_settle_cost = actual_cost
+            budget_charge_basis = "actual_cost"
+            billing_mode_normalized = billing_mode.strip().lower()
+            if cache_hit:
+                budget_settle_cost = 0.0
+                budget_charge_basis = "cache_hit"
+            elif "subscription" in billing_mode_normalized:
+                mode = self.config.llm.subscription_budget_charge_mode
+                if mode == "none":
+                    budget_settle_cost = 0.0
+                    budget_charge_basis = "subscription_none"
+                elif mode == "estimated":
+                    multiplier = max(0.0, float(self.config.llm.subscription_estimated_cost_multiplier))
+                    budget_settle_cost = max(0.0, estimated_cost * multiplier)
+                    budget_charge_basis = "subscription_estimated"
+                else:
+                    budget_settle_cost = actual_cost
+                    budget_charge_basis = "subscription_actual"
+
             # Reconcile token reservation to measured tokens (or zero on cache hit).
             if actual_tokens < estimated_tokens:
                 self.ledger.refund_resource_usage(
@@ -1860,16 +1962,16 @@ def run():
                         },
                     )
 
-            # Reconcile budget reservation against measured marginal cost.
+            # Reconcile budget reservation against chosen budget settlement cost.
             charged_cost = 0.0
             undercharged_cost = 0.0
-            if actual_cost <= estimated_cost:
-                refund = estimated_cost - actual_cost
+            if budget_settle_cost <= estimated_cost:
+                refund = estimated_cost - budget_settle_cost
                 if refund > 0:
                     self.ledger.credit_resource(payer_id, "llm_budget", refund)
-                charged_cost = actual_cost
+                charged_cost = budget_settle_cost
             else:
-                extra_cost = actual_cost - estimated_cost
+                extra_cost = budget_settle_cost - estimated_cost
                 extra_available = max(0.0, self.ledger.get_llm_budget(payer_id))
                 charge_extra = min(extra_cost, extra_available)
                 if charge_extra > 0:
@@ -1893,6 +1995,8 @@ def run():
                     "charged_cost": charged_cost,
                     "cost_source": cost_source,
                     "billing_mode": billing_mode,
+                    "budget_charge_basis": budget_charge_basis,
+                    "budget_settle_cost": budget_settle_cost,
                     "cache_hit": cache_hit,
                     "undercharged_cost": undercharged_cost,
                     "duration_ms": duration_ms,
@@ -1909,6 +2013,8 @@ def run():
                 "charged_cost": charged_cost,
                 "cost_source": cost_source,
                 "billing_mode": billing_mode,
+                "budget_charge_basis": budget_charge_basis,
+                "budget_settle_cost": budget_settle_cost,
                 "cache_hit": cache_hit,
                 "undercharged_cost": undercharged_cost,
                 "usage": usage,

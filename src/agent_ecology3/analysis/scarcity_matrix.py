@@ -28,10 +28,30 @@ NUMERIC_METRICS: tuple[str, ...] = (
     "cross_llm_budget_transfer_amount",
     "mint_submissions",
     "llm_calls",
+    "llm_call_errors",
+    "llm_attempted_total",
+    "llm_success_total",
+    "llm_valid_decision_total",
+    "llm_attempt_rate",
+    "llm_valid_decision_rate",
+    "llm_attempt_success_rate",
+    "llm_error_rate",
     "llm_cost",
     "fallback_rate",
+    "gate_fallback_rate",
+    "recovery_fallback_rate",
+    "forced_explore_rate",
     "decision_success_rate",
     "repeat_error_rate",
+    "cross_paid_consumption_amount",
+    "cross_paid_consumption_events",
+    "reuse_weighted_artifact_value_total",
+    "specialization_hhi_mean",
+    "forced_explore_value_share",
+    "minted_artifact_count",
+    "minted_with_downstream_value_count",
+    "mint_downstream_value",
+    "mint_downstream_value_ratio",
 )
 
 
@@ -128,13 +148,139 @@ def _metrics_from_summary(summary: dict[str, Any]) -> dict[str, float]:
     return metrics
 
 
+def _resolve_llm_preflight_enabled(
+    *,
+    mode: str,
+    llm_loop_enabled: bool,
+    target_llm_calls: int,
+    min_llm_calls: int,
+) -> bool:
+    normalized = str(mode).strip().lower()
+    if normalized not in {"auto", "on", "off"}:
+        raise ValueError("--llm-preflight must be one of: auto, on, off")
+    if normalized == "on":
+        return True
+    if normalized == "off":
+        return False
+    return bool(llm_loop_enabled and (target_llm_calls > 0 or min_llm_calls > 0))
+
+
+def _resolve_llm_validity_thresholds(
+    *,
+    llm_loop_enabled: bool,
+    target_llm_calls: int,
+    min_llm_calls: int | None,
+    min_llm_valid_decisions: int | None,
+    min_llm_attempt_rate: float | None,
+    min_llm_valid_decision_rate: float | None,
+) -> dict[str, float | int]:
+    resolved_min_llm_calls = int(min_llm_calls) if min_llm_calls is not None else 0
+    if min_llm_calls is None and llm_loop_enabled and target_llm_calls > 0:
+        resolved_min_llm_calls = 1
+    resolved_min_llm_valid_decisions = int(min_llm_valid_decisions) if min_llm_valid_decisions is not None else 0
+    resolved_min_llm_attempt_rate = float(min_llm_attempt_rate) if min_llm_attempt_rate is not None else 0.0
+    resolved_min_llm_valid_decision_rate = (
+        float(min_llm_valid_decision_rate) if min_llm_valid_decision_rate is not None else 0.0
+    )
+
+    if resolved_min_llm_calls < 0:
+        raise ValueError("--min-llm-calls must be >= 0")
+    if resolved_min_llm_valid_decisions < 0:
+        raise ValueError("--min-llm-valid-decisions must be >= 0")
+    if not 0.0 <= resolved_min_llm_attempt_rate <= 1.0:
+        raise ValueError("--min-llm-attempt-rate must be within [0, 1]")
+    if not 0.0 <= resolved_min_llm_valid_decision_rate <= 1.0:
+        raise ValueError("--min-llm-valid-decision-rate must be within [0, 1]")
+
+    return {
+        "min_llm_calls": resolved_min_llm_calls,
+        "min_llm_valid_decisions": resolved_min_llm_valid_decisions,
+        "min_llm_attempt_rate": resolved_min_llm_attempt_rate,
+        "min_llm_valid_decision_rate": resolved_min_llm_valid_decision_rate,
+    }
+
+
+def _evaluate_llm_engagement_validity(
+    summary: dict[str, Any],
+    run_meta: dict[str, Any],
+    *,
+    thresholds: dict[str, float | int],
+) -> dict[str, Any]:
+    llm_calls = int(summary.get("llm_calls", run_meta.get("llm_calls_observed", 0)) or 0)
+    llm_valid_decision_total = int(summary.get("llm_valid_decision_total", 0) or 0)
+    llm_attempt_rate = float(summary.get("llm_attempt_rate", 0.0) or 0.0)
+    llm_valid_decision_rate = float(summary.get("llm_valid_decision_rate", 0.0) or 0.0)
+    checks: dict[str, dict[str, Any]] = {
+        "min_llm_calls": {
+            "threshold": int(thresholds["min_llm_calls"]),
+            "observed": llm_calls,
+            "passed": llm_calls >= int(thresholds["min_llm_calls"]),
+        },
+        "min_llm_valid_decisions": {
+            "threshold": int(thresholds["min_llm_valid_decisions"]),
+            "observed": llm_valid_decision_total,
+            "passed": llm_valid_decision_total >= int(thresholds["min_llm_valid_decisions"]),
+        },
+        "min_llm_attempt_rate": {
+            "threshold": float(thresholds["min_llm_attempt_rate"]),
+            "observed": llm_attempt_rate,
+            "passed": llm_attempt_rate >= float(thresholds["min_llm_attempt_rate"]),
+        },
+        "min_llm_valid_decision_rate": {
+            "threshold": float(thresholds["min_llm_valid_decision_rate"]),
+            "observed": llm_valid_decision_rate,
+            "passed": llm_valid_decision_rate >= float(thresholds["min_llm_valid_decision_rate"]),
+        },
+    }
+    failed_checks = [name for name, detail in checks.items() if detail["passed"] is not True]
+    return {
+        "valid": not failed_checks,
+        "failed_checks": failed_checks,
+        "checks": checks,
+    }
+
+
+def _run_llm_preflight(cfg: AppConfig) -> dict[str, Any]:
+    preflight_cfg = cfg.model_copy(deep=True)
+    preflight_world = World(preflight_cfg)
+    payer_id = preflight_world.principal_ids[0]
+    result = preflight_world.call_llm_as_syscall(
+        payer_id=payer_id,
+        model=preflight_cfg.llm.default_model,
+        messages=[
+            {"role": "system", "content": "Return valid JSON and no prose."},
+            {"role": "user", "content": '{"ok": true}'},
+        ],
+    )
+    success = bool(result.get("success", False))
+    payload: dict[str, Any] = {
+        "enabled": True,
+        "success": success,
+        "model": preflight_cfg.llm.default_model,
+        "payer_id": payer_id,
+        "llm_calls_observed": int(preflight_world.get_llm_syscall_count()),
+    }
+    if success:
+        payload["cost"] = float(result.get("cost", 0.0) or 0.0)
+        payload["charged_cost"] = float(result.get("charged_cost", 0.0) or 0.0)
+    else:
+        payload["error"] = str(result.get("error", "llm preflight failed"))
+        error_code = result.get("error_code")
+        if isinstance(error_code, str) and error_code:
+            payload["error_code"] = error_code
+    return payload
+
+
 def _build_config(
     *,
     config_path: str,
     agents: int,
     llm_loop: bool,
     loop_llm_cooldown: float,
+    loop_forced_explore_mode: str | None,
+    loop_policy_seed: int,
     model_override: str | None,
+    subscription_estimated_cost_multiplier: float | None,
 ) -> AppConfig:
     cfg = load_config(config_path)
     if agents <= 0:
@@ -144,6 +290,12 @@ def _build_config(
     cfg.principals.count = int(agents)
     cfg.llm.enable_bootstrap_loop_llm = bool(llm_loop)
     cfg.llm.loop_llm_cooldown_seconds = float(loop_llm_cooldown)
+    cfg.llm.loop_policy_seed = int(loop_policy_seed)
+    if loop_forced_explore_mode is not None:
+        mode = str(loop_forced_explore_mode).strip().lower()
+        if mode not in {"baseline", "reduced", "off"}:
+            raise ValueError("--loop-forced-explore must be one of: baseline, reduced, off")
+        cfg.llm.loop_forced_explore_mode = mode
     if model_override:
         model = str(model_override).strip()
         if not model:
@@ -151,6 +303,11 @@ def _build_config(
         cfg.llm.default_model = model
         if cfg.llm.allowed_models and model not in cfg.llm.allowed_models:
             cfg.llm.allowed_models.append(model)
+    if subscription_estimated_cost_multiplier is not None:
+        multiplier = float(subscription_estimated_cost_multiplier)
+        if multiplier < 0:
+            raise ValueError("--subscription-estimated-cost-multiplier must be >= 0")
+        cfg.llm.subscription_estimated_cost_multiplier = multiplier
     return cfg
 
 
@@ -219,13 +376,63 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--duration", type=float, default=30.0, help="Seconds per run")
     parser.add_argument("--agents", type=int, default=4, help="Principal count override")
     parser.add_argument("--model", default=None, help="Override llm.default_model for matrix runs")
+    parser.add_argument(
+        "--subscription-estimated-cost-multiplier",
+        type=float,
+        default=None,
+        help="Override llm.subscription_estimated_cost_multiplier for matrix runs",
+    )
     parser.add_argument("--llm-loop", choices=("on", "off"), default="on", help="Enable/disable loop LLM")
     parser.add_argument("--loop-llm-cooldown", type=float, default=0.0, help="Loop LLM cooldown override")
+    parser.add_argument(
+        "--loop-forced-explore",
+        choices=("baseline", "reduced", "off"),
+        default=None,
+        help="Loop forced-explore mode override",
+    )
     parser.add_argument(
         "--target-llm-calls",
         type=int,
         default=0,
         help="If >0, stop each run once this many successful llm_syscall events are observed (duration is safety cap)",
+    )
+    parser.add_argument("--seed-base", type=int, default=0, help="Base loop-policy seed for matched-condition runs")
+    parser.add_argument("--seed-step", type=int, default=1, help="Per-run increment for loop-policy seed")
+    parser.add_argument(
+        "--llm-preflight",
+        choices=("auto", "on", "off"),
+        default="auto",
+        help="Run an LLM syscall preflight before the matrix (auto when LLM engagement thresholds apply)",
+    )
+    parser.add_argument(
+        "--min-llm-calls",
+        type=int,
+        default=None,
+        help="Minimum successful llm_syscall count required for a run to be valid",
+    )
+    parser.add_argument(
+        "--min-llm-valid-decisions",
+        type=int,
+        default=None,
+        help="Minimum llm_valid loop decisions required for a run to be valid",
+    )
+    parser.add_argument(
+        "--min-llm-attempt-rate",
+        type=float,
+        default=None,
+        help="Minimum llm_attempt_rate required for a run to be valid",
+    )
+    parser.add_argument(
+        "--min-llm-valid-decision-rate",
+        type=float,
+        default=None,
+        help="Minimum llm_valid_decision_rate required for a run to be valid",
+    )
+    parser.add_argument(
+        "--invalid-run-policy",
+        choices=("warn", "drop", "fail"),
+        default="warn",
+        help="Handling for runs that fail LLM engagement validity thresholds",
     )
     parser.add_argument("--log-experiment", action="store_true", help="Log each run summary into llm_client experiments")
     parser.add_argument("--experiment-dataset", default="agent_ecology3_emergence", help="llm_client dataset label")
@@ -253,11 +460,40 @@ def main() -> int:
         agents=int(args.agents),
         llm_loop=llm_loop_enabled,
         loop_llm_cooldown=float(args.loop_llm_cooldown),
+        loop_forced_explore_mode=args.loop_forced_explore,
+        loop_policy_seed=int(args.seed_base),
         model_override=args.model,
+        subscription_estimated_cost_multiplier=args.subscription_estimated_cost_multiplier,
     )
     target_llm_calls = int(args.target_llm_calls)
     if target_llm_calls < 0:
         raise ValueError("--target-llm-calls must be >= 0")
+    seed_step = int(args.seed_step)
+    if seed_step < 0:
+        raise ValueError("--seed-step must be >= 0")
+
+    validity_thresholds = _resolve_llm_validity_thresholds(
+        llm_loop_enabled=llm_loop_enabled,
+        target_llm_calls=target_llm_calls,
+        min_llm_calls=args.min_llm_calls,
+        min_llm_valid_decisions=args.min_llm_valid_decisions,
+        min_llm_attempt_rate=args.min_llm_attempt_rate,
+        min_llm_valid_decision_rate=args.min_llm_valid_decision_rate,
+    )
+    preflight_enabled = _resolve_llm_preflight_enabled(
+        mode=str(args.llm_preflight),
+        llm_loop_enabled=llm_loop_enabled,
+        target_llm_calls=target_llm_calls,
+        min_llm_calls=int(validity_thresholds["min_llm_calls"]),
+    )
+    preflight: dict[str, Any] = {"mode": str(args.llm_preflight), "enabled": preflight_enabled}
+    if preflight_enabled:
+        preflight = {
+            **preflight,
+            **_run_llm_preflight(cfg),
+        }
+        if preflight.get("success") is not True:
+            raise RuntimeError(f"LLM preflight failed: {preflight.get('error', 'unknown error')}")
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -267,14 +503,19 @@ def main() -> int:
     run_ids_path = output_dir / f"{args.prefix}_{stamp}_run_ids.txt"
 
     rows: list[dict[str, Any]] = []
+    aggregate_rows: list[dict[str, Any]] = []
     with jsonl_path.open("w", encoding="utf-8") as matrix_stream, run_ids_path.open("w", encoding="utf-8") as run_stream:
         for idx in range(1, runs + 1):
             print(f"[scarcity-matrix] run {idx}/{runs}")
+            run_seed = int(args.seed_base) + ((idx - 1) * seed_step)
+            run_cfg = cfg.model_copy(deep=True)
+            run_cfg.llm.loop_policy_seed = run_seed
             run_id, events_path, summary, run_meta = _run_single(
-                cfg,
+                run_cfg,
                 float(args.duration),
                 target_llm_calls=target_llm_calls,
             )
+            run_meta["loop_policy_seed"] = run_seed
             run_stream.write(run_id + "\n")
 
             experiment_run_id: str | None = None
@@ -294,38 +535,72 @@ def main() -> int:
                 if isinstance(experiment_run_id_raw, str):
                     experiment_run_id = experiment_run_id_raw
 
+            llm_validity = _evaluate_llm_engagement_validity(
+                summary,
+                run_meta,
+                thresholds=validity_thresholds,
+            )
+            include_in_aggregate = True
+            if llm_validity["valid"] is not True:
+                invalid_msg = (
+                    f"[scarcity-matrix] invalid llm engagement run={run_id} "
+                    f"failed={','.join(llm_validity['failed_checks']) or 'unknown'}"
+                )
+                if args.invalid_run_policy == "fail":
+                    raise RuntimeError(invalid_msg)
+                if args.invalid_run_policy == "drop":
+                    include_in_aggregate = False
+                    print(f"{invalid_msg} (dropped)")
+                else:
+                    print(f"{invalid_msg} (included)")
+
             record = {
                 "ae3_run_id": run_id,
                 "events_path": str(events_path),
                 "experiment_run_id": experiment_run_id,
                 "run_meta": run_meta,
                 "metrics": _metrics_from_summary(summary),
+                "llm_validity": llm_validity,
+                "included_in_aggregate": include_in_aggregate,
             }
             rows.append(record)
+            if include_in_aggregate:
+                aggregate_rows.append(record)
             matrix_stream.write(
                 json.dumps(
                     {
                         "summary": summary,
                         "experiment_run": experiment_finish,
+                        "record": record,
                     },
                     ensure_ascii=True,
                 )
                 + "\n"
             )
 
-    aggregate = aggregate_metrics(rows)
+    aggregate = aggregate_metrics(aggregate_rows)
     payload: dict[str, Any] = {
         "matrix_type": "scarcity_first_baseline",
         "runs": runs,
+        "runs_included_in_aggregate": len(aggregate_rows),
+        "runs_excluded_from_aggregate": runs - len(aggregate_rows),
         "settings": {
             "duration": float(args.duration),
             "agents": int(args.agents),
             "model": str(cfg.llm.default_model),
             "llm_loop": llm_loop_enabled,
             "loop_llm_cooldown": float(args.loop_llm_cooldown),
+            "loop_forced_explore_mode": str(cfg.llm.loop_forced_explore_mode),
             "target_llm_calls": target_llm_calls,
+            "seed_base": int(args.seed_base),
+            "seed_step": seed_step,
+            "subscription_estimated_cost_multiplier": float(cfg.llm.subscription_estimated_cost_multiplier),
+            "llm_preflight": str(args.llm_preflight),
+            "llm_validity_thresholds": validity_thresholds,
+            "invalid_run_policy": str(args.invalid_run_policy),
             "log_experiment": bool(args.log_experiment),
         },
+        "preflight": preflight,
         "run_records": rows,
         "aggregate": aggregate,
         "source_jsonl": str(jsonl_path.resolve()),

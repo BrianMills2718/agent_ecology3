@@ -39,6 +39,58 @@ def _extract_action_name(payload: Any) -> str | None:
     return normalized or None
 
 
+def _derive_decision_origin(
+    *,
+    llm_attempted: bool,
+    llm_success: bool,
+    forced_explore: bool,
+    gate_fallback_used: bool,
+    recovery_fallback_used: bool,
+) -> str:
+    """Return one MECE origin label for loop decision analysis."""
+    if recovery_fallback_used:
+        return "recovery"
+    if forced_explore:
+        return "forced_explore"
+    if gate_fallback_used:
+        return "llm_invalid_fallback" if llm_attempted else "fallback_without_llm"
+    if llm_attempted and llm_success:
+        return "llm_valid"
+    if llm_attempted and not llm_success:
+        return "llm_invalid_fallback"
+    return "fallback_without_llm"
+
+
+def _derive_decision_origin_reason(
+    *,
+    meta: dict[str, Any],
+    forced_explore: bool,
+    gate_fallback_used: bool,
+    recovery_fallback_used: bool,
+    result_error_code: str | None,
+) -> str | None:
+    if recovery_fallback_used:
+        if isinstance(result_error_code, str) and result_error_code:
+            return f"recovery_after:{result_error_code}"
+        return "recovery_after_action_failure"
+    if forced_explore:
+        forced_reason = meta.get("forced_explore_reason")
+        if isinstance(forced_reason, str) and forced_reason:
+            return forced_reason
+        return "forced_explore"
+    if gate_fallback_used:
+        gate_reason = meta.get("gate_reason")
+        if isinstance(gate_reason, str) and gate_reason:
+            return gate_reason
+        return "gate_fallback"
+    if bool(meta.get("llm_attempted")) and not bool(meta.get("llm_success")):
+        return "llm_error"
+    source = meta.get("source")
+    if isinstance(source, str) and source:
+        return source
+    return None
+
+
 class ActionExecutor:
     def __init__(self, world: Any) -> None:
         self.world = world
@@ -412,6 +464,21 @@ class ActionExecutor:
                 gate_fallback_used = bool(meta_dict.get("gate_fallback_used", False))
                 recovery_fallback_used = isinstance(fallback, dict) or bool(meta_dict.get("recovery_fallback_used", False))
                 fallback_used = gate_fallback_used or recovery_fallback_used
+                forced_explore = bool(meta_dict.get("forced_explore", False))
+                decision_origin = _derive_decision_origin(
+                    llm_attempted=bool(meta_dict.get("llm_attempted", False)),
+                    llm_success=bool(meta_dict.get("llm_success", False)),
+                    forced_explore=forced_explore,
+                    gate_fallback_used=gate_fallback_used,
+                    recovery_fallback_used=recovery_fallback_used,
+                )
+                decision_origin_reason = _derive_decision_origin_reason(
+                    meta=meta_dict,
+                    forced_explore=forced_explore,
+                    gate_fallback_used=gate_fallback_used,
+                    recovery_fallback_used=recovery_fallback_used,
+                    result_error_code=result_error_code,
+                )
                 self.world.logger.log(
                     "loop_decision",
                     {
@@ -425,7 +492,10 @@ class ActionExecutor:
                         "fallback_used": fallback_used,
                         "gate_fallback_used": gate_fallback_used,
                         "recovery_fallback_used": recovery_fallback_used,
-                        "forced_explore": bool(meta_dict.get("forced_explore", False)),
+                        "forced_explore": forced_explore,
+                        "forced_explore_reason": meta_dict.get("forced_explore_reason"),
+                        "decision_origin": decision_origin,
+                        "decision_origin_reason": decision_origin_reason,
                         "gate_reason": meta_dict.get("gate_reason"),
                         "decision_source": meta_dict.get("source"),
                         "action_gate_enabled": bool(meta_dict.get("action_gate_enabled", False)),

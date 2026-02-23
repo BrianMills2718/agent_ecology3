@@ -7,6 +7,7 @@ import json
 import math
 import os
 import re
+import statistics
 import sys
 from collections import Counter
 from pathlib import Path
@@ -25,6 +26,31 @@ def _infer_owner(artifact_id: str, owner_map: dict[str, str]) -> str | None:
     return None
 
 
+def _derive_decision_origin_from_event(event: dict[str, Any]) -> str:
+    origin = event.get("decision_origin")
+    if isinstance(origin, str) and origin:
+        return origin
+
+    recovery_fallback_used = bool(event.get("recovery_fallback_used", False))
+    if recovery_fallback_used:
+        return "recovery"
+
+    forced_explore = bool(event.get("forced_explore", False))
+    if forced_explore:
+        return "forced_explore"
+
+    gate_fallback_used = bool(event.get("gate_fallback_used", False))
+    llm_attempted = bool(event.get("llm_attempted", False))
+    llm_success = bool(event.get("llm_success", False))
+    if gate_fallback_used:
+        return "llm_invalid_fallback" if llm_attempted else "fallback_without_llm"
+    if llm_attempted and llm_success:
+        return "llm_valid"
+    if llm_attempted and not llm_success:
+        return "llm_invalid_fallback"
+    return "fallback_without_llm"
+
+
 def summarize_events(path: Path) -> dict[str, Any]:
     event_types: Counter[str] = Counter()
     action_types: Counter[str] = Counter()
@@ -34,8 +60,23 @@ def summarize_events(path: Path) -> dict[str, Any]:
     transfer_edges: Counter[tuple[str, str]] = Counter()
     resource_transfer_edges: Counter[tuple[str, str, str]] = Counter()
     read_edges: Counter[tuple[str, str]] = Counter()
+    paid_consumption_edges: Counter[tuple[str, str]] = Counter()
+    paid_consumption_edge_events: Counter[tuple[str, str]] = Counter()
+    artifact_cross_paid_revenue: Counter[str] = Counter()
+    artifact_consumers: dict[str, set[str]] = {}
+    revenue_by_principal_artifact_type: dict[str, Counter[str]] = {}
+    value_by_decision_origin: Counter[str] = Counter()
+    forced_explore_reason_counts: Counter[str] = Counter()
+    decision_origin_counts: Counter[str] = Counter()
+    per_principal_decision_origin_counts: dict[str, Counter[str]] = {}
+
     final_scrip: dict[str, int] = {}
     owner_map: dict[str, str] = {}
+    artifact_creator: dict[str, str] = {}
+    artifact_type_map: dict[str, str] = {}
+    artifact_creation_origin: dict[str, str] = {}
+    latest_loop_origin_by_principal: dict[str, str] = {}
+
     per_principal_actions: Counter[str] = Counter()
     per_principal_errors: Counter[str] = Counter()
     per_principal_llm_calls: Counter[str] = Counter()
@@ -46,11 +87,13 @@ def summarize_events(path: Path) -> dict[str, Any]:
     per_principal_loop_errors: Counter[str] = Counter()
     per_principal_loop_repeat_errors: Counter[str] = Counter()
     last_loop_error_by_principal: dict[str, str] = {}
+    minted_artifacts: set[str] = set()
 
     first_ts: str | None = None
     last_ts: str | None = None
 
     llm_calls = 0
+    llm_call_errors = 0
     llm_cost = 0.0
     writes = 0
     reads_success = 0
@@ -61,9 +104,15 @@ def summarize_events(path: Path) -> dict[str, Any]:
     kernel_queries_success = 0
     loop_decisions_total = 0
     loop_fallbacks_total = 0
+    gate_fallbacks_total = 0
+    recovery_fallbacks_total = 0
+    forced_explore_total = 0
     loop_success_total = 0
     loop_error_total = 0
     loop_repeat_error_total = 0
+    llm_attempted_total = 0
+    llm_success_total = 0
+    llm_valid_decision_total = 0
 
     with path.open("r", encoding="utf-8") as handle:
         for raw in handle:
@@ -88,12 +137,28 @@ def summarize_events(path: Path) -> dict[str, Any]:
                     model_counts[model] += 1
                 continue
 
+            if event_type == "llm_syscall_error":
+                llm_call_errors += 1
+                continue
+
             if event_type == "artifact_written":
                 writes += 1
                 artifact_id = event.get("artifact_id")
                 owner = event.get("owner")
-                if isinstance(artifact_id, str) and isinstance(owner, str):
-                    owner_map[artifact_id] = owner
+                writer = event.get("principal_id")
+                artifact_type = event.get("artifact_type")
+                if isinstance(artifact_id, str):
+                    if isinstance(owner, str):
+                        owner_map[artifact_id] = owner
+                    elif isinstance(writer, str):
+                        owner_map.setdefault(artifact_id, writer)
+                    if isinstance(writer, str):
+                        artifact_creator.setdefault(artifact_id, writer)
+                        creation_origin = latest_loop_origin_by_principal.get(writer)
+                        if isinstance(creation_origin, str) and creation_origin:
+                            artifact_creation_origin.setdefault(artifact_id, creation_origin)
+                    if isinstance(artifact_type, str) and artifact_type:
+                        artifact_type_map[artifact_id] = artifact_type
                 continue
 
             if event_type == "artifact_read":
@@ -104,6 +169,18 @@ def summarize_events(path: Path) -> dict[str, Any]:
                     owner = _infer_owner(artifact_id, owner_map)
                     if owner:
                         read_edges[(principal, owner)] += 1
+                    recipient = event.get("recipient")
+                    read_price_paid = float(event.get("read_price_paid") or 0.0)
+                    if isinstance(recipient, str) and recipient and principal != recipient and read_price_paid > 0:
+                        paid_consumption_edges[(principal, recipient)] += read_price_paid
+                        paid_consumption_edge_events[(principal, recipient)] += 1
+                        artifact_cross_paid_revenue[artifact_id] += read_price_paid
+                        artifact_consumers.setdefault(artifact_id, set()).add(principal)
+                        artifact_type = artifact_type_map.get(artifact_id, "unknown")
+                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, Counter())
+                        seller_revenue[artifact_type] += read_price_paid
+                        origin = artifact_creation_origin.get(artifact_id, "unknown")
+                        value_by_decision_origin[origin] += read_price_paid
                 continue
 
             if event_type == "transfer":
@@ -131,6 +208,12 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 mint_submissions += 1
                 continue
 
+            if event_type == "mint_auction":
+                artifact_id = event.get("artifact_id")
+                if isinstance(artifact_id, str) and artifact_id:
+                    minted_artifacts.add(artifact_id)
+                continue
+
             if event_type == "kernel_query":
                 kernel_queries_success += 1
                 continue
@@ -140,14 +223,46 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 principal = event.get("principal_id")
                 if isinstance(principal, str):
                     per_principal_loop_decisions[principal] += 1
+                    per_principal_decision_origin_counts.setdefault(principal, Counter())
                 decision_action = event.get("decision_action")
                 if isinstance(decision_action, str) and decision_action:
                     loop_action_types[decision_action] += 1
 
-                if bool(event.get("fallback_used")):
+                gate_fallback_used = bool(event.get("gate_fallback_used"))
+                recovery_fallback_used = bool(event.get("recovery_fallback_used"))
+                fallback_used = bool(event.get("fallback_used")) or gate_fallback_used or recovery_fallback_used
+                if fallback_used:
                     loop_fallbacks_total += 1
                     if isinstance(principal, str):
                         per_principal_loop_fallbacks[principal] += 1
+                if gate_fallback_used:
+                    gate_fallbacks_total += 1
+                if recovery_fallback_used:
+                    recovery_fallbacks_total += 1
+
+                forced_explore = bool(event.get("forced_explore"))
+                if forced_explore:
+                    forced_explore_total += 1
+                    forced_reason = event.get("forced_explore_reason")
+                    if isinstance(forced_reason, str) and forced_reason:
+                        forced_explore_reason_counts[forced_reason] += 1
+                    else:
+                        forced_explore_reason_counts["unspecified"] += 1
+
+                decision_origin = _derive_decision_origin_from_event(event)
+                decision_origin_counts[decision_origin] += 1
+                if decision_origin == "llm_valid":
+                    llm_valid_decision_total += 1
+                if isinstance(principal, str):
+                    per_principal_decision_origin_counts[principal][decision_origin] += 1
+                    latest_loop_origin_by_principal[principal] = decision_origin
+
+                llm_attempted = bool(event.get("llm_attempted", False))
+                llm_success = bool(event.get("llm_success", False))
+                if llm_attempted:
+                    llm_attempted_total += 1
+                if llm_success:
+                    llm_success_total += 1
 
                 result_success = event.get("result_success")
                 if isinstance(result_success, bool) and result_success:
@@ -188,6 +303,28 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 if isinstance(query_type, str):
                     query_types[query_type] += 1
 
+            if (
+                action_type == "invoke_artifact"
+                and bool(result.get("success"))
+                and isinstance(principal, str)
+                and isinstance(intent.get("artifact_id"), str)
+            ):
+                result_data = result.get("data")
+                if isinstance(result_data, dict):
+                    recipient = result_data.get("recipient")
+                    price_paid = float(result_data.get("price_paid") or 0.0)
+                    artifact_id = str(intent.get("artifact_id"))
+                    if isinstance(recipient, str) and recipient and principal != recipient and price_paid > 0:
+                        paid_consumption_edges[(principal, recipient)] += price_paid
+                        paid_consumption_edge_events[(principal, recipient)] += 1
+                        artifact_cross_paid_revenue[artifact_id] += price_paid
+                        artifact_consumers.setdefault(artifact_id, set()).add(principal)
+                        artifact_type = artifact_type_map.get(artifact_id, "unknown")
+                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, Counter())
+                        seller_revenue[artifact_type] += price_paid
+                        origin = artifact_creation_origin.get(artifact_id, "unknown")
+                        value_by_decision_origin[origin] += price_paid
+
             if not bool(result.get("success")):
                 error_code = str(result.get("error_code") or "unknown")
                 errors[error_code] += 1
@@ -210,6 +347,42 @@ def summarize_events(path: Path) -> dict[str, Any]:
         for count in loop_action_types.values():
             p = count / loop_action_total
             loop_entropy_bits -= p * math.log(p, 2)
+
+    paid_consumption_total = float(sum(paid_consumption_edges.values()))
+    paid_consumption_events_total = int(sum(paid_consumption_edge_events.values()))
+    reuse_weighted_artifact_values: dict[str, float] = {}
+    reuse_weighted_artifact_value_total = 0.0
+    for artifact_id, revenue in artifact_cross_paid_revenue.items():
+        distinct_consumers = len(artifact_consumers.get(artifact_id, set()))
+        weighted = float(revenue) * (1.0 + math.log1p(float(distinct_consumers)))
+        reuse_weighted_artifact_values[artifact_id] = round(weighted, 6)
+        reuse_weighted_artifact_value_total += weighted
+
+    specialization_hhi_by_principal: dict[str, float] = {}
+    revenue_by_artifact_type: dict[str, dict[str, float]] = {}
+    for principal, revenue_counter in revenue_by_principal_artifact_type.items():
+        total_revenue = float(sum(revenue_counter.values()))
+        if total_revenue <= 0:
+            continue
+        revenue_by_artifact_type[principal] = {atype: round(float(value), 6) for atype, value in sorted(revenue_counter.items())}
+        hhi = 0.0
+        for value in revenue_counter.values():
+            share = float(value) / total_revenue
+            hhi += share * share
+        specialization_hhi_by_principal[principal] = round(hhi, 6)
+    specialization_hhi_mean = (
+        round(statistics.fmean(specialization_hhi_by_principal.values()), 6) if specialization_hhi_by_principal else 0.0
+    )
+
+    minted_artifact_count = len(minted_artifacts)
+    minted_with_downstream_value_count = sum(1 for artifact_id in minted_artifacts if artifact_cross_paid_revenue.get(artifact_id, 0.0) > 0)
+    mint_downstream_value = float(sum(artifact_cross_paid_revenue.get(artifact_id, 0.0) for artifact_id in minted_artifacts))
+    mint_downstream_value_ratio = (
+        round((minted_with_downstream_value_count / minted_artifact_count), 4) if minted_artifact_count > 0 else 0.0
+    )
+
+    forced_explore_value = float(value_by_decision_origin.get("forced_explore", 0.0))
+    forced_explore_value_share = round((forced_explore_value / paid_consumption_total), 4) if paid_consumption_total > 0 else 0.0
 
     cross_read_events = sum(v for (src, dst), v in read_edges.items() if src != dst)
     cross_transfer_amount = sum(v for (src, dst), v in transfer_edges.items() if src != dst)
@@ -248,10 +421,33 @@ def summarize_events(path: Path) -> dict[str, Any]:
             "repeat_error_rate": round((repeat_errors / errors_count), 4) if errors_count > 0 else 0.0,
         }
 
+    decision_origin_share = {
+        origin: round((count / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
+        for origin, count in sorted(decision_origin_counts.items())
+    }
+    decision_origin_trends: dict[str, dict[str, Any]] = {}
+    for principal in loop_principals:
+        decisions = int(per_principal_loop_decisions.get(principal, 0))
+        per_origin = per_principal_decision_origin_counts.get(principal, Counter())
+        decision_origin_trends[principal] = {
+            "counts": {origin: int(count) for origin, count in sorted(per_origin.items())},
+            "share": {
+                origin: round((count / decisions), 4) if decisions > 0 else 0.0
+                for origin, count in sorted(per_origin.items())
+            },
+        }
+
     dominant_model = model_counts.most_common(1)[0][0] if model_counts else "unknown"
     fallback_rate = round((loop_fallbacks_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
     decision_success_rate = round((loop_success_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
     repeat_error_rate = round((loop_repeat_error_total / loop_error_total), 4) if loop_error_total > 0 else 0.0
+    gate_fallback_rate = round((gate_fallbacks_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
+    recovery_fallback_rate = round((recovery_fallbacks_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
+    forced_explore_rate = round((forced_explore_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
+    llm_attempt_rate = round((llm_attempted_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
+    llm_valid_decision_rate = round((llm_valid_decision_total / loop_decisions_total), 4) if loop_decisions_total > 0 else 0.0
+    llm_attempt_success_rate = round((llm_success_total / llm_attempted_total), 4) if llm_attempted_total > 0 else 0.0
+    llm_error_rate = round((llm_call_errors / (llm_calls + llm_call_errors)), 4) if (llm_calls + llm_call_errors) > 0 else 0.0
 
     return {
         "events_total": sum(event_types.values()),
@@ -262,6 +458,7 @@ def summarize_events(path: Path) -> dict[str, Any]:
         "loop_action_types": dict(loop_action_types),
         "loop_action_entropy_bits": round(loop_entropy_bits, 3),
         "llm_calls": llm_calls,
+        "llm_call_errors": llm_call_errors,
         "llm_cost": round(llm_cost, 6),
         "writes": writes,
         "reads_success": reads_success,
@@ -273,13 +470,51 @@ def summarize_events(path: Path) -> dict[str, Any]:
         "kernel_queries_success": kernel_queries_success,
         "loop_decisions_total": loop_decisions_total,
         "fallback_rate": fallback_rate,
+        "gate_fallback_rate": gate_fallback_rate,
+        "recovery_fallback_rate": recovery_fallback_rate,
+        "forced_explore_rate": forced_explore_rate,
+        "llm_attempted_total": llm_attempted_total,
+        "llm_success_total": llm_success_total,
+        "llm_valid_decision_total": llm_valid_decision_total,
+        "llm_attempt_rate": llm_attempt_rate,
+        "llm_valid_decision_rate": llm_valid_decision_rate,
+        "llm_attempt_success_rate": llm_attempt_success_rate,
+        "llm_error_rate": llm_error_rate,
         "decision_success_rate": decision_success_rate,
         "repeat_error_rate": repeat_error_rate,
+        "decision_origin_counts": {origin: int(count) for origin, count in sorted(decision_origin_counts.items())},
+        "decision_origin_share": decision_origin_share,
+        "decision_origin_trends": decision_origin_trends,
+        "forced_explore_reason_counts": {reason: int(count) for reason, count in sorted(forced_explore_reason_counts.items())},
         "loop_decision_trends": loop_decision_trends,
         "query_types": dict(query_types),
         "errors": dict(errors),
         "cross_read_events": cross_read_events,
         "cross_transfer_amount": cross_transfer_amount,
+        "cross_paid_consumption_amount": round(paid_consumption_total, 6),
+        "cross_paid_consumption_events": paid_consumption_events_total,
+        "paid_consumption_edges": {
+            f"{buyer}->{seller}": round(amount, 6) for (buyer, seller), amount in sorted(paid_consumption_edges.items())
+        },
+        "paid_consumption_edge_events": {
+            f"{buyer}->{seller}": int(count) for (buyer, seller), count in sorted(paid_consumption_edge_events.items())
+        },
+        "artifact_cross_paid_revenue": {
+            artifact_id: round(float(value), 6) for artifact_id, value in sorted(artifact_cross_paid_revenue.items())
+        },
+        "reuse_weighted_artifact_value_total": round(reuse_weighted_artifact_value_total, 6),
+        "reuse_weighted_artifact_values": reuse_weighted_artifact_values,
+        "revenue_by_artifact_type": revenue_by_artifact_type,
+        "specialization_hhi_by_principal": specialization_hhi_by_principal,
+        "specialization_hhi_mean": specialization_hhi_mean,
+        "value_by_decision_origin": {
+            origin: round(float(value), 6) for origin, value in sorted(value_by_decision_origin.items())
+        },
+        "forced_explore_value_share": forced_explore_value_share,
+        "minted_artifact_count": minted_artifact_count,
+        "minted_with_downstream_value_count": minted_with_downstream_value_count,
+        "mint_downstream_value": round(mint_downstream_value, 6),
+        "mint_downstream_value_ratio": mint_downstream_value_ratio,
         "transfer_edges": {
             f"{src}->{dst}": amount for (src, dst), amount in sorted(transfer_edges.items())
         },
@@ -317,6 +552,7 @@ def _experiment_numeric_metrics(summary: dict[str, Any]) -> dict[str, float]:
         "action_entropy_bits",
         "actions_total",
         "llm_calls",
+        "llm_call_errors",
         "llm_cost",
         "writes",
         "reads_success",
@@ -330,8 +566,27 @@ def _experiment_numeric_metrics(summary: dict[str, Any]) -> dict[str, float]:
         "cross_transfer_amount",
         "loop_decisions_total",
         "fallback_rate",
+        "gate_fallback_rate",
+        "recovery_fallback_rate",
+        "forced_explore_rate",
+        "llm_attempted_total",
+        "llm_success_total",
+        "llm_valid_decision_total",
+        "llm_attempt_rate",
+        "llm_valid_decision_rate",
+        "llm_attempt_success_rate",
+        "llm_error_rate",
         "decision_success_rate",
         "repeat_error_rate",
+        "cross_paid_consumption_amount",
+        "cross_paid_consumption_events",
+        "reuse_weighted_artifact_value_total",
+        "specialization_hhi_mean",
+        "forced_explore_value_share",
+        "minted_artifact_count",
+        "minted_with_downstream_value_count",
+        "mint_downstream_value",
+        "mint_downstream_value_ratio",
     )
     out: dict[str, float] = {}
     for key in keys:

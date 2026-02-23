@@ -33,6 +33,18 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Override llm.loop_llm_cooldown_seconds (set 0 to disable cooldown)",
     )
+    parser.add_argument(
+        "--loop-forced-explore",
+        choices=("baseline", "reduced", "off"),
+        default=None,
+        help="Override llm.loop_forced_explore_mode",
+    )
+    parser.add_argument(
+        "--loop-policy-seed",
+        type=int,
+        default=None,
+        help="Override llm.loop_policy_seed",
+    )
     parser.add_argument("--dashboard", action="store_true", help="Run simulation with dashboard server")
     parser.add_argument("--dashboard-only", action="store_true", help="Run dashboard only (read existing JSONL logs)")
     parser.add_argument("--host", default=None, help="Dashboard host override")
@@ -46,6 +58,8 @@ def _load_runtime_config(
     model_override: str | None = None,
     llm_loop_override: str | None = None,
     loop_llm_cooldown_override: float | None = None,
+    loop_forced_explore_override: str | None = None,
+    loop_policy_seed_override: int | None = None,
 ) -> AppConfig:
     config = load_config(path)
     if agents_override is not None:
@@ -71,6 +85,13 @@ def _load_runtime_config(
         if loop_llm_cooldown_override < 0:
             raise ValueError("--loop-llm-cooldown must be >= 0")
         config.llm.loop_llm_cooldown_seconds = float(loop_llm_cooldown_override)
+    if loop_forced_explore_override is not None:
+        normalized_mode = str(loop_forced_explore_override).strip().lower()
+        if normalized_mode not in {"baseline", "reduced", "off"}:
+            raise ValueError("--loop-forced-explore must be one of: baseline, reduced, off")
+        config.llm.loop_forced_explore_mode = normalized_mode
+    if loop_policy_seed_override is not None:
+        config.llm.loop_policy_seed = int(loop_policy_seed_override)
     return config
 
 
@@ -147,6 +168,8 @@ def main() -> int:
         args.model,
         args.llm_loop,
         args.loop_llm_cooldown,
+        args.loop_forced_explore,
+        args.loop_policy_seed,
     )
 
     if args.dashboard_only:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -61,12 +61,16 @@ class LLMConfig(StrictModel):
     allowed_models: list[str] = Field(default_factory=list)
     estimate_tokens_per_call: int = 900
     agent_cwd: str | None = None
-    agent_max_turns: int | None = Field(default=None, ge=1)
+    agent_max_turns: int | None = Field(default=6, ge=1)
     agent_permission_mode: str | None = None
     enable_bootstrap_loop_llm: bool = False
     loop_llm_cooldown_seconds: float = 0.0
+    loop_forced_explore_mode: Literal["baseline", "reduced", "off"] = "baseline"
+    loop_policy_seed: int = 0
     loop_prompt_feedback_enabled: bool = True
     loop_action_gate_enabled: bool = True
+    subscription_budget_charge_mode: Literal["actual", "estimated", "none"] = "estimated"
+    subscription_estimated_cost_multiplier: float = Field(default=1.0, ge=0.0)
 
 
 class ContractsConfig(StrictModel):

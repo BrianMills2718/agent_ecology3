@@ -84,6 +84,8 @@ def test_runner_executes_bootstrap_loop(tmp_path) -> None:
     assert any(isinstance(e.get("decision_action"), str) and e.get("decision_action") for e in loop_decisions)
     assert all("fallback_used" in e for e in loop_decisions)
     assert all("decision_source" in e for e in loop_decisions)
+    assert all("decision_origin" in e for e in loop_decisions)
+    assert all("forced_explore_reason" in e for e in loop_decisions)
 
 
 def test_loop_artifact_is_kernel_protected(tmp_path) -> None:
@@ -145,6 +147,9 @@ def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     assert "readable_only=True" in loop_artifact.code
     assert "include_permissions=True" in loop_artifact.code
     assert "params.setdefault(\"readable_only\", True)" in loop_artifact.code
+    assert "if \"read_price\" not in normalized and not artifact_id.endswith(\"_scratch\")" in loop_artifact.code
+    assert "if priced_non_scratch is not None:" in loop_artifact.code
+    assert "if priced_scratch is not None:" in loop_artifact.code
 
 
 def test_query_artifacts_readable_only_filters_unreadable(tmp_path) -> None:
@@ -415,6 +420,63 @@ def _stub_llm_result(
     result.billing_mode = "subscription_included"
     result.cache_hit = False
     return result
+
+
+def test_subscription_included_charges_estimated_budget_by_default(tmp_path, monkeypatch) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.subscription_budget_charge_mode = "estimated"
+    cfg.llm.subscription_estimated_cost_multiplier = 1.0
+    world = World(cfg, run_id="test_subscription_budget_estimated")
+
+    def _fake_call_llm(**_kwargs):
+        return _stub_llm_result(content='{"action_type":"query_kernel","query_type":"resources","params":{}}')
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.call_llm = _fake_call_llm
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+
+    before_budget = world.ledger.get_llm_budget("alpha_1")
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model="claude-code/opus",
+        messages=[{"role": "user", "content": "short test prompt"}],
+    )
+    after_budget = world.ledger.get_llm_budget("alpha_1")
+
+    assert result.get("success") is True
+    assert result.get("budget_charge_basis") == "subscription_estimated"
+    assert float(result.get("charged_cost", 0.0)) > 0.0
+    assert after_budget < before_budget
+
+    llm_events = [e for e in world.logger.read_recent(20) if e.get("event_type") == "llm_syscall"]
+    assert llm_events
+    assert llm_events[-1].get("budget_charge_basis") == "subscription_estimated"
+
+
+def test_subscription_included_budget_mode_none_refunds_budget(tmp_path, monkeypatch) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.subscription_budget_charge_mode = "none"
+    world = World(cfg, run_id="test_subscription_budget_none")
+
+    def _fake_call_llm(**_kwargs):
+        return _stub_llm_result(content='{"action_type":"query_kernel","query_type":"resources","params":{}}')
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.call_llm = _fake_call_llm
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+
+    before_budget = world.ledger.get_llm_budget("alpha_1")
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model="claude-code/opus",
+        messages=[{"role": "user", "content": "short test prompt"}],
+    )
+    after_budget = world.ledger.get_llm_budget("alpha_1")
+
+    assert result.get("success") is True
+    assert result.get("budget_charge_basis") == "subscription_none"
+    assert float(result.get("charged_cost", -1.0)) == pytest.approx(0.0)
+    assert after_budget == pytest.approx(before_budget)
 
 
 def test_syscall_injects_claude_mcp_server_for_ae3_action_tool(tmp_path, monkeypatch) -> None:

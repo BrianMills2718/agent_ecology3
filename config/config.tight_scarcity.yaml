@@ -12,17 +12,17 @@ principals:
   count: 3
   id_prefix: alpha_
   starting_scrip: 100
-  starting_llm_budget: 2.0
+  starting_llm_budget: 0.5
   starting_disk_quota_bytes: 250000
 
 resources:
   rate_window_seconds: 60.0
   rate_limits:
-    llm_calls_per_window: 120
-    llm_tokens_per_window: 200000
-    cpu_seconds_per_window: 12.0
+    llm_calls_per_window: 60
+    llm_tokens_per_window: 100000
+    cpu_seconds_per_window: 8.0
   stock:
-    total_llm_budget: 12.0
+    total_llm_budget: 3.0
     total_disk_bytes: 1000000
 
 llm:
@@ -44,16 +44,8 @@ llm:
   agent_permission_mode: acceptEdits
   enable_bootstrap_loop_llm: false
   loop_llm_cooldown_seconds: 0.0
-  # Forced exploration guardrail for loop decisions: baseline | reduced | off
-  loop_forced_explore_mode: baseline
-  # Deterministic loop-policy seed for matched-condition runs.
-  loop_policy_seed: 0
   loop_prompt_feedback_enabled: true
   loop_action_gate_enabled: true
-  # In subscription billing mode (Claude Code/Codex OAuth), keep llm_budget scarce
-  # by charging estimated budget units instead of provider USD.
-  subscription_budget_charge_mode: estimated
-  subscription_estimated_cost_multiplier: 1.0
 
 contracts:
   default_when_missing: kernel_contract_freeware
