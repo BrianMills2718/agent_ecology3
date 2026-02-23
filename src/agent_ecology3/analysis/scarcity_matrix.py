@@ -7,6 +7,7 @@ import asyncio
 import json
 import os
 import statistics
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -146,6 +147,58 @@ def _metrics_from_summary(summary: dict[str, Any]) -> dict[str, float]:
         if isinstance(value, (int, float)):
             metrics[key] = float(value)
     return metrics
+
+
+def _build_matrix_gate_signals(payload: dict[str, Any]) -> dict[str, float]:
+    signals: dict[str, float] = {}
+    for key in ("runs", "runs_included_in_aggregate", "runs_excluded_from_aggregate"):
+        value = payload.get(key)
+        if isinstance(value, (int, float)):
+            signals[key] = float(value)
+
+    preflight = payload.get("preflight")
+    if isinstance(preflight, dict):
+        signals["llm_preflight_enabled"] = 1.0 if preflight.get("enabled") else 0.0
+        signals["llm_preflight_success"] = 1.0 if preflight.get("success") else 0.0
+
+    kpi_lock = payload.get("kpi_lock")
+    if isinstance(kpi_lock, dict):
+        signals["kpi_lock_passed"] = 1.0 if kpi_lock.get("passed") else 0.0
+
+    aggregate = payload.get("aggregate")
+    if isinstance(aggregate, dict):
+        for metric, stats in aggregate.items():
+            if not isinstance(metric, str) or not isinstance(stats, dict):
+                continue
+            for stat_name in ("mean", "stdev", "min", "max"):
+                value = stats.get(stat_name)
+                if isinstance(value, (int, float)):
+                    signals[f"{metric}_{stat_name}"] = float(value)
+                    if stat_name == "mean":
+                        # Convenience alias for gate policies that use metric names directly.
+                        signals[metric] = float(value)
+
+    return signals
+
+
+def _evaluate_matrix_gate_policy(
+    *,
+    policy: str | dict[str, Any],
+    llm_client_repo: str | None,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    if llm_client_repo:
+        candidate = Path(llm_client_repo).expanduser().resolve()
+        if candidate.exists() and str(candidate) not in sys.path:
+            sys.path.insert(0, str(candidate))
+    from llm_client.experiment_eval import evaluate_gate_policy, load_gate_policy
+
+    parsed_policy = load_gate_policy(policy)
+    signals = _build_matrix_gate_signals(payload)
+    return {
+        "policy": parsed_policy,
+        "result": evaluate_gate_policy(policy=parsed_policy, signals=signals),
+    }
 
 
 def _resolve_llm_preflight_enabled(
@@ -438,6 +491,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--experiment-dataset", default="agent_ecology3_emergence", help="llm_client dataset label")
     parser.add_argument("--experiment-project", default="agent_ecology3", help="llm_client project label")
     parser.add_argument("--experiment-model", default=None, help="Override experiment model label")
+    parser.add_argument("--experiment-condition-id", default=None, help="Condition label for cohort comparison")
+    parser.add_argument("--experiment-scenario-id", default=None, help="Scenario label grouping related matrix runs")
+    parser.add_argument("--experiment-phase", default=None, help="Experiment phase label for cohort filtering")
     parser.add_argument(
         "--llm-client-repo",
         default=os.environ.get("LLM_CLIENT_REPO", "/home/brian/projects/llm_client"),
@@ -446,6 +502,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="logs", help="Output directory for matrix artifacts")
     parser.add_argument("--prefix", default="scarcity_baseline_matrix", help="Output file prefix")
     parser.add_argument("--skip-kpi-check", action="store_true", help="Skip KPI lock evaluation")
+    parser.add_argument(
+        "--gate-policy",
+        default=None,
+        help="Gate policy JSON string/path evaluated against matrix-level aggregate signals",
+    )
+    parser.add_argument(
+        "--gate-fail-exit-code",
+        action="store_true",
+        help="Exit with code 2 when --gate-policy evaluates to FAIL",
+    )
     parser.add_argument("--pretty", action="store_true", help="Pretty-print final JSON payload")
     return parser.parse_args()
 
@@ -501,6 +567,9 @@ def main() -> int:
     jsonl_path = output_dir / f"{args.prefix}_{stamp}.jsonl"
     summary_path = output_dir / f"{args.prefix}_{stamp}_summary.json"
     run_ids_path = output_dir / f"{args.prefix}_{stamp}_run_ids.txt"
+    experiment_condition_id = str(args.experiment_condition_id).strip() if args.experiment_condition_id else None
+    experiment_scenario_id = str(args.experiment_scenario_id).strip() if args.experiment_scenario_id else None
+    experiment_phase = str(args.experiment_phase).strip() if args.experiment_phase else None
 
     rows: list[dict[str, Any]] = []
     aggregate_rows: list[dict[str, Any]] = []
@@ -530,6 +599,11 @@ def main() -> int:
                     model=args.experiment_model,
                     llm_client_repo=args.llm_client_repo,
                     experiment_run_id=None,
+                    condition_id=experiment_condition_id,
+                    seed=run_seed,
+                    replicate=idx,
+                    scenario_id=experiment_scenario_id,
+                    phase=experiment_phase,
                 )
                 experiment_run_id_raw = experiment_finish.get("run_id")
                 if isinstance(experiment_run_id_raw, str):
@@ -558,6 +632,11 @@ def main() -> int:
                 "ae3_run_id": run_id,
                 "events_path": str(events_path),
                 "experiment_run_id": experiment_run_id,
+                "condition_id": experiment_condition_id,
+                "seed": run_seed,
+                "replicate": idx,
+                "scenario_id": experiment_scenario_id,
+                "phase": experiment_phase,
                 "run_meta": run_meta,
                 "metrics": _metrics_from_summary(summary),
                 "llm_validity": llm_validity,
@@ -599,6 +678,9 @@ def main() -> int:
             "llm_validity_thresholds": validity_thresholds,
             "invalid_run_policy": str(args.invalid_run_policy),
             "log_experiment": bool(args.log_experiment),
+            "experiment_condition_id": experiment_condition_id,
+            "experiment_scenario_id": experiment_scenario_id,
+            "experiment_phase": experiment_phase,
         },
         "preflight": preflight,
         "run_records": rows,
@@ -609,6 +691,16 @@ def main() -> int:
     if not args.skip_kpi_check:
         payload["kpi_lock"] = evaluate_kpi_lock(aggregate)
 
+    gate_evaluation: dict[str, Any] | None = None
+    if args.gate_policy:
+        gate_evaluation = _evaluate_matrix_gate_policy(
+            policy=args.gate_policy,
+            llm_client_repo=args.llm_client_repo,
+            payload=payload,
+        )
+        payload["gate_policy"] = gate_evaluation["policy"]
+        payload["gate_result"] = gate_evaluation["result"]
+
     summary_path.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
     payload["summary_path"] = str(summary_path.resolve())
 
@@ -616,6 +708,8 @@ def main() -> int:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(json.dumps(payload, sort_keys=True))
+    if gate_evaluation is not None and gate_evaluation["result"].get("passed") is not True and args.gate_fail_exit_code:
+        return 2
     return 0
 
 

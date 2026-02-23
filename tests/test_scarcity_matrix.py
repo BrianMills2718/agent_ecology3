@@ -5,6 +5,7 @@ import textwrap
 import pytest
 
 from agent_ecology3.analysis.scarcity_matrix import aggregate_metrics, evaluate_kpi_lock
+from agent_ecology3.analysis.scarcity_matrix import _build_matrix_gate_signals as build_matrix_gate_signals
 from agent_ecology3.analysis.scarcity_matrix import _build_config as build_matrix_config
 from agent_ecology3.analysis.scarcity_matrix import (
     _evaluate_llm_engagement_validity as evaluate_llm_engagement_validity,
@@ -69,6 +70,27 @@ def test_evaluate_kpi_lock_reports_pass_and_fail() -> None:
     assert result["passed"] is False
     assert result["checks"]["loop_action_entropy_bits_mean"]["passed"] is False
     assert result["checks"]["repeat_error_rate_max"]["passed"] is False
+
+
+def test_build_matrix_gate_signals_includes_aggregate_stats() -> None:
+    payload = {
+        "runs": 5,
+        "runs_included_in_aggregate": 4,
+        "runs_excluded_from_aggregate": 1,
+        "preflight": {"enabled": True, "success": True},
+        "kpi_lock": {"passed": False},
+        "aggregate": {
+            "loop_action_entropy_bits": {"mean": 2.2, "stdev": 0.1, "min": 2.0, "max": 2.4},
+            "cross_transfer_amount": {"mean": 3.5, "stdev": 0.3, "min": 3.0, "max": 4.0},
+        },
+    }
+    signals = build_matrix_gate_signals(payload)
+    assert signals["runs"] == 5.0
+    assert signals["llm_preflight_success"] == 1.0
+    assert signals["kpi_lock_passed"] == 0.0
+    assert signals["loop_action_entropy_bits"] == 2.2
+    assert signals["loop_action_entropy_bits_mean"] == 2.2
+    assert signals["cross_transfer_amount_max"] == 4.0
 
 
 def test_build_config_applies_model_override_and_allowed_list(tmp_path) -> None:

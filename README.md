@@ -48,6 +48,8 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 3 --dura
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --loop-forced-explore off --target-llm-calls 80 --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --target-llm-calls 80 --loop-forced-explore reduced --seed-base 100 --seed-step 1 --min-llm-calls 1 --min-llm-valid-decisions 5 --invalid-run-policy drop --llm-preflight auto --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --loop-forced-explore reduced --target-llm-calls 80 --subscription-estimated-cost-multiplier 2.0 --seed-base 100 --seed-step 1 --min-llm-calls 1 --min-llm-valid-decisions 5 --invalid-run-policy drop --llm-preflight auto --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --target-llm-calls 80 --loop-forced-explore reduced --experiment-condition-id forced_reduced --experiment-scenario-id phase1_falsification --experiment-phase phase1 --log-experiment --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --target-llm-calls 80 --loop-forced-explore reduced --gate-policy '{"pass_if":{"loop_action_entropy_bits_mean_gte":2.1}}' --gate-fail-exit-code --pretty
 ```
 
 ## Autonomous Loop Behavior
@@ -82,6 +84,8 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --dura
 - `scarcity_matrix` supports matched-condition seeds via `--seed-base` and `--seed-step`, and can gate LLM-engagement validity with `--min-llm-calls`, `--min-llm-valid-decisions`, `--min-llm-attempt-rate`, `--min-llm-valid-decision-rate`, and `--invalid-run-policy`.
 - `scarcity_matrix` can run an LLM path preflight (`--llm-preflight auto|on|off`) and fail fast before long runs when the configured model path is unavailable.
 - `scarcity_matrix` can override subscription scarcity pressure directly with `--subscription-estimated-cost-multiplier` for calibrated sweeps without creating temporary config files.
+- `scarcity_matrix` can tag each logged run with cohort metadata (`--experiment-condition-id`, `--experiment-scenario-id`, `--experiment-phase`) while auto-recording per-run `seed` and `replicate`.
+- `scarcity_matrix` can evaluate a matrix-level gate policy (`--gate-policy`) over aggregate signals and optionally fail with exit code `2` (`--gate-fail-exit-code`).
 - KPI lock entropy now evaluates loop decisions (`loop_action_entropy_bits`) instead of all low-level action events, and exchange pressure passes on scrip flow, llm_budget flow, or sufficient cross-resource transfer events.
 - `scarcity_matrix` supports both wall-clock runs and call-budget-normalized runs via `--target-llm-calls`; this reduces model-latency bias in emergence comparisons.
 - If `llm_client` is not installed in your active env, set `LLM_CLIENT_REPO=/home/brian/projects/llm_client` (or pass `--llm-client-repo`) so the analyzer can import directly from repo source.

@@ -606,6 +606,11 @@ def _log_summary_to_llm_client(
     model: str | None,
     llm_client_repo: str | None,
     experiment_run_id: str | None,
+    condition_id: str | None = None,
+    seed: int | None = None,
+    replicate: int | None = None,
+    scenario_id: str | None = None,
+    phase: str | None = None,
 ) -> dict[str, Any]:
     _ensure_llm_client_import(llm_client_repo)
     from llm_client import finish_run, log_item, start_run
@@ -618,18 +623,33 @@ def _log_summary_to_llm_client(
         "source": "agent_ecology3",
         "ae3_run_id": ae3_run_id,
         "events_path": str(events_path),
+        "condition_id": condition_id,
+        "seed": seed,
+        "replicate": replicate,
+        "scenario_id": scenario_id,
+        "phase": phase,
     }
 
     run_id = start_run(
         dataset=dataset,
         model=experiment_model,
         config=config,
+        condition_id=condition_id,
+        seed=seed,
+        replicate=replicate,
+        scenario_id=scenario_id,
+        phase=phase,
         metrics_schema=metrics_schema,
         run_id=experiment_run_id,
         project=project,
         provenance={
             "agent_ecology3_run": ae3_run_id,
             "events_file": str(events_path),
+            "condition_id": condition_id,
+            "seed": seed,
+            "replicate": replicate,
+            "scenario_id": scenario_id,
+            "phase": phase,
         },
     )
 
