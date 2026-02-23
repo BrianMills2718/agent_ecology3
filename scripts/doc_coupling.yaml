@@ -1,0 +1,27 @@
+couplings:
+  - description: "Analysis tooling and gates must update operator docs"
+    sources:
+      - "src/agent_ecology3/analysis/*.py"
+      - "config/gates/*.json"
+      - "Makefile"
+    docs:
+      - "README.md"
+      - "docs/CHATGPT_FULL_CONTEXT.md"
+
+  - description: "Core runtime/config changes should refresh implementation baseline docs"
+    sources:
+      - "src/agent_ecology3/world/*.py"
+      - "src/agent_ecology3/simulation/*.py"
+      - "config/config.yaml"
+    docs:
+      - "README.md"
+      - "docs/IMPLEMENTATION_BASELINE.md"
+
+  - description: "Accounting logic updates must update accounting references"
+    sources:
+      - "src/agent_ecology3/world/world.py"
+      - "src/agent_ecology3/world/rates.py"
+      - "config/config.yaml"
+    docs:
+      - "docs/RESOURCE_ACCOUNTING.md"
+      - "docs/ACCOUNTING_CONSTANTS.md"

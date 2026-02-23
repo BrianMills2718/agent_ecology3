@@ -53,6 +53,8 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --dura
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --target-llm-calls 80 --loop-forced-explore reduced --experiment-condition-id forced_reduced --experiment-scenario-id phase1_falsification --experiment-phase phase1 --log-experiment --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --target-llm-calls 80 --loop-forced-explore reduced --gate-policy '{"pass_if":{"loop_action_entropy_bits_mean_gte":2.1}}' --gate-fail-exit-code --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --runs 3 --duration 600 --target-llm-calls 60 --experiment-scenario-id phase1_suite_demo --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --conditions reduced,off --runs 10 --duration 420 --target-llm-calls 16 --loop-prompt-template config/prompts/loop_prompt_variant.txt --experiment-scenario-id phase1_confirmatory_demo --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite logs/phase1_suite_phase1_opus_default_med_20260223_suite.json --candidate-suite logs/phase1_suite_phase1_opus_prompt_variant_med_20260223_suite.json --pretty
 ```
 
 ## Autonomous Loop Behavior
@@ -91,10 +93,31 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --runs 3 --duratio
 - `scarcity_matrix` can tag each logged run with cohort metadata (`--experiment-condition-id`, `--experiment-scenario-id`, `--experiment-phase`) while auto-recording per-run `seed` and `replicate`.
 - `scarcity_matrix` can evaluate a matrix-level gate policy (`--gate-policy`) over aggregate signals and optionally fail with exit code `2` (`--gate-fail-exit-code`).
 - `phase1_suite` runs baseline/reduced/off matrix conditions in sequence and writes a scenario-level cohort comparison from `llm_client.compare_cohorts`.
-- Gate policy presets are provided at `config/gates/phase1_matrix_gate.json` (strict KPI lock) and `config/gates/phase1_matrix_gate_fast.json` (short-run smoke gate).
+- `phase1_compare` compares two suite outputs and reports aggregate plus matched-seed deltas, with a strengths/risks/uncertainties summary.
+- Gate policy presets are provided at:
+  - `config/gates/phase1_matrix_gate.json` (strict KPI lock)
+  - `config/gates/phase1_matrix_gate_fast.json` (short-run smoke gate)
+  - `config/gates/phase1_matrix_gate_value.json` (value-weighted emergence gate)
 - KPI lock entropy now evaluates loop decisions (`loop_action_entropy_bits`) instead of all low-level action events, and exchange pressure passes on scrip flow, llm_budget flow, or sufficient cross-resource transfer events.
 - `scarcity_matrix` supports both wall-clock runs and call-budget-normalized runs via `--target-llm-calls`; this reduces model-latency bias in emergence comparisons.
 - If `llm_client` is not installed in your active env, set `LLM_CLIENT_REPO=/home/brian/projects/llm_client` (or pass `--llm-client-repo`) so the analyzer can import directly from repo source.
+
+## Recommended Profiles (2026-02-23)
+
+Based on matched-seed medium suites (`runs=5`, `duration=420`, `target_llm_calls=16`, seeds `8100..8104`):
+
+- Primary emergence track: `loop-prompt-template=config/prompts/loop_prompt_variant.txt` + `loop-forced-explore=off`.
+  - Strong paid-consumption/reuse signal with zero forced-explore injection.
+- Fallback/liveness track: same prompt variant + `loop-forced-explore=reduced`.
+  - Lower policy injection than baseline while preserving transfer/resource-flow activity.
+- Avoid using prompt-variant `baseline` as sole evidence.
+  - It improved value metrics but increased forced-explore usage and reduced LLM-valid decision rate.
+
+Open uncertainties to keep explicit:
+
+- Off-mode may be shifting behavior from direct transfers to priced artifact consumption (high value, lower transfer counts).
+- Mint remains weak relative to transfer/consumption channels and is not yet a reliable emergence axis.
+- Confirmatory runs (`runs >= 10`) are needed before locking long-term defaults.
 
 ## Project Layout
 

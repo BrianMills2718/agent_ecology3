@@ -603,6 +603,78 @@ Interpretation:
 - These runs are not sufficient for emergence/KPI-lock claims (all failed mint/entropy/transfer floors by design at this short horizon).
 - Use longer horizons (`target_llm_calls >= 20`, preferably runs >= 3 per condition) for emergence conclusions.
 
+### 12.2F Medium matched-seed suite comparison (2026-02-23)
+
+Completed suites (all conditions, all seeds):
+- Default prompt:
+  - `logs/phase1_suite_phase1_opus_default_med_20260223_suite.json`
+- Prompt variant (`config/prompts/loop_prompt_variant.txt`):
+  - `logs/phase1_suite_phase1_opus_prompt_variant_med_20260223_suite.json`
+
+Shared setup:
+- `model=claude-code/opus`
+- `runs=5`
+- `duration=420`
+- `target_llm_calls=16`
+- seeds `8100..8104`
+- each condition gate-passed with `runs_included_in_aggregate=5`
+
+Default prompt means:
+- Baseline:
+  - `llm_valid_decision_rate: 0.90394`
+  - `forced_explore_rate: 0.08356`
+  - `loop_action_entropy_bits: 2.1048`
+  - `cross_paid_consumption_amount: 0.8`
+  - `cross_transfer_amount: 7.4`
+  - `reuse_weighted_artifact_value_total: 1.35452`
+- Reduced:
+  - `llm_valid_decision_rate: 0.85`
+  - `forced_explore_rate: 0.125`
+  - `cross_paid_consumption_amount: 1.4`
+  - `cross_transfer_amount: 5.4`
+  - `reuse_weighted_artifact_value_total: 2.69478`
+- Off:
+  - `llm_valid_decision_rate: 1.0`
+  - `forced_explore_rate: 0.0`
+  - `loop_action_entropy_bits: 1.4252`
+  - `cross_paid_consumption_amount: 3.4`
+  - `cross_transfer_amount: 0.4`
+  - `reuse_weighted_artifact_value_total: 7.83614`
+
+Prompt-variant deltas versus default (prompt minus default):
+- Baseline:
+  - `llm_valid_decision_rate: -0.0796`
+  - `forced_explore_rate: +0.0796`
+  - `cross_paid_consumption_amount: +0.6`
+  - `cross_transfer_amount: -0.8`
+  - `reuse_weighted_artifact_value_total: +1.17807`
+- Reduced:
+  - `llm_valid_decision_rate: +0.0125`
+  - `forced_explore_rate: -0.05`
+  - `cross_paid_consumption_amount: +2.0`
+  - `cross_transfer_amount: -1.8`
+  - `reuse_weighted_artifact_value_total: +4.79615`
+- Off:
+  - `llm_valid_decision_rate: -0.0375`
+  - `forced_explore_rate: 0.0`
+  - `loop_action_entropy_bits: +0.4162`
+  - `cross_paid_consumption_amount: +0.0`
+  - `cross_transfer_amount: +2.2`
+  - `reuse_weighted_artifact_value_total: -0.253702`
+
+Operational recommendation from this comparison:
+- Primary track for emergence diagnosis:
+  - prompt variant + `off`
+- Secondary fallback/liveness track:
+  - prompt variant + `reduced`
+- Do not use prompt-variant baseline as primary evidence:
+  - improved value metrics but increased policy injection in matched seeds.
+
+Current uncertainties (documented, proceed anyway):
+- Value appears to be flowing through priced consumption more than direct transfers in off-mode; this may be true adaptation or metric-channel substitution.
+- Mint remains weak and should not be used as a primary emergence criterion yet.
+- Off-mode has seed-level variance in reuse-value deltas; keep matched-seed confirmatory runs (`n>=10`) as next validation step.
+
 ### 12.3 Summarize a run
 
 ```bash

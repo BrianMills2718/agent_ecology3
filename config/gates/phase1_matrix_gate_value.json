@@ -1,0 +1,14 @@
+{
+  "pass_if": {
+    "llm_preflight_success_eq": 1,
+    "runs_included_in_aggregate_gte": 5,
+    "llm_calls_mean_gte": 1,
+    "decision_success_rate_min_gte": 0.98,
+    "cross_paid_consumption_amount_mean_gte": 1.0,
+    "reuse_weighted_artifact_value_total_mean_gte": 2.0
+  },
+  "fail_if": {
+    "runs_included_in_aggregate_lte": 0,
+    "forced_explore_rate_mean_gt": 0.25
+  }
+}
