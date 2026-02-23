@@ -100,3 +100,22 @@ agent_ecology3/
 | `README.md` | Full documentation |
 | `docs/plans/CLAUDE.md` | Plan index |
 | `scripts/CLAUDE.md` | Script reference |
+
+
+## Multi-Agent Coordination
+
+This repo uses worktree-based isolation for concurrent AI instances.
+
+**Before starting work:**
+1. Check existing claims: `python scripts/meta/worktree-coordination/check_claims.py --list`
+2. Claim your work: `python scripts/meta/worktree-coordination/check_claims.py --claim --feature <name> --task "description"`
+3. Create a worktree: `make worktree` (or `git worktree add worktrees/plan-N-desc`)
+4. Work in the worktree, not the main directory
+
+**Before committing:**
+- Commits must use prefixes: `[Plan #N]`, `[Trivial]`, or `[Unplanned]`
+- Release claims when done: `python scripts/meta/worktree-coordination/check_claims.py --release`
+
+**Check for messages from other instances:**
+`python scripts/meta/worktree-coordination/check_messages.py`
+
