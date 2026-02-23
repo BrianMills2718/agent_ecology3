@@ -110,20 +110,28 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 
 ## Recommended Profiles (2026-02-23)
 
-Based on matched-seed medium suites (`runs=5`, `duration=420`, `target_llm_calls=16`, seeds `8100..8104`):
+Evidence base:
 
-- Primary emergence track: `loop-prompt-template=config/prompts/loop_prompt_variant.txt` + `loop-forced-explore=off`.
-  - Strong paid-consumption/reuse signal with zero forced-explore injection.
-- Fallback/liveness track: same prompt variant + `loop-forced-explore=reduced`.
-  - Lower policy injection than baseline while preserving transfer/resource-flow activity.
-- Avoid using prompt-variant `baseline` as sole evidence.
-  - It improved value metrics but increased forced-explore usage and reduced LLM-valid decision rate.
+1. Medium matched-seed prompt suite: `runs=5`, seeds `8100..8104`.
+2. Confirmatory prompt suite: `phase1_opus_prompt_confirmatory_20260222_215026`, `runs=10` each for `reduced` and `off`, seeds `9100..9109`.
+
+Locked profile recommendation:
+
+1. Primary emergence diagnosis profile:
+- `loop-prompt-template=config/prompts/loop_prompt_variant.txt`
+- `loop-forced-explore=off`
+- Confirmatory mean signals (`n=10`): `forced_explore_rate=0.0`, `llm_valid_decision_rate=0.95395`, `cross_paid_consumption_amount=3.6`, `reuse_weighted_artifact_value_total=7.839976`.
+
+2. Secondary stress profile:
+- Same prompt variant + `loop-forced-explore=reduced`
+- Confirmatory mean signals (`n=10`): `forced_explore_rate=0.09803`, `llm_valid_decision_rate=0.87697`, `cross_paid_consumption_amount=2.6`, `reuse_weighted_artifact_value_total=5.522996`.
+- Use this profile when you explicitly want higher transfer-pressure/churn (`cross_transfer_amount=7.8`) at the cost of more policy injection and lower value-weighted outcomes.
 
 Open uncertainties to keep explicit:
 
 - Off-mode may be shifting behavior from direct transfers to priced artifact consumption (high value, lower transfer counts).
 - Mint remains weak relative to transfer/consumption channels and is not yet a reliable emergence axis.
-- Confirmatory runs (`runs >= 10`) are needed before locking long-term defaults.
+- Keep validating with occasional matched-seed refreshes when prompts/models/config change materially.
 
 ## Project Layout
 

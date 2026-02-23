@@ -690,6 +690,54 @@ Experiment backbone scope decision:
 1. Primary system remains `llm_client` experiments (`start_run/log_item/finish_run`, `compare_cohorts`, gate-policy evaluation) because it natively models scenario/condition/seed/replicate cohorts.
 2. `prompt_eval` is explicitly deferred as primary AE3 infrastructure until an external-runner adapter exists that maps simulation replicates into prompt-eval trial semantics without losing cohort metadata.
 
+### 12.2H Confirmatory prompt-suite results (`n=10` each, 2026-02-23)
+
+Scenario:
+
+- `phase1_opus_prompt_confirmatory_20260222_215026`
+- Prompt template: `config/prompts/loop_prompt_variant.txt`
+- Conditions: `reduced`, `off`
+- Per-condition runs: `10`
+- Seeds: `9100..9109`
+- Call budget: `target_llm_calls=16`
+
+Artifacts:
+
+1. Suite: `logs/phase1_suite_phase1_opus_prompt_confirmatory_20260222_215026_suite.json`
+2. Reduced summary: `logs/phase1_suite_phase1_opus_prompt_confirmatory_20260222_215026_reduced_1771825835_summary.json`
+3. Off summary: `logs/phase1_suite_phase1_opus_prompt_confirmatory_20260222_215026_off_1771828797_summary.json`
+4. Medium-vs-confirmatory compare: `logs/phase1_compare_prompt_med_vs_confirmatory_20260223.json`
+
+Confirmatory aggregate means:
+
+- `reduced` (`n=10`):
+  - `llm_valid_decision_rate=0.87697`
+  - `forced_explore_rate=0.09803`
+  - `cross_paid_consumption_amount=2.6`
+  - `reuse_weighted_artifact_value_total=5.522996`
+  - `cross_transfer_amount=7.8`
+  - `decision_success_rate=1.0`
+- `off` (`n=10`):
+  - `llm_valid_decision_rate=0.95395`
+  - `forced_explore_rate=0.0`
+  - `cross_paid_consumption_amount=3.6`
+  - `reuse_weighted_artifact_value_total=7.839976`
+  - `cross_transfer_amount=2.8`
+  - `decision_success_rate=1.0`
+
+Matched-seed deltas (`off - reduced`, `n_pairs=10`):
+
+1. `llm_valid_decision_rate`: `+0.07698` (95% CI `+0.01972 .. +0.13424`)
+2. `forced_explore_rate`: `-0.09803` (95% CI `-0.11734 .. -0.07872`)
+3. `cross_paid_consumption_amount`: `+1.0` (95% CI `+0.03095 .. +1.96905`)
+4. `reuse_weighted_artifact_value_total`: `+2.31698` (95% CI `+0.05701 .. +4.57695`)
+5. `cross_transfer_amount`: `-5.0` (95% CI `-7.28199 .. -2.71801`)
+
+Decision lock after confirmatory run:
+
+1. Primary profile remains prompt-variant + `off`.
+2. `reduced` remains an explicit stress profile when transfer-pressure/churn is desired for ablation.
+
 ### 12.3 Summarize a run
 
 ```bash
