@@ -45,7 +45,7 @@ llm:
   enable_bootstrap_loop_llm: false
   loop_llm_cooldown_seconds: 0.0
   # Forced exploration guardrail for loop decisions: baseline | reduced | off
-  loop_forced_explore_mode: baseline
+  loop_forced_explore_mode: off
   # Deterministic loop-policy seed for matched-condition runs.
   loop_policy_seed: 0
   # Optional path to a custom loop prompt template text file.

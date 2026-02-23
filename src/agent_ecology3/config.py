@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -65,7 +65,7 @@ class LLMConfig(StrictModel):
     agent_permission_mode: str | None = None
     enable_bootstrap_loop_llm: bool = False
     loop_llm_cooldown_seconds: float = 0.0
-    loop_forced_explore_mode: Literal["baseline", "reduced", "off"] = "baseline"
+    loop_forced_explore_mode: Literal["baseline", "reduced", "off"] = "off"
     loop_policy_seed: int = 0
     loop_prompt_template_path: str | None = None
     loop_prompt_feedback_enabled: bool = True

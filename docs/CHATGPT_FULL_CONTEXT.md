@@ -737,6 +737,7 @@ Decision lock after confirmatory run:
 
 1. Primary profile remains prompt-variant + `off`.
 2. `reduced` remains an explicit stress profile when transfer-pressure/churn is desired for ablation.
+3. Runtime default updated to `llm.loop_forced_explore_mode=off` in `config/config.yaml` and `src/agent_ecology3/config.py`.
 
 ### 12.3 Summarize a run
 

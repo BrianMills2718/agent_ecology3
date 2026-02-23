@@ -71,7 +71,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - Scarce LLM rights can be contracted via `transfer_resource` (`resource=llm_budget`) between principals.
 - Gate and feedback behavior can be toggled with `llm.loop_action_gate_enabled` and `llm.loop_prompt_feedback_enabled`.
 - Loop LLM calls can be rate-shaped per principal using `llm.loop_llm_cooldown_seconds` (default `0.0`, disabled) with in-memory per-principal cooldown tracking (control path does not depend on JSONL reads).
-- Forced exploration guardrails are tunable via `llm.loop_forced_explore_mode` (`baseline`, `reduced`, `off`) for falsification runs.
+- Forced exploration guardrails are tunable via `llm.loop_forced_explore_mode` (`baseline`, `reduced`, `off`) for falsification runs (default is now `off`).
 - Loop prompt text is overrideable via `llm.loop_prompt_template_path` (or CLI `--loop-prompt-template`) so prompt variants can be tested without code edits.
 - Agent SDK loop-call options can be forwarded from config with `llm.agent_cwd`, `llm.agent_max_turns`, and `llm.agent_permission_mode`.
 - Subscription-billed agent models can still deplete `llm_budget` via `llm.subscription_budget_charge_mode` (`estimated` by default) so budget scarcity stays binding even when provider-reported USD marginal cost is zero.
