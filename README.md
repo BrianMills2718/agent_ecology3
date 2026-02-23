@@ -86,6 +86,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --dura
 - `scarcity_matrix` can override subscription scarcity pressure directly with `--subscription-estimated-cost-multiplier` for calibrated sweeps without creating temporary config files.
 - `scarcity_matrix` can tag each logged run with cohort metadata (`--experiment-condition-id`, `--experiment-scenario-id`, `--experiment-phase`) while auto-recording per-run `seed` and `replicate`.
 - `scarcity_matrix` can evaluate a matrix-level gate policy (`--gate-policy`) over aggregate signals and optionally fail with exit code `2` (`--gate-fail-exit-code`).
+- Gate policy presets are provided at `config/gates/phase1_matrix_gate.json` (strict KPI lock) and `config/gates/phase1_matrix_gate_fast.json` (short-run smoke gate).
 - KPI lock entropy now evaluates loop decisions (`loop_action_entropy_bits`) instead of all low-level action events, and exchange pressure passes on scrip flow, llm_budget flow, or sufficient cross-resource transfer events.
 - `scarcity_matrix` supports both wall-clock runs and call-budget-normalized runs via `--target-llm-calls`; this reduces model-latency bias in emergence comparisons.
 - If `llm_client` is not installed in your active env, set `LLM_CLIENT_REPO=/home/brian/projects/llm_client` (or pass `--llm-client-repo`) so the analyzer can import directly from repo source.
