@@ -1,0 +1,10 @@
+{
+  "pass_if": {
+    "llm_preflight_success_eq": 1,
+    "runs_included_in_aggregate_gte": 3,
+    "llm_calls_mean_gte": 1
+  },
+  "fail_if": {
+    "runs_included_in_aggregate_lte": 0
+  }
+}

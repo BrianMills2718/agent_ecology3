@@ -1,0 +1,10 @@
+{
+  "pass_if": {
+    "kpi_lock_passed_eq": 1,
+    "llm_preflight_success_eq": 1,
+    "runs_included_in_aggregate_gte": 3
+  },
+  "fail_if": {
+    "runs_included_in_aggregate_lte": 0
+  }
+}
