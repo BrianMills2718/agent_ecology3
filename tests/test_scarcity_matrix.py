@@ -95,6 +95,8 @@ def test_build_matrix_gate_signals_includes_aggregate_stats() -> None:
 
 def test_build_config_applies_model_override_and_allowed_list(tmp_path) -> None:
     cfg = tmp_path / "config.yaml"
+    prompt_template = tmp_path / "loop_prompt.txt"
+    prompt_template.write_text("Template for {principal_id}", encoding="utf-8")
     cfg.write_text(
         textwrap.dedent(
             """
@@ -163,12 +165,14 @@ def test_build_config_applies_model_override_and_allowed_list(tmp_path) -> None:
         loop_llm_cooldown=0.0,
         loop_forced_explore_mode=None,
         loop_policy_seed=17,
+        loop_prompt_template_path=str(prompt_template),
         model_override="claude-code/opus",
         subscription_estimated_cost_multiplier=2.5,
     )
     assert loaded.llm.default_model == "claude-code/opus"
     assert "claude-code/opus" in loaded.llm.allowed_models
     assert loaded.llm.loop_policy_seed == 17
+    assert loaded.llm.loop_prompt_template_path == str(prompt_template)
     assert loaded.llm.subscription_estimated_cost_multiplier == pytest.approx(2.5)
 
 
@@ -243,6 +247,7 @@ def test_build_config_rejects_negative_subscription_multiplier(tmp_path) -> None
             loop_llm_cooldown=0.0,
             loop_forced_explore_mode=None,
             loop_policy_seed=17,
+            loop_prompt_template_path=None,
             model_override=None,
             subscription_estimated_cost_multiplier=-0.5,
         )

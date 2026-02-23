@@ -50,6 +50,28 @@ ROLE_PROFILES: tuple[dict[str, str], ...] = (
     },
 )
 
+DEFAULT_LOOP_PROMPT_TEMPLATE = (
+    "You are agent {principal_id} in an economy simulation. "
+    "Act strategically to maximize long-run survival and economic power under scarcity. "
+    "Choose exactly one action and never use noop. "
+    "Valid action_type values include write_artifact, read_artifact, transfer, transfer_resource, "
+    "submit_to_mint, query_kernel. "
+    "Do not invoke artifacts directly. "
+    "For query_kernel you must include query_type and params object. "
+    "When querying artifacts, prefer query_type='artifacts' with params.readable_only=true. "
+    "For submit_to_mint include artifact_id and bid. "
+    "When useful, monetize artifacts by setting read_price/invoke_price on write_artifact. "
+    "If writing a reusable artifact (not heartbeat/scratch), set read_price >= 1 to test demand. "
+    "For transfer_resource include recipient_id, resource, and amount. "
+    "Do not modify *_loop artifacts. "
+    "When writing artifacts, use ids prefixed with {principal_id}_. "
+    "Use memory.next_objective and memory.objectives to choose the next economically useful move. "
+    "Once discovery is complete, avoid repeating query_kernel unless you need new counterparties. "
+    "Prefer cross-agent interaction and production actions over status checks. "
+    "If memory.stagnation_count >= 3, choose a different action_type than your most recent action. "
+    "If tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object."
+)
+
 
 class KernelStateRouter:
     """Read-only kernel view exposed to executable artifacts."""
@@ -208,6 +230,7 @@ class World:
         self._action_feedback: dict[str, deque[dict[str, Any]]] = {}
         self._action_count = 0
         self._llm_syscall_count = 0
+        self._loop_prompt_template_cache: str | None = None
 
         self.rate_tracker = RateTracker(window_seconds=config.resources.rate_window_seconds)
         self.rate_tracker.configure_limit("llm_calls", config.resources.rate_limits.llm_calls_per_window)
@@ -300,6 +323,31 @@ class World:
                 slot = 1
             return max(1, slot)
         return 1
+
+    def _load_loop_prompt_template(self) -> str:
+        cached = self._loop_prompt_template_cache
+        if isinstance(cached, str) and cached.strip():
+            return cached
+        template = DEFAULT_LOOP_PROMPT_TEMPLATE
+        raw_path = self.config.llm.loop_prompt_template_path
+        if isinstance(raw_path, str) and raw_path.strip():
+            candidate = Path(raw_path.strip()).expanduser()
+            if not candidate.is_absolute():
+                candidate = (Path.cwd() / candidate).resolve()
+            try:
+                loaded = candidate.read_text(encoding="utf-8")
+            except Exception as exc:
+                raise RuntimeError(f"failed to read loop prompt template: {candidate}") from exc
+            loaded_stripped = loaded.strip()
+            if not loaded_stripped:
+                raise RuntimeError(f"loop prompt template is empty: {candidate}")
+            template = loaded_stripped
+        self._loop_prompt_template_cache = template
+        return template
+
+    def _render_loop_prompt_template(self, principal_id: str) -> str:
+        template = self._load_loop_prompt_template()
+        return template.replace("{principal_id}", principal_id)
 
     def _default_strategy_text(self, principal_id: str, slot: int) -> str:
         profile = self._role_profile(slot)
@@ -751,6 +799,7 @@ class World:
             }
         ]
         loop_tools_json = json.dumps(loop_tools, ensure_ascii=True)
+        loop_prompt_template = self._render_loop_prompt_template(principal_id)
         return f'''import json
 import time
 
@@ -1433,27 +1482,7 @@ def run():
     if "memory" not in state_snapshot:
         state_snapshot["memory"] = memory_snapshot
 
-    prompt = (
-        "You are agent {principal_id} in an economy simulation. "
-        "Act strategically to maximize long-run survival and economic power under scarcity. "
-        "Choose exactly one action and never use noop. "
-        "Valid action_type values include write_artifact, read_artifact, transfer, transfer_resource, "
-        "submit_to_mint, query_kernel. "
-        "Do not invoke artifacts directly. "
-        "For query_kernel you must include query_type and params object. "
-        "When querying artifacts, prefer query_type='artifacts' with params.readable_only=true. "
-        "For submit_to_mint include artifact_id and bid. "
-        "When useful, monetize artifacts by setting read_price/invoke_price on write_artifact. "
-        "If writing a reusable artifact (not heartbeat/scratch), set read_price >= 1 to test demand. "
-        "For transfer_resource include recipient_id, resource, and amount. "
-        "Do not modify *_loop artifacts. "
-        "When writing artifacts, use ids prefixed with {principal_id}_. "
-        "Use memory.next_objective and memory.objectives to choose the next economically useful move. "
-        "Once discovery is complete, avoid repeating query_kernel unless you need new counterparties. "
-        "Prefer cross-agent interaction and production actions over status checks. "
-        "If memory.stagnation_count >= 3, choose a different action_type than your most recent action. "
-        "If tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object."
-    )
+    prompt = {loop_prompt_template!r}
     if isinstance(strategy_text, str) and strategy_text.strip():
         prompt = "Strategy:\\n" + strategy_text[:2400] + "\\n\\n" + prompt
     if feedback_enabled:

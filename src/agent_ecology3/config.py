@@ -67,6 +67,7 @@ class LLMConfig(StrictModel):
     loop_llm_cooldown_seconds: float = 0.0
     loop_forced_explore_mode: Literal["baseline", "reduced", "off"] = "baseline"
     loop_policy_seed: int = 0
+    loop_prompt_template_path: str | None = None
     loop_prompt_feedback_enabled: bool = True
     loop_action_gate_enabled: bool = True
     subscription_budget_charge_mode: Literal["actual", "estimated", "none"] = "estimated"

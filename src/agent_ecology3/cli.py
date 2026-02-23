@@ -45,6 +45,11 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Override llm.loop_policy_seed",
     )
+    parser.add_argument(
+        "--loop-prompt-template",
+        default=None,
+        help="Override llm.loop_prompt_template_path",
+    )
     parser.add_argument("--dashboard", action="store_true", help="Run simulation with dashboard server")
     parser.add_argument("--dashboard-only", action="store_true", help="Run dashboard only (read existing JSONL logs)")
     parser.add_argument("--host", default=None, help="Dashboard host override")
@@ -60,6 +65,7 @@ def _load_runtime_config(
     loop_llm_cooldown_override: float | None = None,
     loop_forced_explore_override: str | None = None,
     loop_policy_seed_override: int | None = None,
+    loop_prompt_template_override: str | None = None,
 ) -> AppConfig:
     config = load_config(path)
     if agents_override is not None:
@@ -92,6 +98,11 @@ def _load_runtime_config(
         config.llm.loop_forced_explore_mode = normalized_mode
     if loop_policy_seed_override is not None:
         config.llm.loop_policy_seed = int(loop_policy_seed_override)
+    if loop_prompt_template_override is not None:
+        template_path = str(loop_prompt_template_override).strip()
+        if not template_path:
+            raise ValueError("--loop-prompt-template must be a non-empty string path")
+        config.llm.loop_prompt_template_path = template_path
     return config
 
 
@@ -170,6 +181,7 @@ def main() -> int:
         args.loop_llm_cooldown,
         args.loop_forced_explore,
         args.loop_policy_seed,
+        args.loop_prompt_template,
     )
 
     if args.dashboard_only:

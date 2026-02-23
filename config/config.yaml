@@ -48,6 +48,9 @@ llm:
   loop_forced_explore_mode: baseline
   # Deterministic loop-policy seed for matched-condition runs.
   loop_policy_seed: 0
+  # Optional path to a custom loop prompt template text file.
+  # Use "{principal_id}" placeholder for per-agent substitution.
+  loop_prompt_template_path: null
   loop_prompt_feedback_enabled: true
   loop_action_gate_enabled: true
   # In subscription billing mode (Claude Code/Codex OAuth), keep llm_budget scarce

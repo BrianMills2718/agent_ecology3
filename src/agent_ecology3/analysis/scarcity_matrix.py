@@ -332,6 +332,7 @@ def _build_config(
     loop_llm_cooldown: float,
     loop_forced_explore_mode: str | None,
     loop_policy_seed: int,
+    loop_prompt_template_path: str | None,
     model_override: str | None,
     subscription_estimated_cost_multiplier: float | None,
 ) -> AppConfig:
@@ -349,6 +350,11 @@ def _build_config(
         if mode not in {"baseline", "reduced", "off"}:
             raise ValueError("--loop-forced-explore must be one of: baseline, reduced, off")
         cfg.llm.loop_forced_explore_mode = mode
+    if loop_prompt_template_path is not None:
+        template_path = str(loop_prompt_template_path).strip()
+        if not template_path:
+            raise ValueError("--loop-prompt-template must be a non-empty string path")
+        cfg.llm.loop_prompt_template_path = template_path
     if model_override:
         model = str(model_override).strip()
         if not model:
@@ -444,6 +450,11 @@ def _parse_args() -> argparse.Namespace:
         help="Loop forced-explore mode override",
     )
     parser.add_argument(
+        "--loop-prompt-template",
+        default=None,
+        help="Override llm.loop_prompt_template_path for matrix runs",
+    )
+    parser.add_argument(
         "--target-llm-calls",
         type=int,
         default=0,
@@ -528,6 +539,7 @@ def main() -> int:
         loop_llm_cooldown=float(args.loop_llm_cooldown),
         loop_forced_explore_mode=args.loop_forced_explore,
         loop_policy_seed=int(args.seed_base),
+        loop_prompt_template_path=args.loop_prompt_template,
         model_override=args.model,
         subscription_estimated_cost_multiplier=args.subscription_estimated_cost_multiplier,
     )
@@ -670,6 +682,7 @@ def main() -> int:
             "llm_loop": llm_loop_enabled,
             "loop_llm_cooldown": float(args.loop_llm_cooldown),
             "loop_forced_explore_mode": str(cfg.llm.loop_forced_explore_mode),
+            "loop_prompt_template_path": cfg.llm.loop_prompt_template_path,
             "target_llm_calls": target_llm_calls,
             "seed_base": int(args.seed_base),
             "seed_step": seed_step,

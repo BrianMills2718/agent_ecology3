@@ -236,6 +236,78 @@ logging:
         _load_runtime_config(str(cfg), agents_override=None, loop_forced_explore_override="invalid")
 
 
+def test_cli_loop_prompt_template_override_validation(tmp_path) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text(
+        """
+simulation:
+  default_duration_seconds: 60
+  max_runtime_seconds: 3600
+  summary_interval_seconds: 10
+  loop:
+    min_delay_seconds: 0.1
+    max_delay_seconds: 1.0
+    max_consecutive_errors: 3
+    resource_check_interval_seconds: 0.1
+principals:
+  count: 2
+  id_prefix: alpha_
+  starting_scrip: 100
+  starting_llm_budget: 2.0
+  starting_disk_quota_bytes: 100000
+resources:
+  rate_window_seconds: 60
+  rate_limits:
+    llm_calls_per_window: 10
+    llm_tokens_per_window: 1000
+    cpu_seconds_per_window: 5
+  stock:
+    total_llm_budget: 2.0
+    total_disk_bytes: 1000000
+llm:
+  default_model: gemini/gemini-2.5-flash
+  timeout_seconds: 30
+  allowed_models: []
+  estimate_tokens_per_call: 500
+  enable_bootstrap_loop_llm: false
+contracts:
+  default_when_missing: kernel_contract_freeware
+  default_for_new_artifact: kernel_contract_freeware
+mint:
+  enabled: true
+  minimum_bid: 1
+  first_auction_delay_seconds: 20
+  bidding_window_seconds: 30
+  period_seconds: 60
+  mint_ratio: 10
+dashboard:
+  enabled: false
+  host: 0.0.0.0
+  port: 9000
+  jsonl_file: logs/latest/events.jsonl
+  poll_interval_seconds: 1.0
+logging:
+  logs_dir: logs
+  event_file_name: events.jsonl
+  summary_file_name: summary.jsonl
+  recent_event_limit: 100
+""",
+        encoding="utf-8",
+    )
+    prompt_template = tmp_path / "loop_prompt.txt"
+    prompt_template.write_text("Template for {principal_id}", encoding="utf-8")
+
+    loaded = _load_runtime_config(
+        str(cfg),
+        agents_override=None,
+        loop_prompt_template_override=str(prompt_template),
+    )
+    assert loaded.llm.loop_prompt_template_path == str(prompt_template)
+
+    with pytest.raises(ValueError, match="--loop-prompt-template must be a non-empty string path"):
+        _load_runtime_config(str(cfg), agents_override=None, loop_prompt_template_override="   ")
+
+
 def test_cli_model_override_updates_default_and_allowed_models(tmp_path) -> None:
     cfg = tmp_path / "config.yaml"
     cfg.write_text(

@@ -152,6 +152,22 @@ def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     assert "if priced_scratch is not None:" in loop_artifact.code
 
 
+def test_loop_code_uses_custom_prompt_template_path(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    prompt_template = tmp_path / "loop_prompt.txt"
+    prompt_template.write_text(
+        "Custom prompt for {principal_id}. Choose one action and never use noop.",
+        encoding="utf-8",
+    )
+    cfg.llm.loop_prompt_template_path = str(prompt_template)
+    world = World(cfg, run_id="test_loop_custom_prompt_template")
+
+    loop_artifact = world.artifacts.get("alpha_1_loop")
+    assert loop_artifact is not None
+    assert "Custom prompt for alpha_1. Choose one action and never use noop." in loop_artifact.code
+    assert "You are agent alpha_1 in an economy simulation." not in loop_artifact.code
+
+
 def test_query_artifacts_readable_only_filters_unreadable(tmp_path) -> None:
     cfg = _make_config(tmp_path)
     cfg.principals.count = 2
