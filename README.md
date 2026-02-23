@@ -54,6 +54,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --dura
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --target-llm-calls 80 --loop-forced-explore reduced --gate-policy '{"pass_if":{"loop_action_entropy_bits_mean_gte":2.1}}' --gate-fail-exit-code --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --runs 3 --duration 600 --target-llm-calls 60 --experiment-scenario-id phase1_suite_demo --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --conditions reduced,off --runs 10 --duration 420 --target-llm-calls 16 --loop-prompt-template config/prompts/loop_prompt_variant.txt --experiment-scenario-id phase1_confirmatory_demo --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.matrix_progress --jsonl logs/phase1_suite_<scenario>_<condition>_<stamp>.jsonl --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite logs/phase1_suite_phase1_opus_default_med_20260223_suite.json --candidate-suite logs/phase1_suite_phase1_opus_prompt_variant_med_20260223_suite.json --pretty
 ```
 
@@ -96,6 +97,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - `scarcity_matrix` now flushes per-run JSONL and `run_ids.txt` writes immediately and emits compact per-run completion lines, so long runs can be monitored live.
 - `phase1_suite` runs baseline/reduced/off matrix conditions in sequence and writes a scenario-level cohort comparison from `llm_client.compare_cohorts`.
 - `phase1_suite` launches matrix children with unbuffered Python (`-u`) so condition driver logs stream progress in real time.
+- `matrix_progress` summarizes in-flight matrix JSONL files (completed replicate count, rolling aggregate metrics, last-run key signals) during long-running suites.
 - `phase1_compare` compares two suite outputs and reports aggregate plus matched-seed deltas, with a strengths/risks/uncertainties summary.
 - `llm_client` is the primary AE3 experiment backbone (registry, cohort comparison, gate evaluation). `prompt_eval` is currently optional for AE3 and only becomes first-class once we add an external-runner bridge that maps `(scenario, condition, seed, replicate)` simulation trials into prompt-eval trial semantics.
 - Gate policy presets are provided at:

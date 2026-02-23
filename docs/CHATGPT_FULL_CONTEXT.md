@@ -683,6 +683,7 @@ Applied while confirmatory runs were in progress:
 2. `scarcity_matrix` now emits a compact per-run completion line with key signals (`llm_calls`, `forced_explore_rate`, `cross_paid_consumption_amount`).
 3. `phase1_suite` now launches matrix children with unbuffered Python (`-u`) and flushes status prints.
 4. AE3 syscall path now passes `max_retries=0` explicitly for agent-SDK models (`claude-code/*`, `codex/*`, `openai-agents/*`) to match side-effect-safe semantics and suppress repeated retry-disabled warning spam in long driver logs.
+5. Added `analysis.matrix_progress` CLI to summarize partial matrix JSONL during active runs (completed replicate count + rolling aggregate + last-run signals).
 
 Experiment backbone scope decision:
 

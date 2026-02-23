@@ -1,6 +1,6 @@
 # Resource Accounting: Real vs Pseudo
 
-Date: 2026-02-20
+Date: 2026-02-23
 
 ## Question
 
@@ -68,3 +68,10 @@ Given expected impact, hybrid provides most value per engineering hour.
 2. Track per-run estimation error for calibration.
 3. Make fallback formulas explicit and versioned.
 4. Never silently mix units; enforce typed metric names.
+
+## Verification Note
+
+Last verified: 2026-02-23
+
+- `world.call_llm_as_syscall` now passes `max_retries=0` explicitly for agent-SDK models.
+- This does not change accounting semantics; it only removes repeated retry-disabled warning noise while preserving side-effect-safe no-retry behavior.

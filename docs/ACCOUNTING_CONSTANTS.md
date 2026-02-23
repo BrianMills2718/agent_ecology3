@@ -1,6 +1,6 @@
 # Accounting Constants and Update Registry
 
-Date: 2026-02-20
+Date: 2026-02-23
 
 This file tracks numeric/accounting knobs that may need future updates.
 
@@ -46,3 +46,7 @@ These values are for operator awareness and alerting calibration only.
 - `marginal_cost` = incremental spend impact for this call (cache hits should be `0`).
 
 2. For agent SDK subscription mode, provider USD may remain zero while llm_budget still depletes via `subscription_budget_charge_mode=estimated` (default) so scarcity remains binding inside AE3.
+
+3. Last verified 2026-02-23:
+- AE3 now passes `max_retries=0` explicitly for agent-SDK calls in `world.call_llm_as_syscall`.
+- Accounting constants in this document remain unchanged by that update.

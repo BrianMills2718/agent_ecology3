@@ -1,8 +1,15 @@
 # AE3 Baseline Implementation
 
-Date: 2026-02-20
+Date: 2026-02-23
 
 This documents the first runnable AE3 baseline after approving removals #1-#6.
+
+Last verified: 2026-02-23
+
+Recent runtime update verified against baseline assumptions:
+
+1. Agent-SDK syscall path now passes `max_retries=0` explicitly (`src/agent_ecology3/world/world.py`).
+2. This preserves existing side-effect-safe no-retry behavior and does not alter accounting semantics or kernel authority boundaries.
 
 ## Implemented Core
 
