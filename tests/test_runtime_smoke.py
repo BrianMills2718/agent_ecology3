@@ -527,6 +527,7 @@ def test_syscall_injects_claude_mcp_server_for_ae3_action_tool(tmp_path, monkeyp
         ],
     )
     assert result.get("success") is True
+    assert captured.get("max_retries") == 0
     mcp_servers = captured.get("mcp_servers")
     assert isinstance(mcp_servers, dict)
     bridge = mcp_servers.get("ae3-loop-action")
@@ -572,6 +573,7 @@ def test_syscall_does_not_inject_mcp_server_for_non_claude_model(tmp_path, monke
     )
     assert result.get("success") is True
     assert "mcp_servers" not in captured
+    assert "max_retries" not in captured
 
 
 def test_transfer_resource_moves_llm_budget(tmp_path) -> None:

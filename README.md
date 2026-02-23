@@ -75,6 +75,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - Agent SDK loop-call options can be forwarded from config with `llm.agent_cwd`, `llm.agent_max_turns`, and `llm.agent_permission_mode`.
 - Subscription-billed agent models can still deplete `llm_budget` via `llm.subscription_budget_charge_mode` (`estimated` by default) so budget scarcity stays binding even when provider-reported USD marginal cost is zero.
 - For `claude-code/*` loop calls, AE3 now injects an MCP stdio `ae3_action` tool bridge so agent-mode tool calls are captured and parsed symmetrically with non-agent tool calls.
+- Agent-SDK syscalls now pass `max_retries=0` explicitly for `claude-code/*`, `codex/*`, and `openai-agents/*` models, matching side-effect-safe no-retry semantics while avoiding repeated retry-disabled warning spam.
 - Each principal now boots with cognitive artifacts (`*_strategy`, `*_state`, `*_notebook`) carrying role specialization, objective progress, and a persistent journal.
 - Loop prompts consume this memory snapshot (`memory.next_objective`, `memory.objectives`, `memory.stagnation_count`) to reduce one-action collapse and encourage discover->read->produce->trade->mint cycles.
 
@@ -92,8 +93,11 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - `scarcity_matrix` can override subscription scarcity pressure directly with `--subscription-estimated-cost-multiplier` for calibrated sweeps without creating temporary config files.
 - `scarcity_matrix` can tag each logged run with cohort metadata (`--experiment-condition-id`, `--experiment-scenario-id`, `--experiment-phase`) while auto-recording per-run `seed` and `replicate`.
 - `scarcity_matrix` can evaluate a matrix-level gate policy (`--gate-policy`) over aggregate signals and optionally fail with exit code `2` (`--gate-fail-exit-code`).
+- `scarcity_matrix` now flushes per-run JSONL and `run_ids.txt` writes immediately and emits compact per-run completion lines, so long runs can be monitored live.
 - `phase1_suite` runs baseline/reduced/off matrix conditions in sequence and writes a scenario-level cohort comparison from `llm_client.compare_cohorts`.
+- `phase1_suite` launches matrix children with unbuffered Python (`-u`) so condition driver logs stream progress in real time.
 - `phase1_compare` compares two suite outputs and reports aggregate plus matched-seed deltas, with a strengths/risks/uncertainties summary.
+- `llm_client` is the primary AE3 experiment backbone (registry, cohort comparison, gate evaluation). `prompt_eval` is currently optional for AE3 and only becomes first-class once we add an external-runner bridge that maps `(scenario, condition, seed, replicate)` simulation trials into prompt-eval trial semantics.
 - Gate policy presets are provided at:
   - `config/gates/phase1_matrix_gate.json` (strict KPI lock)
   - `config/gates/phase1_matrix_gate_fast.json` (short-run smoke gate)

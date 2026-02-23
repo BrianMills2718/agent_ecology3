@@ -92,7 +92,7 @@ def _compare_cohorts(
 ) -> dict[str, Any]:
     from llm_client import compare_cohorts
 
-    return compare_cohorts(
+    payload = compare_cohorts(
         dataset=dataset,
         project=project,
         scenario_id=scenario_id,
@@ -101,6 +101,9 @@ def _compare_cohorts(
         baseline_condition_id=baseline_condition_id,
         limit=2000,
     )
+    if isinstance(payload, dict):
+        return payload
+    raise TypeError("llm_client.compare_cohorts returned non-dict payload")
 
 
 def _run_condition(args: argparse.Namespace, *, scenario_id: str, condition: str) -> dict[str, Any]:
@@ -110,6 +113,7 @@ def _run_condition(args: argparse.Namespace, *, scenario_id: str, condition: str
     run_log_path = output_dir / f"{prefix}_driver.log"
     cmd = [
         sys.executable,
+        "-u",
         "-m",
         "agent_ecology3.analysis.scarcity_matrix",
         "--config",
@@ -199,11 +203,12 @@ def main() -> int:
 
     records: list[dict[str, Any]] = []
     for condition in conditions:
-        print(f"[phase1-suite] running condition={condition}")
+        print(f"[phase1-suite] running condition={condition}", flush=True)
         record = _run_condition(args, scenario_id=scenario_id, condition=condition)
         print(
             f"[phase1-suite] condition={condition} exit={record['exit_code']} "
-            f"log={record['run_log_path']}"
+            f"log={record['run_log_path']}",
+            flush=True,
         )
         records.append(record)
 
@@ -233,9 +238,9 @@ def main() -> int:
     suite_path.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
 
     if args.pretty:
-        print(json.dumps(payload, indent=2, sort_keys=True))
+        print(json.dumps(payload, indent=2, sort_keys=True), flush=True)
     else:
-        print(f"[phase1-suite] suite={suite_path.resolve()}")
+        print(f"[phase1-suite] suite={suite_path.resolve()}", flush=True)
 
     if args.strict_exit:
         bad = [row for row in records if int(row.get("exit_code", 0)) != 0]

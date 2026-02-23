@@ -675,6 +675,20 @@ Current uncertainties (documented, proceed anyway):
 - Mint remains weak and should not be used as a primary emergence criterion yet.
 - Off-mode has seed-level variance in reuse-value deltas; keep matched-seed confirmatory runs (`n>=10`) as next validation step.
 
+### 12.2G Experiment workflow reliability fixes (2026-02-23)
+
+Applied while confirmatory runs were in progress:
+
+1. `scarcity_matrix` now flushes `run_ids.txt` and matrix JSONL after every replicate write so long-run progress is observable before process exit.
+2. `scarcity_matrix` now emits a compact per-run completion line with key signals (`llm_calls`, `forced_explore_rate`, `cross_paid_consumption_amount`).
+3. `phase1_suite` now launches matrix children with unbuffered Python (`-u`) and flushes status prints.
+4. AE3 syscall path now passes `max_retries=0` explicitly for agent-SDK models (`claude-code/*`, `codex/*`, `openai-agents/*`) to match side-effect-safe semantics and suppress repeated retry-disabled warning spam in long driver logs.
+
+Experiment backbone scope decision:
+
+1. Primary system remains `llm_client` experiments (`start_run/log_item/finish_run`, `compare_cohorts`, gate-policy evaluation) because it natively models scenario/condition/seed/replicate cohorts.
+2. `prompt_eval` is explicitly deferred as primary AE3 infrastructure until an external-runner adapter exists that maps simulation replicates into prompt-eval trial semantics without losing cohort metadata.
+
 ### 12.3 Summarize a run
 
 ```bash

@@ -1666,34 +1666,38 @@ def run():
         self._action_count += 1
 
     def get_recent_feedback_summary(self, principal_id: str, limit: int = 30) -> dict[str, Any]:
-        summary = {
-            "actions_attempted": 0,
-            "action_failures": 0,
-            "recent_action_types": [],
-            "recent_error_codes": [],
-        }
         rows = self._action_feedback.get(principal_id)
         if not rows:
-            return summary
+            return {
+                "actions_attempted": 0,
+                "action_failures": 0,
+                "recent_action_types": [],
+                "recent_error_codes": [],
+            }
 
         take = max(1, int(limit))
         tail = list(rows)[-take:]
+        actions_attempted = 0
+        action_failures = 0
         action_types: list[str] = []
         error_codes: list[str] = []
         for row in tail:
-            summary["actions_attempted"] += 1
+            actions_attempted += 1
             action_type = row.get("action_type")
             if isinstance(action_type, str) and action_type:
                 action_types.append(action_type)
             if row.get("success") is False:
-                summary["action_failures"] += 1
+                action_failures += 1
                 error_code = row.get("error_code")
                 if isinstance(error_code, str) and error_code:
                     error_codes.append(error_code)
 
-        summary["recent_action_types"] = action_types[-6:]
-        summary["recent_error_codes"] = error_codes[-6:]
-        return summary
+        return {
+            "actions_attempted": actions_attempted,
+            "action_failures": action_failures,
+            "recent_action_types": action_types[-6:],
+            "recent_error_codes": error_codes[-6:],
+        }
 
     def get_principal_quotas(self, principal_id: str) -> dict[str, dict[str, float | int]]:
         return {
@@ -1899,6 +1903,9 @@ def run():
             lowered_model = model.strip().lower()
             is_agent_model = self._is_agent_model(lowered_model)
             if is_agent_model:
+                # Agent SDK retries are disabled by default for side-effect safety in llm_client.
+                # Pass max_retries=0 explicitly to avoid repeated runtime warnings in long runs.
+                agent_kwargs["max_retries"] = 0
                 if self.config.llm.agent_cwd:
                     agent_kwargs["cwd"] = self.config.llm.agent_cwd
                 if self.config.llm.agent_max_turns is not None:

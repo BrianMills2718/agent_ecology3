@@ -10,7 +10,7 @@ import statistics
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from ..config import AppConfig, load_config
 from ..simulation import SimulationRunner
@@ -147,6 +147,26 @@ def _metrics_from_summary(summary: dict[str, Any]) -> dict[str, float]:
         if isinstance(value, (int, float)):
             metrics[key] = float(value)
     return metrics
+
+
+def _format_run_completion(
+    *,
+    index: int,
+    runs: int,
+    run_id: str,
+    summary: dict[str, Any],
+) -> str:
+    llm_calls = int(summary.get("llm_calls", 0))
+    forced_explore_rate = float(summary.get("forced_explore_rate", 0.0))
+    cross_paid_consumption_amount = float(summary.get("cross_paid_consumption_amount", 0.0))
+    return (
+        "[scarcity-matrix] completed "
+        f"run={index}/{runs} "
+        f"ae3_run_id={run_id} "
+        f"llm_calls={llm_calls} "
+        f"forced_explore_rate={forced_explore_rate:.4f} "
+        f"cross_paid_consumption_amount={cross_paid_consumption_amount:.4f}"
+    )
 
 
 def _build_matrix_gate_signals(payload: dict[str, Any]) -> dict[str, float]:
@@ -349,7 +369,7 @@ def _build_config(
         mode = str(loop_forced_explore_mode).strip().lower()
         if mode not in {"baseline", "reduced", "off"}:
             raise ValueError("--loop-forced-explore must be one of: baseline, reduced, off")
-        cfg.llm.loop_forced_explore_mode = mode
+        cfg.llm.loop_forced_explore_mode = cast(Literal["baseline", "reduced", "off"], mode)
     if loop_prompt_template_path is not None:
         template_path = str(loop_prompt_template_path).strip()
         if not template_path:
@@ -587,7 +607,7 @@ def main() -> int:
     aggregate_rows: list[dict[str, Any]] = []
     with jsonl_path.open("w", encoding="utf-8") as matrix_stream, run_ids_path.open("w", encoding="utf-8") as run_stream:
         for idx in range(1, runs + 1):
-            print(f"[scarcity-matrix] run {idx}/{runs}")
+            print(f"[scarcity-matrix] run {idx}/{runs}", flush=True)
             run_seed = int(args.seed_base) + ((idx - 1) * seed_step)
             run_cfg = cfg.model_copy(deep=True)
             run_cfg.llm.loop_policy_seed = run_seed
@@ -598,6 +618,7 @@ def main() -> int:
             )
             run_meta["loop_policy_seed"] = run_seed
             run_stream.write(run_id + "\n")
+            run_stream.flush()
 
             experiment_run_id: str | None = None
             experiment_finish: dict[str, Any] | None = None
@@ -636,9 +657,9 @@ def main() -> int:
                     raise RuntimeError(invalid_msg)
                 if args.invalid_run_policy == "drop":
                     include_in_aggregate = False
-                    print(f"{invalid_msg} (dropped)")
+                    print(f"{invalid_msg} (dropped)", flush=True)
                 else:
-                    print(f"{invalid_msg} (included)")
+                    print(f"{invalid_msg} (included)", flush=True)
 
             record = {
                 "ae3_run_id": run_id,
@@ -668,6 +689,8 @@ def main() -> int:
                 )
                 + "\n"
             )
+            matrix_stream.flush()
+            print(_format_run_completion(index=idx, runs=runs, run_id=run_id, summary=summary), flush=True)
 
     aggregate = aggregate_metrics(aggregate_rows)
     payload: dict[str, Any] = {
@@ -718,9 +741,9 @@ def main() -> int:
     payload["summary_path"] = str(summary_path.resolve())
 
     if args.pretty:
-        print(json.dumps(payload, indent=2, sort_keys=True))
+        print(json.dumps(payload, indent=2, sort_keys=True), flush=True)
     else:
-        print(json.dumps(payload, sort_keys=True))
+        print(json.dumps(payload, sort_keys=True), flush=True)
     if gate_evaluation is not None and gate_evaluation["result"].get("passed") is not True and args.gate_fail_exit_code:
         return 2
     return 0

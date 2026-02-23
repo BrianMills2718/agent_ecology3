@@ -10,6 +10,7 @@ from agent_ecology3.analysis.scarcity_matrix import _build_config as build_matri
 from agent_ecology3.analysis.scarcity_matrix import (
     _evaluate_llm_engagement_validity as evaluate_llm_engagement_validity,
 )
+from agent_ecology3.analysis.scarcity_matrix import _format_run_completion as format_run_completion
 from agent_ecology3.analysis.scarcity_matrix import (
     _resolve_llm_preflight_enabled as resolve_llm_preflight_enabled,
 )
@@ -45,6 +46,20 @@ def test_aggregate_metrics_computes_mean_stdev_min_max() -> None:
     assert aggregate["cross_transfer_amount"]["min"] == 3.0
     assert aggregate["cross_transfer_amount"]["max"] == 4.0
     assert aggregate["decision_success_rate"]["min"] == 0.99
+
+
+def test_format_run_completion_includes_key_signals() -> None:
+    summary = {
+        "llm_calls": 16,
+        "forced_explore_rate": 0.125,
+        "cross_paid_consumption_amount": 2.5,
+    }
+    message = format_run_completion(index=3, runs=10, run_id="run_abc", summary=summary)
+    assert "run=3/10" in message
+    assert "ae3_run_id=run_abc" in message
+    assert "llm_calls=16" in message
+    assert "forced_explore_rate=0.1250" in message
+    assert "cross_paid_consumption_amount=2.5000" in message
 
 
 def test_evaluate_kpi_lock_reports_pass_and_fail() -> None:
