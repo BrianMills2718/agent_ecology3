@@ -3,12 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
+import os
 import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_LLM_CLIENT_REPO = os.environ.get("LLM_CLIENT_REPO", str(PROJECT_ROOT.parent / "llm_client"))
+
+
+def _load_llm_client_module() -> Any:
+    """Load llm_client lazily so runtime path injection works without static stubs."""
+    module: Any = importlib.import_module("llm_client")
+    return module
 
 
 def _parse_conditions(raw: str) -> list[str]:
@@ -48,7 +59,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--experiment-project", default="agent_ecology3")
     parser.add_argument("--experiment-phase", default="phase1")
     parser.add_argument("--experiment-scenario-id", default=None)
-    parser.add_argument("--llm-client-repo", default="/home/brian/projects/llm_client")
+    parser.add_argument(
+        "--llm-client-repo",
+        default=DEFAULT_LLM_CLIENT_REPO,
+        help="Path to llm_client repo for import fallback",
+    )
     parser.add_argument("--output-dir", default="logs")
     parser.add_argument("--prefix", default="phase1_suite")
     parser.add_argument("--strict-exit", action="store_true", help="Exit non-zero when any condition exits non-zero")
@@ -90,9 +105,8 @@ def _compare_cohorts(
     condition_ids: list[str],
     baseline_condition_id: str,
 ) -> dict[str, Any]:
-    from llm_client import compare_cohorts
-
-    payload = compare_cohorts(
+    llm_client = _load_llm_client_module()
+    payload = llm_client.compare_cohorts(
         dataset=dataset,
         project=project,
         scenario_id=scenario_id,

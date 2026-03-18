@@ -3,17 +3,47 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import math
 import os
 import re
 import statistics
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_LLM_CLIENT_REPO = os.environ.get("LLM_CLIENT_REPO", str(PROJECT_ROOT.parent / "llm_client"))
+
 _ARTIFACT_OWNER_PREFIX = re.compile(r"^(alpha_\d+)_")
+
+
+def _load_llm_client_module() -> Any:
+    """Load llm_client lazily so runtime path injection works without static stubs."""
+    module: Any = importlib.import_module("llm_client")
+    return module
+
+
+def _coerce_dict_payload(payload: object, *, context: str) -> dict[str, Any]:
+    """Normalize llm_client payloads to plain dicts and fail loudly on shape drift."""
+    if isinstance(payload, dict):
+        return payload
+
+    model_dump = getattr(payload, "model_dump", None)
+    if callable(model_dump):
+        dumped = model_dump()
+        if isinstance(dumped, dict):
+            return dumped
+
+    as_dict = getattr(payload, "dict", None)
+    if callable(as_dict):
+        dumped = as_dict()
+        if isinstance(dumped, dict):
+            return dumped
+
+    raise TypeError(f"{context} returned non-dict payload")
 
 
 def _infer_owner(artifact_id: str, owner_map: dict[str, str]) -> str | None:
@@ -58,14 +88,14 @@ def summarize_events(path: Path) -> dict[str, Any]:
     errors: Counter[str] = Counter()
     query_types: Counter[str] = Counter()
     transfer_edges: Counter[tuple[str, str]] = Counter()
-    resource_transfer_edges: Counter[tuple[str, str, str]] = Counter()
+    resource_transfer_edges: defaultdict[tuple[str, str, str], float] = defaultdict(float)
     read_edges: Counter[tuple[str, str]] = Counter()
-    paid_consumption_edges: Counter[tuple[str, str]] = Counter()
+    paid_consumption_edges: defaultdict[tuple[str, str], float] = defaultdict(float)
     paid_consumption_edge_events: Counter[tuple[str, str]] = Counter()
-    artifact_cross_paid_revenue: Counter[str] = Counter()
+    artifact_cross_paid_revenue: defaultdict[str, float] = defaultdict(float)
     artifact_consumers: dict[str, set[str]] = {}
-    revenue_by_principal_artifact_type: dict[str, Counter[str]] = {}
-    value_by_decision_origin: Counter[str] = Counter()
+    revenue_by_principal_artifact_type: dict[str, defaultdict[str, float]] = {}
+    value_by_decision_origin: defaultdict[str, float] = defaultdict(float)
     forced_explore_reason_counts: Counter[str] = Counter()
     decision_origin_counts: Counter[str] = Counter()
     per_principal_decision_origin_counts: dict[str, Counter[str]] = {}
@@ -177,7 +207,7 @@ def summarize_events(path: Path) -> dict[str, Any]:
                         artifact_cross_paid_revenue[artifact_id] += read_price_paid
                         artifact_consumers.setdefault(artifact_id, set()).add(principal)
                         artifact_type = artifact_type_map.get(artifact_id, "unknown")
-                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, Counter())
+                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, defaultdict(float))
                         seller_revenue[artifact_type] += read_price_paid
                         origin = artifact_creation_origin.get(artifact_id, "unknown")
                         value_by_decision_origin[origin] += read_price_paid
@@ -197,11 +227,11 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 sender = event.get("sender")
                 recipient = event.get("recipient")
                 resource = event.get("resource")
-                amount = float(event.get("amount") or 0.0)
+                resource_amount = float(event.get("amount") or 0.0)
                 if isinstance(sender, str) and isinstance(recipient, str) and isinstance(resource, str):
-                    resource_transfer_edges[(resource, sender, recipient)] += amount
+                    resource_transfer_edges[(resource, sender, recipient)] += resource_amount
                     if resource == "llm_budget":
-                        llm_budget_transfer_amount += amount
+                        llm_budget_transfer_amount += resource_amount
                 continue
 
             if event_type == "mint_submission":
@@ -320,7 +350,7 @@ def summarize_events(path: Path) -> dict[str, Any]:
                         artifact_cross_paid_revenue[artifact_id] += price_paid
                         artifact_consumers.setdefault(artifact_id, set()).add(principal)
                         artifact_type = artifact_type_map.get(artifact_id, "unknown")
-                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, Counter())
+                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, defaultdict(float))
                         seller_revenue[artifact_type] += price_paid
                         origin = artifact_creation_origin.get(artifact_id, "unknown")
                         value_by_decision_origin[origin] += price_paid
@@ -613,7 +643,7 @@ def _log_summary_to_llm_client(
     phase: str | None = None,
 ) -> dict[str, Any]:
     _ensure_llm_client_import(llm_client_repo)
-    from llm_client import finish_run, log_item, start_run
+    llm_client = _load_llm_client_module()
 
     experiment_model = model or str(summary.get("dominant_model") or "unknown")
     metrics = _experiment_numeric_metrics(summary)
@@ -630,7 +660,7 @@ def _log_summary_to_llm_client(
         "phase": phase,
     }
 
-    run_id = start_run(
+    run_id = llm_client.start_run(
         dataset=dataset,
         model=experiment_model,
         config=config,
@@ -661,7 +691,7 @@ def _log_summary_to_llm_client(
         "loop_decision_trends": summary.get("loop_decision_trends"),
     }
     trace_id = f"ae3/{ae3_run_id}" if ae3_run_id else None
-    log_item(
+    llm_client.log_item(
         run_id=run_id,
         item_id="overall",
         metrics=metrics,
@@ -680,7 +710,7 @@ def _log_summary_to_llm_client(
                 value = pdata.get(key)
                 if isinstance(value, (int, float)):
                     item_metrics[key] = float(value)
-            log_item(
+            llm_client.log_item(
                 run_id=run_id,
                 item_id=principal,
                 metrics=item_metrics,
@@ -688,10 +718,13 @@ def _log_summary_to_llm_client(
                 trace_id=trace_id,
             )
 
-    return finish_run(
-        run_id=run_id,
-        summary_metrics=metrics,
-        status="completed",
+    return _coerce_dict_payload(
+        llm_client.finish_run(
+            run_id=run_id,
+            summary_metrics=metrics,
+            status="completed",
+        ),
+        context="llm_client.finish_run",
     )
 
 
@@ -703,39 +736,38 @@ def _list_experiments(
     limit: int,
 ) -> dict[str, Any]:
     _ensure_llm_client_import(llm_client_repo)
-    from llm_client import get_runs
-
-    runs = get_runs(dataset=dataset, project=project, limit=limit)
+    llm_client = _load_llm_client_module()
+    runs = llm_client.get_runs(dataset=dataset, project=project, limit=limit)
     return {"runs": runs}
 
 
 def _detail_experiment(*, llm_client_repo: str | None, run_id: str) -> dict[str, Any]:
     _ensure_llm_client_import(llm_client_repo)
-    from llm_client import get_run, get_run_items
+    llm_client = _load_llm_client_module()
 
     return {
-        "run": get_run(run_id),
-        "items": get_run_items(run_id),
+        "run": llm_client.get_run(run_id),
+        "items": llm_client.get_run_items(run_id),
     }
 
 
 def _compare_experiments(*, llm_client_repo: str | None, run_ids: list[str]) -> dict[str, Any]:
     _ensure_llm_client_import(llm_client_repo)
-    from llm_client import compare_runs
-
-    return compare_runs(run_ids)
+    llm_client = _load_llm_client_module()
+    return _coerce_dict_payload(
+        llm_client.compare_runs(run_ids),
+        context="llm_client.compare_runs",
+    )
 
 
 def _analyze_experiments(*, llm_client_repo: str | None, experiment_log: str | None) -> dict[str, Any]:
     _ensure_llm_client_import(llm_client_repo)
-    from llm_client import analyze_history
-
-    report = analyze_history(experiment_log=experiment_log)
-    if hasattr(report, "model_dump"):
-        return report.model_dump()
-    if hasattr(report, "dict"):
-        return report.dict()
-    return {"report": str(report)}
+    llm_client = _load_llm_client_module()
+    report = llm_client.analyze_history(experiment_log=experiment_log)
+    return _coerce_dict_payload(
+        report,
+        context="llm_client.analyze_history",
+    )
 
 
 def main() -> int:
@@ -755,7 +787,7 @@ def main() -> int:
     parser.add_argument("--experiment-run-id", default=None, help="Optional explicit llm_client experiment run id.")
     parser.add_argument(
         "--llm-client-repo",
-        default=os.environ.get("LLM_CLIENT_REPO", "/home/brian/projects/llm_client"),
+        default=DEFAULT_LLM_CLIENT_REPO,
         help="Path to llm_client repo for import fallback.",
     )
 

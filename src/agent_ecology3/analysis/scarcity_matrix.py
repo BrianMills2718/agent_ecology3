@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import importlib
 import json
 import os
 import statistics
@@ -54,6 +55,15 @@ NUMERIC_METRICS: tuple[str, ...] = (
     "mint_downstream_value",
     "mint_downstream_value_ratio",
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_LLM_CLIENT_REPO = str(PROJECT_ROOT.parent / "llm_client")
+
+
+def _load_experiment_eval_module() -> Any:
+    """Load the llm_client experiment-eval module after optional path injection."""
+    module: Any = importlib.import_module("llm_client.experiment_eval")
+    return module
 
 
 def aggregate_metrics(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
@@ -211,13 +221,12 @@ def _evaluate_matrix_gate_policy(
         candidate = Path(llm_client_repo).expanduser().resolve()
         if candidate.exists() and str(candidate) not in sys.path:
             sys.path.insert(0, str(candidate))
-    from llm_client.experiment_eval import evaluate_gate_policy, load_gate_policy
-
-    parsed_policy = load_gate_policy(policy)
+    experiment_eval = _load_experiment_eval_module()
+    parsed_policy = experiment_eval.load_gate_policy(policy)
     signals = _build_matrix_gate_signals(payload)
     return {
         "policy": parsed_policy,
-        "result": evaluate_gate_policy(policy=parsed_policy, signals=signals),
+        "result": experiment_eval.evaluate_gate_policy(policy=parsed_policy, signals=signals),
     }
 
 
@@ -527,7 +536,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--experiment-phase", default=None, help="Experiment phase label for cohort filtering")
     parser.add_argument(
         "--llm-client-repo",
-        default=os.environ.get("LLM_CLIENT_REPO", "/home/brian/projects/llm_client"),
+        default=os.environ.get("LLM_CLIENT_REPO", DEFAULT_LLM_CLIENT_REPO),
         help="Path to llm_client repo for import fallback",
     )
     parser.add_argument("--output-dir", default="logs", help="Output directory for matrix artifacts")

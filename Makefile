@@ -4,7 +4,7 @@
 SCRIPTS_META := scripts/meta
 PLANS_DIR := docs/plans
 PYTHONPATH_SRC := PYTHONPATH=src
-LLM_CLIENT_REPO ?= /home/brian/projects/llm_client
+LLM_CLIENT_REPO ?= $(CURDIR)/../llm_client
 PHASE1_GATE ?= @config/gates/phase1_matrix_gate_fast.json
 
 # --- Session Start ---

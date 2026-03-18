@@ -70,7 +70,7 @@ def test_run_condition_uses_unbuffered_python_for_child_runner(tmp_path: Path, m
         experiment_dataset="agent_ecology3_emergence",
         experiment_project="agent_ecology3",
         experiment_phase="phase1",
-        llm_client_repo="/home/brian/projects/llm_client",
+        llm_client_repo=str(tmp_path / "llm_client"),
         model=None,
         subscription_estimated_cost_multiplier=None,
         loop_llm_cooldown=0.0,
