@@ -1,5 +1,7 @@
 # Agent Ecology 3
 
+Last verified: 2026-03-20
+
 Agent Ecology 3 is a clean-room rewrite of `agent_ecology2` focused on:
 
 - Clear kernel boundaries (`World`, `ActionExecutor`, `SafeExecutor`, `SimulationRunner`)
@@ -145,6 +147,22 @@ agent_ecology3/
     dashboard/    # minimal API + lightweight status UI
   tests/
 ```
+
+## Instruction Surfaces
+
+The repo now uses subtree-local instruction files in the main operational
+areas:
+
+- `acceptance_gates/`
+- `config/`
+- `docs/`
+- `hooks/`
+- `scripts/meta/`
+- `src/`
+
+Each local `CLAUDE.md` is paired with a same-directory `AGENTS.md` mirror so
+Claude and Codex can load the same local contract more narrowly than the repo
+root.
 
 ## Docs
 

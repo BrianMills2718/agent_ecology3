@@ -1,6 +1,7 @@
 # Agent Ecology 3: Full Context Handoff for ChatGPT
 
 Date: 2026-02-22
+Last verified: 2026-03-20
 Primary repo: `/home/brian/projects/agent_ecology3`
 Previous repo: `/home/brian/projects/agent_ecology2`
 Historical reference: `/home/brian/projects/archive/agent_ecology`
@@ -69,6 +70,13 @@ Core modules:
 - `src/agent_ecology3/simulation/runner.py`
 - `src/agent_ecology3/analysis/emergence_report.py`
 - `src/agent_ecology3/analysis/scarcity_matrix.py`
+
+Instruction-surface note:
+- repo-root `CLAUDE.md` remains canonical
+- subtree-local instruction files now exist under `acceptance_gates/`,
+  `config/`, `docs/`, `hooks/`, `scripts/meta/`, and `src/`
+- local `AGENTS.md` mirrors sit beside those `CLAUDE.md` files so Claude and
+  Codex load the same operational guidance
 
 Kernel primitives:
 - Principals with scrip and resources.
