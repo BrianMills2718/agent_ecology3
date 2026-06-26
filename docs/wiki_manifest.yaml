@@ -1,0 +1,17 @@
+---
+doc-role: wiki-manifest
+freshness: 2026-06-25
+---
+
+# Wiki Manifest — Agent Ecology 3
+
+id: agent-ecology3
+portfolio_tier: personal
+description: >
+  Agent Ecology 3
+
+sources:
+  - path: ../README.md
+    role: overview
+  - path: ../CLAUDE.md
+    role: instructions
