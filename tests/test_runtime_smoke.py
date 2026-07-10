@@ -12,6 +12,11 @@ from agent_ecology3.config import AppConfig
 from agent_ecology3.simulation import SimulationRunner
 from agent_ecology3.world import World
 
+model_override_acceptance = {
+    "accepted_by": "brian",
+    "reason": "Runtime smoke tests exercise Claude bridge and non-Claude branches; MiniMax-M3 remains the default model.",
+}
+
 
 def _make_config(tmp_path) -> AppConfig:
     cfg = AppConfig()
@@ -556,7 +561,7 @@ def test_syscall_does_not_inject_mcp_server_for_non_claude_model(tmp_path, monke
 
     result = world.call_llm_as_syscall(
         payer_id="alpha_1",
-        model="openrouter/deepseek/deepseek-chat",
+        model="minimax/minimax-m3",
         messages=[{"role": "user", "content": "test"}],
         tools=[
             {

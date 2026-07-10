@@ -14,6 +14,11 @@ from agent_ecology3.world.actions import (
     parse_intent_from_json,
 )
 
+model_override_acceptance = {
+    "accepted_by": "brian",
+    "reason": "Tests exercise explicit CLI override handling; MiniMax-M3 remains the baseline/default model.",
+}
+
 
 def test_config_rejects_unknown_keys(tmp_path) -> None:
     cfg = tmp_path / "bad.yaml"
@@ -33,7 +38,7 @@ resources:
     total_llm_budget: 1.0
     total_disk_bytes: 10000
 llm:
-  default_model: gemini/gemini-2.0-flash
+  default_model: minimax/minimax-m3
   timeout_seconds: 30
   allowed_models: []
   estimate_tokens_per_call: 500
@@ -177,7 +182,7 @@ resources:
     total_llm_budget: 2.0
     total_disk_bytes: 1000000
 llm:
-  default_model: gemini/gemini-2.5-flash
+  default_model: minimax/minimax-m3
   timeout_seconds: 30
   allowed_models: []
   estimate_tokens_per_call: 500
@@ -265,7 +270,7 @@ resources:
     total_llm_budget: 2.0
     total_disk_bytes: 1000000
 llm:
-  default_model: gemini/gemini-2.5-flash
+  default_model: minimax/minimax-m3
   timeout_seconds: 30
   allowed_models: []
   estimate_tokens_per_call: 500
@@ -337,10 +342,10 @@ resources:
     total_llm_budget: 2.0
     total_disk_bytes: 1000000
 llm:
-  default_model: gemini/gemini-2.5-flash
+  default_model: minimax/minimax-m3
   timeout_seconds: 30
   allowed_models:
-    - gemini/gemini-2.5-flash
+    - minimax/minimax-m3
   estimate_tokens_per_call: 500
   enable_bootstrap_loop_llm: false
 contracts:

@@ -56,9 +56,10 @@ class ResourcesConfig(StrictModel):
 
 
 class LLMConfig(StrictModel):
-    default_model: str = "openrouter/deepseek/deepseek-chat"
+    default_model: str = "minimax/minimax-m3"
     timeout_seconds: int = 60
     allowed_models: list[str] = Field(default_factory=list)
+    model_override_acceptance: dict[str, dict[str, str]] = Field(default_factory=dict)
     estimate_tokens_per_call: int = 900
     agent_cwd: str | None = None
     agent_max_turns: int | None = Field(default=6, ge=1)
