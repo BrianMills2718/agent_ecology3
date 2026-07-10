@@ -26,9 +26,10 @@ resources:
     total_disk_bytes: 1000000
 
 llm:
-  default_model: openrouter/deepseek/deepseek-chat
+  default_model: minimax/minimax-m3
   timeout_seconds: 60
   allowed_models:
+    - minimax/minimax-m3
     - openrouter/deepseek/deepseek-chat
     - deepseek/deepseek-chat
     - claude-code/opus
@@ -37,6 +38,10 @@ llm:
     - gemini/gemini-2.5-flash
     - openai/gpt-4o-mini
     - anthropic/claude-3-5-sonnet-20241022
+  model_override_acceptance:
+    allowed_models:
+      accepted_by: brian
+      reason: "Agent ecology experiments keep explicit model-pool entries for agent SDK and provider-path comparisons; MiniMax-M3 remains the default model."
   estimate_tokens_per_call: 900
   # Agent SDK passthrough (forwarded to llm_client.call_llm for claude-code/codex).
   agent_cwd: .

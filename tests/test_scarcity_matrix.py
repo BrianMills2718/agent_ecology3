@@ -18,6 +18,11 @@ from agent_ecology3.analysis.scarcity_matrix import (
     _resolve_llm_validity_thresholds as resolve_llm_validity_thresholds,
 )
 
+model_override_acceptance = {
+    "accepted_by": "brian",
+    "reason": "Tests exercise explicit matrix-run model overrides; MiniMax-M3 remains the baseline/default model.",
+}
+
 
 def test_aggregate_metrics_computes_mean_stdev_min_max() -> None:
     rows = [
@@ -140,10 +145,10 @@ def test_build_config_applies_model_override_and_allowed_list(tmp_path) -> None:
                 total_llm_budget: 2.0
                 total_disk_bytes: 1000000
             llm:
-              default_model: gemini/gemini-2.5-flash
+              default_model: minimax/minimax-m3
               timeout_seconds: 30
               allowed_models:
-                - gemini/gemini-2.5-flash
+                - minimax/minimax-m3
               estimate_tokens_per_call: 500
               enable_bootstrap_loop_llm: false
             contracts:
@@ -221,10 +226,10 @@ def test_build_config_rejects_negative_subscription_multiplier(tmp_path) -> None
                 total_llm_budget: 2.0
                 total_disk_bytes: 1000000
             llm:
-              default_model: gemini/gemini-2.5-flash
+              default_model: minimax/minimax-m3
               timeout_seconds: 30
               allowed_models:
-                - gemini/gemini-2.5-flash
+                - minimax/minimax-m3
               estimate_tokens_per_call: 500
               subscription_estimated_cost_multiplier: 1.0
               enable_bootstrap_loop_llm: false
