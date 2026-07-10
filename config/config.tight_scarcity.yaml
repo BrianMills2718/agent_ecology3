@@ -63,6 +63,7 @@ mint:
   bidding_window_seconds: 30.0
   period_seconds: 60.0
   mint_ratio: 10
+  scoring_max_budget: 0.25
 
 dashboard:
   enabled: true

@@ -2,11 +2,12 @@
 
 Track all implementation work here.
 
-## Active Plans
+## Gap Summary
 
 | # | Name | Priority | Status | Blocks |
 |---|------|----------|--------|--------|
 | 1 | [Example Plan](01_example.md) | Medium | Planned | - |
+| 2 | [Mint scorer llm_client migration](02_mint_scorer_llm_client.md) | High | ✅ Complete | - |
 
 ## Status Key
 

@@ -87,6 +87,7 @@ class MintConfig(StrictModel):
     bidding_window_seconds: float = 30.0
     period_seconds: float = 60.0
     mint_ratio: int = 10
+    scoring_max_budget: float = Field(default=0.25, ge=0.0)
 
 
 class DashboardConfig(StrictModel):
