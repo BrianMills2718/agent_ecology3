@@ -2,11 +2,26 @@
 
 from __future__ import annotations
 
-import json
+from importlib import import_module
 import time
 import uuid
 from dataclasses import dataclass
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ArtifactScore(BaseModel):
+    """Schema-constrained model response for mint artifact scoring."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    score: int = Field(
+        ge=0,
+        le=100,
+        description="Integer utility and correctness score from 0 to 100.",
+    )
+    reason: str = Field(description="Short human-readable reason for the score.")
 
 
 @dataclass
@@ -35,44 +50,43 @@ class MintResult:
 class MintScorer:
     """LLM-backed scorer with deterministic fallback."""
 
-    def __init__(self, model: str, timeout_seconds: int) -> None:
+    def __init__(self, model: str, timeout_seconds: int, max_budget: float = 0.25) -> None:
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self.max_budget = max_budget
         self.last_cost: float = 0.0
+        self.last_error: str | None = None
 
     def score_artifact(self, artifact_id: str, artifact_type: str, content: str, code: str) -> tuple[int, str]:
         prompt = (
             "Score this artifact from 0-100 for utility and correctness. "
-            "Return JSON: {\"score\": int, \"reason\": str}.\n\n"
+            "Return a structured score and reason.\n\n"
             f"Artifact: {artifact_id}\nType: {artifact_type}\n"
             f"Content:\n{content[:4000]}\n\nCode:\n{code[:6000]}"
         )
         messages = [{"role": "user", "content": prompt}]
         try:
-            import litellm
+            call_llm_structured = import_module("llm_client").call_llm_structured
 
-            response = litellm.completion(
+            parsed, result = call_llm_structured(
                 model=self.model,
                 messages=messages,
-                timeout=self.timeout_seconds,
+                response_model=ArtifactScore,
                 num_retries=1,
+                task="agent_ecology3_mint_scoring",
+                trace_id=f"agent_ecology3.mint_score.{artifact_id}.{uuid.uuid4().hex[:8]}",
+                max_budget=self.max_budget,
             )
-            self.last_cost = float(litellm.completion_cost(completion_response=response))
-            payload = response.choices[0].message.content or ""
-            start = payload.find("{")
-            end = payload.rfind("}") + 1
-            if start >= 0 and end > start:
-                parsed = json.loads(payload[start:end])
-                score = int(parsed.get("score", 0))
-                reason = str(parsed.get("reason", "model score"))
-                return max(0, min(100, score)), reason
-        except Exception:
-            pass
+            self.last_cost = float(result.cost)
+            self.last_error = None
+            return parsed.score, parsed.reason
+        except Exception as exc:
+            self.last_error = f"{type(exc).__name__}: {exc}"
 
         length_score = min(70, max(10, (len(content) + len(code)) // 120))
         bonus = 20 if "def run(" in code else 0
         score = max(0, min(100, length_score + bonus))
-        reason = "fallback score based on artifact complexity"
+        reason = f"fallback score based on artifact complexity after LLM failure: {self.last_error}"
         self.last_cost = 0.0
         return score, reason
 

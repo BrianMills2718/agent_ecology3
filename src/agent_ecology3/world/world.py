@@ -1600,6 +1600,7 @@ def run():
             scorer = MintScorer(
                 model=self.config.llm.default_model,
                 timeout_seconds=self.config.llm.timeout_seconds,
+                max_budget=self.config.mint.scoring_max_budget,
             )
             self.mint_auction = MintAuction(
                 ledger=self.ledger,
