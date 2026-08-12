@@ -192,6 +192,11 @@ Evaluation status as of 2026-08-11:
   the public readback record omitted. A non-decision diagnostic was 16/16 usable
   prescribed and 15/16 usable minimal (one empty provider response), but neither
   a rerun nor behavioral evaluation is authorized from that audit.
+- Evaluation 06 is preregistered on a held-out state. Its mandatory preflight
+  uses an isolated real shared-client store and untouched public readback: a
+  full-content positive must pass, while actual metadata-only redaction and a
+  corrupted record must fail. The preflight uses no provider and a failure is
+  retained as an invalid zero-call assay.
 
 ### 7.2 Entropy metric definition
 

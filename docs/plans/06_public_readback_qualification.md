@@ -99,7 +99,8 @@ path without modifying Evaluation 05 or starting the behavioral comparison.
 |---|---|
 | `tests/test_provider_qualification.py` | Existing terminal classes, thresholds, and frozen case order remain intact. |
 | `tests/test_runtime_smoke.py` | Native async syscall accounting and drain behavior remain intact. |
-| full `tests/` suite | No runtime or analysis regression. |
+| `tests/test_config_and_actions.py` | Frozen configuration and action parsing remain compatible. |
+| `tests/test_scarcity_matrix.py` | Existing evaluation orchestration remains compatible. |
 
 ---
 

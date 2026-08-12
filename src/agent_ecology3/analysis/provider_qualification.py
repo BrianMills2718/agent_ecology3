@@ -1,4 +1,4 @@
-"""Frozen provider/prompt/tool qualification for Evaluation 05."""
+"""Frozen provider/prompt/tool qualifications for Evaluations 05 and 06."""
 
 from __future__ import annotations
 
@@ -11,36 +11,84 @@ import shutil
 import subprocess
 import sys
 from collections import Counter
+from copy import deepcopy
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 from ..config import AppConfig, load_config
 from ..world.actions import parse_intent_from_json
 from ..world.world import World
 
-FROZEN_INPUT_SHA256 = {
-    "config/config.provider_qualification.yaml": (
-        "769be03a6ad5befdbf8553523df284b8018ba7e2f0f910a622068d65677e6228"
-    ),
-    "config/evaluations/05_fixed_state.json": (
-        "0cd6a09cc8dc03dffbf8a5a2d4cb0678ce749af20afa53ff5d4c07466f80ff9e"
-    ),
-    "config/prompts/loop_prompt_variant.txt": (
-        "1c0219c4dc5dcf2aa0fb64b756546a4fa583c4e40a9f99108c7921a4b7fbc4b2"
-    ),
-    "config/prompts/loop_prompt_minimal.txt": (
-        "c1029d2fda78e6309de66d229c9a872bf17a23f11465f94106aed7a88792f96a"
-    ),
-    "docs/evaluations/05_provider_tool_qualification.md": (
-        "4230fef9613e22184070ad95c1a1060a3a4669bdfec1eb46b0b117cf1e32e6a4"
-    ),
-}
-
 CONDITION_PROMPTS = {
     "prescribed": "config/prompts/loop_prompt_variant.txt",
     "minimal": "config/prompts/loop_prompt_minimal.txt",
 }
+
+
+@dataclass(frozen=True)
+class QualificationSpec:
+    evaluation_id: int
+    config_path: str
+    state_path: str
+    preregistration_path: str
+    output_path: str
+    frozen_input_sha256: dict[str, str]
+
+
+EVALUATION_05 = QualificationSpec(
+    evaluation_id=5,
+    config_path="config/config.provider_qualification.yaml",
+    state_path="config/evaluations/05_fixed_state.json",
+    preregistration_path="docs/evaluations/05_provider_tool_qualification.md",
+    output_path="docs/evaluations/evidence/05_provider_tool_qualification",
+    frozen_input_sha256={
+        "config/config.provider_qualification.yaml": (
+            "769be03a6ad5befdbf8553523df284b8018ba7e2f0f910a622068d65677e6228"
+        ),
+        "config/evaluations/05_fixed_state.json": (
+            "0cd6a09cc8dc03dffbf8a5a2d4cb0678ce749af20afa53ff5d4c07466f80ff9e"
+        ),
+        "config/prompts/loop_prompt_variant.txt": (
+            "1c0219c4dc5dcf2aa0fb64b756546a4fa583c4e40a9f99108c7921a4b7fbc4b2"
+        ),
+        "config/prompts/loop_prompt_minimal.txt": (
+            "c1029d2fda78e6309de66d229c9a872bf17a23f11465f94106aed7a88792f96a"
+        ),
+        "docs/evaluations/05_provider_tool_qualification.md": (
+            "4230fef9613e22184070ad95c1a1060a3a4669bdfec1eb46b0b117cf1e32e6a4"
+        ),
+    },
+)
+
+EVALUATION_06 = QualificationSpec(
+    evaluation_id=6,
+    config_path="config/config.provider_qualification_06.yaml",
+    state_path="config/evaluations/06_fixed_state.json",
+    preregistration_path="docs/evaluations/06_public_readback_qualification.md",
+    output_path="docs/evaluations/evidence/06_public_readback_qualification",
+    frozen_input_sha256={
+        "config/config.provider_qualification_06.yaml": (
+            "e222afa03187e08fb945b589cf51bda72f9160eb94092ba5010df8cf4117a346"
+        ),
+        "config/evaluations/06_fixed_state.json": (
+            "c1792e2c64e5b990198c3b9acfaa6e5703db4a86319365a32ad20ecb8a6acb9a"
+        ),
+        "config/prompts/loop_prompt_variant.txt": (
+            "1c0219c4dc5dcf2aa0fb64b756546a4fa583c4e40a9f99108c7921a4b7fbc4b2"
+        ),
+        "config/prompts/loop_prompt_minimal.txt": (
+            "c1029d2fda78e6309de66d229c9a872bf17a23f11465f94106aed7a88792f96a"
+        ),
+        "docs/evaluations/06_public_readback_qualification.md": (
+            "ee93182bd502b98176325af7619ab88a5b9a6deb3d51cd047595f84bb1b5e730"
+        ),
+    },
+)
+
+EVALUATION_SPECS = {5: EVALUATION_05, 6: EVALUATION_06}
 
 
 def _sha256(path: Path) -> str:
@@ -207,9 +255,12 @@ def classify_attempt(
     return _classification("usable_json_action", usable=True, action=action)
 
 
-def _verify_frozen_inputs(repo: Path) -> dict[str, str]:
+def _verify_frozen_inputs(
+    repo: Path,
+    spec: QualificationSpec = EVALUATION_05,
+) -> dict[str, str]:
     observed: dict[str, str] = {}
-    for relative, expected in FROZEN_INPUT_SHA256.items():
+    for relative, expected in spec.frozen_input_sha256.items():
         digest = _sha256(repo / relative)
         observed[relative] = digest
         if digest != expected:
@@ -259,16 +310,25 @@ def _run_local_controls(repo: Path) -> dict[str, Any]:
     }
 
 
-def _condition_config(repo: Path, condition: str, output: Path) -> AppConfig:
-    cfg = load_config(repo / "config/config.provider_qualification.yaml")
+def _condition_config(
+    repo: Path,
+    condition: str,
+    output: Path,
+    spec: QualificationSpec = EVALUATION_05,
+) -> AppConfig:
+    cfg = load_config(repo / spec.config_path)
     cfg.llm.loop_cognition_mode = condition  # type: ignore[assignment]
     cfg.llm.loop_prompt_template_path = str(repo / CONDITION_PROMPTS[condition])
     cfg.logging.logs_dir = str(output / "runtime_logs")
     return cfg
 
 
-def _fixed_state(repo: Path, principal_id: str) -> dict[str, Any]:
-    raw = (repo / "config/evaluations/05_fixed_state.json").read_text()
+def _fixed_state(
+    repo: Path,
+    principal_id: str,
+    spec: QualificationSpec = EVALUATION_05,
+) -> dict[str, Any]:
+    raw = (repo / spec.state_path).read_text()
     loaded = json.loads(raw.replace("${principal_id}", principal_id))
     if not isinstance(loaded, dict):  # pragma: no cover - frozen input invariant
         raise TypeError("fixed state must be an object")
@@ -326,8 +386,223 @@ def _verify_shared_custody_schema() -> None:
         )
 
 
+def _control_tool_call() -> dict[str, Any]:
+    return {
+        "id": "eval06-public-readback-control",
+        "type": "function",
+        "function": {
+            "name": "ae3_action",
+            "arguments": (
+                '{"action_type":"query_kernel","query_type":"resources",'
+                '"params":{}}'
+            ),
+        },
+    }
+
+
+def run_public_readback_control(database_path: Path) -> dict[str, Any]:
+    """Exercise real local persistence and public readback without a provider call."""
+
+    from llm_client import configure_logging, io_log
+    from llm_client.core.data_types import LLMCallResult
+
+    database_path = database_path.resolve()
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    configure_logging(
+        enabled=True,
+        data_root=database_path.parent / "jsonl",
+        project="agent_ecology3_eval06_public_readback_control",
+        db_path=database_path,
+    )
+    tool_call = _control_tool_call()
+    messages = [{"role": "user", "content": "synthetic zero-spend custody control"}]
+    result = LLMCallResult(
+        content="",
+        usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+        cost=0.0,
+        model="control/no-provider",
+        tool_calls=[tool_call],
+        finish_reason="tool_calls",
+        cost_source="zero_spend_control",
+        marginal_cost=0.0,
+    )
+
+    records: dict[str, dict[str, Any]] = {}
+    try:
+        for name, persistence in (("positive", "full"), ("redaction", "metadata_only")):
+            trace_id = f"ae3/eval06/control/{name}"
+            io_log.log_call(
+                model="control/no-provider",
+                messages=messages,
+                result=result,
+                latency_s=0.001,
+                caller="eval06_public_readback_control",
+                task="agent_ecology3_eval06_control",
+                trace_id=trace_id,
+                retry_count=0,
+                content_persistence=persistence,
+            )
+            receipts, call_record = _open_call_evidence(trace_id)
+            receipt = receipts[0] if len(receipts) == 1 else None
+            syscall_result = {
+                "success": True,
+                "trace_id": trace_id,
+                "content": "",
+                "tool_calls": [tool_call],
+            }
+            records[name] = {
+                "syscall_result": syscall_result,
+                "receipts": receipts,
+                "call_record": _json_safe(call_record),
+                "classification": classify_attempt(
+                    principal_id="alpha_1",
+                    syscall_result=syscall_result,
+                    receipt=receipt,
+                    call_record=call_record,
+                ),
+            }
+
+        corrupted_record = deepcopy(records["positive"]["call_record"])
+        corrupted_record["response_tool_calls"] = []
+        positive_receipt = records["positive"]["receipts"][0]
+        records["corruption"] = {
+            "syscall_result": records["positive"]["syscall_result"],
+            "receipts": records["positive"]["receipts"],
+            "call_record": corrupted_record,
+            "classification": classify_attempt(
+                principal_id="alpha_1",
+                syscall_result=records["positive"]["syscall_result"],
+                receipt=positive_receipt,
+                call_record=corrupted_record,
+            ),
+        }
+        storage_rows = io_log._get_db().execute(
+            "SELECT trace_id, content_persistence FROM llm_calls ORDER BY id"
+        ).fetchall()
+    finally:
+        io_log.close()
+
+    expected = {
+        "positive": "usable_tool_action",
+        "redaction": "custody_failure",
+        "corruption": "custody_failure",
+    }
+    observed = {
+        name: str(record["classification"]["terminal_class"])
+        for name, record in records.items()
+    }
+    costs = [
+        float(receipt.get("cost_usd") or 0.0)
+        for record in records.values()
+        for receipt in record["receipts"]
+    ]
+    passed = observed == expected and all(cost == 0.0 for cost in costs)
+    return {
+        "schema_version": "ae3_eval06_public_readback_control_v1",
+        "control_type": "synthetic_local_persistence_no_provider",
+        "provider_calls": 0,
+        "expected_terminal_classes": expected,
+        "observed_terminal_classes": observed,
+        "zero_cost": all(cost == 0.0 for cost in costs),
+        "passed": passed,
+        "public_positive_record_has_content_persistence": (
+            "content_persistence" in records["positive"]["call_record"]
+        ),
+        "storage_policies": {str(row[0]): str(row[1]) for row in storage_rows},
+        "database_sha256": _sha256(database_path),
+        "records": records,
+    }
+
+
+def _run_public_readback_control_isolated(repo: Path) -> dict[str, Any]:
+    with TemporaryDirectory(prefix="ae3-eval06-control-") as temp_dir:
+        database_path = Path(temp_dir) / "control.sqlite3"
+        command = [
+            sys.executable,
+            "-m",
+            "agent_ecology3.analysis.provider_qualification",
+            "--control-worker",
+            "--control-db",
+            str(database_path),
+        ]
+        completed = subprocess.run(
+            command,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode != 0:
+            detail = (completed.stdout + completed.stderr)[-8000:]
+            raise RuntimeError(f"public readback control process failed:\n{detail}")
+        try:
+            loaded = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("public readback control returned malformed JSON") from exc
+        if not isinstance(loaded, dict):
+            raise TypeError("public readback control did not return an object")
+        return loaded
+
+
 def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+
+def _write_manifest(output: Path) -> None:
+    manifest = []
+    for path in sorted(output.rglob("*")):
+        if path.is_file() and path.name != "SHA256SUMS":
+            manifest.append(f"{_sha256(path)}  {path.relative_to(output)}")
+    (output / "SHA256SUMS").write_text("\n".join(manifest) + "\n")
+
+
+def _copy_frozen_inputs(repo: Path, output: Path, spec: QualificationSpec) -> None:
+    inputs_dir = output / "inputs"
+    inputs_dir.mkdir()
+    for relative in spec.frozen_input_sha256:
+        source = repo / relative
+        destination = inputs_dir / relative.replace("/", "__")
+        shutil.copyfile(source, destination)
+
+
+def _write_invalid_control_evidence(
+    *,
+    repo: Path,
+    output: Path,
+    spec: QualificationSpec,
+    revision: str,
+    clean: bool,
+    frozen_hashes: dict[str, str],
+    local_controls: dict[str, Any],
+    public_control: dict[str, Any],
+) -> None:
+    output.mkdir(parents=True)
+    _copy_frozen_inputs(repo, output, spec)
+    _write_json(output / "public_readback_control.json", public_control)
+    _write_json(
+        output / "run_inventory.json",
+        {
+            "schema_version": f"ae3_evaluation_{spec.evaluation_id:02d}_evidence_v1",
+            "evaluation_id": spec.evaluation_id,
+            "git_revision": revision,
+            "worktree_clean_at_dispatch": clean,
+            "frozen_input_sha256": frozen_hashes,
+            "local_controls": local_controls,
+            "public_readback_control": public_control,
+            "planned_attempts": 32,
+            "completed_attempts": 0,
+            "summary": {
+                "verdict": "invalid_assay",
+                "actual_cost_usd": 0.0,
+                "stop_reason": "public readback controls failed before provider dispatch",
+            },
+        },
+    )
+    (output / "README.md").write_text(
+        f"# Evaluation {spec.evaluation_id:02d} invalid preflight evidence\n\n"
+        "Public-readback controls failed before provider dispatch.\n"
+    )
+    _write_manifest(output)
 
 
 def _summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -358,33 +633,51 @@ def _summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-async def run_live(repo: Path, output: Path) -> dict[str, Any]:
+async def run_live(
+    repo: Path,
+    output: Path,
+    spec: QualificationSpec = EVALUATION_05,
+    *,
+    public_control: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Execute the frozen serial assay once and write its evidence bundle."""
 
     if output.exists():
         raise RuntimeError(f"refusing to overwrite existing evidence: {output}")
-    frozen_hashes = _verify_frozen_inputs(repo)
+    frozen_hashes = _verify_frozen_inputs(repo, spec)
     revision, clean = _git_revision_and_cleanliness(repo)
     if not clean:
         raise RuntimeError("live qualification requires a clean worktree")
     controls = _run_local_controls(repo)
     _verify_shared_custody_schema()
+    if spec.evaluation_id == 6:
+        public_control = public_control or _run_public_readback_control_isolated(repo)
+        if not bool(public_control.get("passed")):
+            _write_invalid_control_evidence(
+                repo=repo,
+                output=output,
+                spec=spec,
+                revision=revision,
+                clean=clean,
+                frozen_hashes=frozen_hashes,
+                local_controls=controls,
+                public_control=public_control,
+            )
+            raise RuntimeError("public readback controls failed before provider dispatch")
 
     output.mkdir(parents=True)
-    inputs_dir = output / "inputs"
-    inputs_dir.mkdir()
-    for relative in FROZEN_INPUT_SHA256:
-        source = repo / relative
-        destination = inputs_dir / relative.replace("/", "__")
-        shutil.copyfile(source, destination)
+    _copy_frozen_inputs(repo, output, spec)
 
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     worlds: dict[str, World] = {}
     effective_configs: dict[str, dict[str, Any]] = {}
     tools = World.build_loop_action_tools()
     for condition, prompt_path in CONDITION_PROMPTS.items():
-        cfg = _condition_config(repo, condition, output)
-        worlds[condition] = World(cfg, run_id=f"eval05_{condition}_{timestamp}")
+        cfg = _condition_config(repo, condition, output, spec)
+        worlds[condition] = World(
+            cfg,
+            run_id=f"eval{spec.evaluation_id:02d}_{condition}_{timestamp}",
+        )
         effective = cfg.model_dump(mode="json")
         effective["llm"]["loop_prompt_template_path"] = prompt_path
         effective["logging"]["logs_dir"] = "<evidence>/runtime_logs"
@@ -400,7 +693,7 @@ async def run_live(repo: Path, output: Path) -> dict[str, Any]:
             raise RuntimeError(f"missing strategy for {principal_id}")
         messages = world.build_loop_messages(
             principal_id=principal_id,
-            state_snapshot=_fixed_state(repo, principal_id),
+            state_snapshot=_fixed_state(repo, principal_id, spec),
             strategy_text=strategy.content,
         )
         dispatch_plan.append(
@@ -413,6 +706,8 @@ async def run_live(repo: Path, output: Path) -> dict[str, Any]:
             }
         )
     _write_json(output / "dispatch_plan.json", dispatch_plan)
+    if public_control is not None:
+        _write_json(output / "public_readback_control.json", public_control)
 
     records: list[dict[str, Any]] = []
     stop_reason: str | None = None
@@ -468,7 +763,8 @@ async def run_live(repo: Path, output: Path) -> dict[str, Any]:
     summary["stop_reason"] = stop_reason
 
     inventory = {
-        "schema_version": "ae3_evaluation_05_evidence_v1",
+        "schema_version": f"ae3_evaluation_{spec.evaluation_id:02d}_evidence_v1",
+        "evaluation_id": spec.evaluation_id,
         "git_revision": revision,
         "worktree_clean_at_dispatch": clean,
         "frozen_input_sha256": frozen_hashes,
@@ -482,21 +778,18 @@ async def run_live(repo: Path, output: Path) -> dict[str, Any]:
         "planned_attempts": 32,
         "completed_attempts": len(records),
         "local_controls": controls,
+        "public_readback_control": public_control,
         "summary": summary,
     }
     _write_json(output / "attempts.json", records)
     _write_json(output / "run_inventory.json", inventory)
     (output / "README.md").write_text(
-        "# Evaluation 05 evidence\n\n"
+        f"# Evaluation {spec.evaluation_id:02d} evidence\n\n"
         "Frozen provider/prompt/tool qualification inputs, exact shared-client "
         "call records, classifications, and manifest.\n"
     )
 
-    manifest = []
-    for path in sorted(output.rglob("*")):
-        if path.is_file() and path.name != "SHA256SUMS":
-            manifest.append(f"{_sha256(path)}  {path.relative_to(output)}")
-    (output / "SHA256SUMS").write_text("\n".join(manifest) + "\n")
+    _write_manifest(output)
     return inventory
 
 
@@ -510,21 +803,35 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("docs/evaluations/evidence/05_provider_tool_qualification"),
+        default=None,
+    )
+    parser.add_argument(
+        "--evaluation",
+        type=int,
+        choices=sorted(EVALUATION_SPECS),
+        default=5,
     )
     parser.add_argument(
         "--run-live",
         action="store_true",
         help="Acknowledge that the frozen command will make paid provider calls.",
     )
+    parser.add_argument("--control-worker", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--control-db", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.control_worker:
+        if args.control_db is None:
+            raise SystemExit("--control-worker requires --control-db")
+        print(json.dumps(run_public_readback_control(args.control_db), sort_keys=True))
+        return
     if not args.run_live:
         raise SystemExit("refusing provider dispatch without --run-live")
     repo = args.repo.resolve()
-    output = args.output
+    spec = EVALUATION_SPECS[args.evaluation]
+    output = args.output or Path(spec.output_path)
     if not output.is_absolute():
         output = repo / output
-    inventory = asyncio.run(run_live(repo, output.resolve()))
+    inventory = asyncio.run(run_live(repo, output.resolve(), spec))
     print(json.dumps(inventory["summary"], indent=2, sort_keys=True))
 
 
