@@ -1,6 +1,6 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** In progress — shared dependency accepted; Slice A adoption ready
+**Status:** In progress — Slice A provider-free gate passed; Slice B next
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None; live canary dispatch remains separately authorized
@@ -21,16 +21,14 @@ The AE3-owned portion of Slice A is implemented and provider-free verified:
 - The provider-free command/home/prompt/schema inventory is retained at
   `docs/evaluations/evidence/plan10_luna_recovery_gate/slice_a_preflight.json`.
 
-The preflight is intentionally `blocked`, not passed. At reviewed shared-client
-revision `e068430c991fd460c73d7f4faf5c92ee393b8a66`, a synthetic Codex JSONL
-stream containing `command_execution`, `file_change`, `web_search`, and
-`mcp_tool_call` items exposes only the MCP call through the public
-`LLMCallResult`. The public raw response retains only a transport/session
-summary. AE3 therefore cannot prove the Plan 10 requirement that intrinsic
-Codex tools executed zero times. This is the named shared dependency
-`intrinsic_codex_events_not_public`; do not dispatch Luna, begin recovery work,
-or weaken the zero-tool gate until a governed `llm_client` change exposes and
-tests that evidence.
+The original Slice A preflight stopped at reviewed shared-client revision
+`e068430c991fd460c73d7f4faf5c92ee393b8a66` because intrinsic Codex events were
+not public. That blocker is now resolved. Against accepted revision
+`286715784f1d535d6dfcd2c867ca678d666e27d5`, the provider-free probe observes
+`command_execution`, `file_change`, `web_search`, and `mcp_tool_call` in stream
+order through `LLMCallResult.codex_events`, while the existing `tool_calls`
+projection remains MCP-only. The retained preflight passes without a provider
+call or MCP server.
 
 ### Shared dependency resolution (2026-08-12)
 
@@ -40,12 +38,11 @@ tests that evidence.
 accepts the shared unit and advances the downstream Agent Ecology unit to
 ready in merge `286715784f1d535d6dfcd2c867ca678d666e27d5`.
 
-The retained AE3 preflight remains the truthful blocked receipt until the
-repo-local adoption unit reruns it against that exact accepted revision. The
-claimable downstream unit is `WU-10-02` in
-`docs/plans/supporting/10_work_graph.json`. It authorizes only provider-free
-adoption and evidence refresh; it does not authorize a Luna call or begin the
-recovery-worker slices.
+AE3 reran the retained preflight against that exact accepted revision through
+repo-local unit `WU-10-02`. The unit is implemented and its evidence is under
+`docs/evaluations/evidence/plan10_luna_recovery_gate/`. This completes Slice A
+only; it does not authorize a Luna call. Slice B's provider-free recoverable
+cell remains the next implementation boundary.
 
 ---
 
@@ -477,7 +474,7 @@ one-call acknowledgement must remain unavailable until separate authorization.
 | tests/test_luna_recovery_gate.py | test_luna_route_requires_exact_medium_cli_profile | Omissions, aliases, retries, fallback, API billing, and unsupported effort fail closed |
 | tests/test_luna_recovery_gate.py | test_luna_action_schema_projects_six_permitted_variants | One Pydantic union covers the production loop-action set with six branches and no open object node |
 | tests/test_luna_recovery_gate.py | test_luna_structured_kwargs_are_explicit_and_mcp_free | The production consumer adopts the exact shared structured route without tools or MCP servers |
-| tests/test_luna_recovery_gate.py | test_prompt_schema_profile_is_ambient_free_and_blocks_without_tool_event_custody | The profile has only accepted context, an empty workspace, and no MCP; it fails closed while intrinsic-tool events are not public |
+| tests/test_luna_recovery_gate.py | test_prompt_schema_profile_is_ambient_free_and_observes_tool_event_custody | The profile has only accepted context, an empty workspace, no MCP, and ordered public intrinsic-event custody |
 | tests/test_luna_recovery_gate.py | test_attempt_state_machine_rejects_invalid_transitions | Unknown versions and illegal transitions fail closed |
 | tests/test_luna_recovery_gate.py | test_post_settlement_restart_does_not_duplicate_dispatch | The canonical 8-of-16 restart finishes with exactly 16 fake dispatches |
 | tests/test_luna_recovery_gate.py | test_action_application_crash_is_terminal | Ambiguous mutation cannot trigger a replacement dispatch |
@@ -502,15 +499,15 @@ loops.
 
 ## Acceptance Criteria
 
-- [ ] Exact Luna Medium configuration is typed, fail-closed, and used by the
+- [x] Exact Luna Medium configuration is typed, fail-closed, and used by the
       production AE3 loop consumer.
-- [ ] Provider-facing preflight proves the exact prompt/schema, empty workspace,
+- [x] Provider-facing preflight proves the exact prompt/schema, empty workspace,
       isolated MCP-free home, and intrinsic-tool event visibility; otherwise
       the plan stops at a named shared dependency.
-- [ ] `LunaLoopDecisionV1` covers every permitted production loop action and
+- [x] `LunaLoopDecisionV1` covers every permitted production loop action and
       retains one normalized action through shared-client readback and the
       existing canonical parser.
-- [ ] Luna passes neither tools nor MCP servers, while the existing MCP path for
+- [x] Luna passes neither tools nor MCP servers, while the existing MCP path for
       other routes remains unchanged.
 - [ ] The canonical 16-attempt recovery fixture completes with exactly 16 fake
       dispatches after a post-settlement restart.
