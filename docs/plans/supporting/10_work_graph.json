@@ -112,7 +112,7 @@
       "objective": "Ensure the production Luna syscall binds the exact reviewed shared-client source, settles every returned result truthfully, retains ambiguous attempts, and rejects unclassified Codex events before any live canary.",
       "profile": "small",
       "execution_class": "independently_executable",
-      "claimability": "ready_for_execution",
+      "claimability": "not_applicable",
       "authorization_mode": "registry_claim",
       "scope": {
         "included": [
@@ -146,7 +146,7 @@
       ],
       "outputs": [
         "Production Luna preflight bound to the exact reviewed llm_client revision",
-        "Truthful provider_settled_rejected and dispatch_ambiguous syscall receipts",
+        "Truthful provider_settled_rejected and dispatch_ambiguous syscall receipts at Agent Ecology 3 merge 1ac43ad685418e0a5230e935d11d890b7a6c6f0d",
         "Fail-closed passive Codex event policy",
         "Provider-free focused evidence for both production syscall entrypoints"
       ],
@@ -215,8 +215,8 @@
         "approvals": [],
         "failed_guards": []
       },
-      "status": "ready",
-      "record_version": 1
+      "status": "accepted",
+      "record_version": 2
     }
   ]
 }
