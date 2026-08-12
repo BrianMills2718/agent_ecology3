@@ -1,0 +1,230 @@
+{
+  "completed_attempts": 32,
+  "effective_config_sha256": {
+    "minimal": "a610ecf97610cb115f750f0ee86b5ee3be81eea26e22d09efa48fccd78c6943c",
+    "prescribed": "2981431183b4cfbcf76d3d25211d93231fb730a5845155863419384590dd4fb1"
+  },
+  "effective_configs": {
+    "minimal": {
+      "contracts": {
+        "default_for_new_artifact": "kernel_contract_freeware",
+        "default_when_missing": "kernel_contract_freeware"
+      },
+      "dashboard": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "jsonl_file": "logs/latest/events.jsonl",
+        "poll_interval_seconds": 1.0,
+        "port": 9000
+      },
+      "llm": {
+        "agent_cwd": ".",
+        "agent_max_turns": 6,
+        "agent_permission_mode": "acceptEdits",
+        "allowed_models": [
+          "minimax/minimax-m3"
+        ],
+        "default_model": "minimax/minimax-m3",
+        "enable_bootstrap_loop_llm": false,
+        "estimate_tokens_per_call": 900,
+        "loop_action_gate_enabled": true,
+        "loop_cognition_mode": "minimal",
+        "loop_forced_explore_mode": "off",
+        "loop_llm_cooldown_seconds": 0.0,
+        "loop_policy_seed": 0,
+        "loop_prompt_feedback_enabled": true,
+        "loop_prompt_template_path": "config/prompts/loop_prompt_minimal.txt",
+        "max_output_tokens": 4096,
+        "model_justification": "MiniMax-M3 is the frozen AE3 baseline being qualified after Evaluation 04.",
+        "model_override_acceptance": {},
+        "num_retries": 0,
+        "provider_budget_reservation_usd": 0.01,
+        "provider_max_budget_usd": 0.2,
+        "subscription_budget_charge_mode": "estimated",
+        "subscription_estimated_cost_multiplier": 1.0,
+        "timeout_seconds": 90
+      },
+      "logging": {
+        "event_file_name": "events.jsonl",
+        "logs_dir": "<evidence>/runtime_logs",
+        "recent_event_limit": 2000,
+        "summary_file_name": "summary.jsonl"
+      },
+      "mint": {
+        "bidding_window_seconds": 30.0,
+        "enabled": false,
+        "first_auction_delay_seconds": 20.0,
+        "minimum_bid": 1,
+        "mint_ratio": 10,
+        "period_seconds": 60.0,
+        "scoring_max_budget": 0.0
+      },
+      "principals": {
+        "count": 4,
+        "id_prefix": "alpha_",
+        "starting_disk_quota_bytes": 250000,
+        "starting_llm_budget": 0.25,
+        "starting_scrip": 6
+      },
+      "resources": {
+        "rate_limits": {
+          "cpu_seconds_per_window": 12.0,
+          "llm_calls_per_window": 120.0,
+          "llm_tokens_per_window": 400000.0
+        },
+        "rate_window_seconds": 60.0,
+        "stock": {
+          "total_disk_bytes": 1000000,
+          "total_llm_budget": 1.0
+        }
+      },
+      "simulation": {
+        "default_duration_seconds": 10.0,
+        "loop": {
+          "max_consecutive_errors": 5,
+          "max_delay_seconds": 8.0,
+          "min_delay_seconds": 0.2,
+          "resource_check_interval_seconds": 1.0
+        },
+        "max_runtime_seconds": 120.0,
+        "summary_interval_seconds": 5.0
+      }
+    },
+    "prescribed": {
+      "contracts": {
+        "default_for_new_artifact": "kernel_contract_freeware",
+        "default_when_missing": "kernel_contract_freeware"
+      },
+      "dashboard": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "jsonl_file": "logs/latest/events.jsonl",
+        "poll_interval_seconds": 1.0,
+        "port": 9000
+      },
+      "llm": {
+        "agent_cwd": ".",
+        "agent_max_turns": 6,
+        "agent_permission_mode": "acceptEdits",
+        "allowed_models": [
+          "minimax/minimax-m3"
+        ],
+        "default_model": "minimax/minimax-m3",
+        "enable_bootstrap_loop_llm": false,
+        "estimate_tokens_per_call": 900,
+        "loop_action_gate_enabled": true,
+        "loop_cognition_mode": "prescribed",
+        "loop_forced_explore_mode": "off",
+        "loop_llm_cooldown_seconds": 0.0,
+        "loop_policy_seed": 0,
+        "loop_prompt_feedback_enabled": true,
+        "loop_prompt_template_path": "config/prompts/loop_prompt_variant.txt",
+        "max_output_tokens": 4096,
+        "model_justification": "MiniMax-M3 is the frozen AE3 baseline being qualified after Evaluation 04.",
+        "model_override_acceptance": {},
+        "num_retries": 0,
+        "provider_budget_reservation_usd": 0.01,
+        "provider_max_budget_usd": 0.2,
+        "subscription_budget_charge_mode": "estimated",
+        "subscription_estimated_cost_multiplier": 1.0,
+        "timeout_seconds": 90
+      },
+      "logging": {
+        "event_file_name": "events.jsonl",
+        "logs_dir": "<evidence>/runtime_logs",
+        "recent_event_limit": 2000,
+        "summary_file_name": "summary.jsonl"
+      },
+      "mint": {
+        "bidding_window_seconds": 30.0,
+        "enabled": false,
+        "first_auction_delay_seconds": 20.0,
+        "minimum_bid": 1,
+        "mint_ratio": 10,
+        "period_seconds": 60.0,
+        "scoring_max_budget": 0.0
+      },
+      "principals": {
+        "count": 4,
+        "id_prefix": "alpha_",
+        "starting_disk_quota_bytes": 250000,
+        "starting_llm_budget": 0.25,
+        "starting_scrip": 6
+      },
+      "resources": {
+        "rate_limits": {
+          "cpu_seconds_per_window": 12.0,
+          "llm_calls_per_window": 120.0,
+          "llm_tokens_per_window": 400000.0
+        },
+        "rate_window_seconds": 60.0,
+        "stock": {
+          "total_disk_bytes": 1000000,
+          "total_llm_budget": 1.0
+        }
+      },
+      "simulation": {
+        "default_duration_seconds": 10.0,
+        "loop": {
+          "max_consecutive_errors": 5,
+          "max_delay_seconds": 8.0,
+          "min_delay_seconds": 0.2,
+          "resource_check_interval_seconds": 1.0
+        },
+        "max_runtime_seconds": 120.0,
+        "summary_interval_seconds": 5.0
+      }
+    }
+  },
+  "frozen_input_sha256": {
+    "config/config.provider_qualification.yaml": "769be03a6ad5befdbf8553523df284b8018ba7e2f0f910a622068d65677e6228",
+    "config/evaluations/05_fixed_state.json": "0cd6a09cc8dc03dffbf8a5a2d4cb0678ce749af20afa53ff5d4c07466f80ff9e",
+    "config/prompts/loop_prompt_minimal.txt": "c1029d2fda78e6309de66d229c9a872bf17a23f11465f94106aed7a88792f96a",
+    "config/prompts/loop_prompt_variant.txt": "1c0219c4dc5dcf2aa0fb64b756546a4fa583c4e40a9f99108c7921a4b7fbc4b2",
+    "docs/evaluations/05_provider_tool_qualification.md": "4230fef9613e22184070ad95c1a1060a3a4669bdfec1eb46b0b117cf1e32e6a4"
+  },
+  "git_revision": "d9ad310c1275011df25dd8ff5951dd08ef2cf589",
+  "local_controls": {
+    "command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests/test_provider_qualification.py",
+      "tests/test_runtime_smoke.py",
+      "--tb=short"
+    ],
+    "output": "..................................                                       [100%]\n",
+    "returncode": 0
+  },
+  "model": "minimax/minimax-m3",
+  "planned_attempts": 32,
+  "schema_version": "ae3_evaluation_05_evidence_v1",
+  "summary": {
+    "actual_cost_usd": 0.0359061,
+    "conditions": {
+      "minimal": {
+        "attempts": 16,
+        "qualified": false,
+        "terminal_classes": {
+          "custody_failure": 16
+        },
+        "usable": 0,
+        "usable_rate": 0.0
+      },
+      "prescribed": {
+        "attempts": 16,
+        "qualified": false,
+        "terminal_classes": {
+          "custody_failure": 16
+        },
+        "usable": 0,
+        "usable_rate": 0.0
+      }
+    },
+    "stop_reason": null,
+    "verdict": "not_qualified"
+  },
+  "tool_schema_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06",
+  "worktree_clean_at_dispatch": true
+}

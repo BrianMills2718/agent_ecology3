@@ -62,6 +62,10 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 ## Autonomous Loop Behavior
 
 - Loop artifacts can call LLM when `llm.enable_bootstrap_loop_llm: true`.
+- Bootstrap loops await `llm_client.acall_llm`; shared-world loop invocations
+  remain serialized, the duration monitor stays responsive during provider
+  waits, and an in-flight invocation is drained before `SimulationRunner.run()`
+  returns. Legacy synchronous artifacts are executed off the event-loop thread.
 - The parser accepts both canonical AE3 action JSON and common LLM variants (`action` + `parameters`) and normalizes to internal intents.
 - Non-canonical `query_kernel` types are inferred to supported kernel queries to reduce invalid-action churn.
 - Loop prompt state includes principal-scoped `recent_feedback` (recent action attempts/failures and error codes) from in-memory runtime state to reduce repeated failed moves.
@@ -97,6 +101,13 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - `scarcity_matrix` can evaluate a matrix-level gate policy (`--gate-policy`) over aggregate signals and optionally fail with exit code `2` (`--gate-fail-exit-code`).
 - `scarcity_matrix` now flushes per-run JSONL and `run_ids.txt` writes immediately and emits compact per-run completion lines, so long runs can be monitored live.
 - Evaluation 04 stopped as preregistered and is **inconclusive**: two paid runs failed the frozen validity rule, the minimal condition was not started, and the trace audit found that shared-client tool-call records omitted raw tool-call envelopes. Do not cite its prescribed-condition activity as evidence that behavior survives the minimal ablation.
+- Evaluation 05 completed its one allowed 32-call provider/tool assay, but its
+  frozen verdict is **not qualified** because the classifier expected a
+  persistence-policy key that the public readback API did not expose. A
+  diagnostic audit found exact retained payloads and descriptively usable
+  actions in 16/16 prescribed and 15/16 minimal calls; that audit does not
+  overwrite the frozen verdict, authorize a rerun, or authorize behavioral
+  comparison.
 - `phase1_suite` runs baseline/reduced/off matrix conditions in sequence and writes a scenario-level cohort comparison from `llm_client.compare_cohorts`.
 - `phase1_suite` launches matrix children with unbuffered Python (`-u`) so condition driver logs stream progress in real time.
 - `matrix_progress` summarizes in-flight matrix JSONL files (completed replicate count, rolling aggregate metrics, last-run key signals) during long-running suites.
@@ -152,6 +163,9 @@ agent_ecology3/
 
 - `docs/LINEAGE_AND_RESTARTS.md` - canonical comparison of AE1, AE2, and AE3; restart evidence, recurring failure modes, and the unresolved lifecycle decision.
 - `docs/evaluations/04_prescription_ablation.md` - preregistered matched-control test and its inconclusive result, provider/runtime failure analysis, evidence bundle, and rerun prerequisites.
+- `docs/evaluations/05_provider_tool_qualification.md` - async/provider/tool
+  qualification design, one-shot result, classifier failure mode, and immutable
+  evidence bundle.
 - `docs/REWRITE_SCOPE.md` - keep/add/remove scope for the rebuild.
 - `docs/REMOVAL_SEQUENCE.md` - ordered removal plan for review one item at a time.
 - `docs/REMOVAL_01_RUNTIME_GOVERNANCE.md` - detailed review doc for removal #1.

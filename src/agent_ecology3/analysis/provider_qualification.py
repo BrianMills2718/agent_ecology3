@@ -140,12 +140,6 @@ def classify_attempt(
         return _classification(
             "trace_failure", reason="missing trace, receipt, or exact call record"
         )
-    if call_record.get("content_persistence") != "full":
-        return _classification(
-            "custody_failure",
-            reason="exact call record was not retained under full-content persistence",
-        )
-
     finish_reason = str(receipt.get("finish_reason") or "").strip().lower()
     error_text = str(syscall_result.get("error") or "").strip().lower()
     error_type = str(receipt.get("error_type") or "").strip().lower()
@@ -165,6 +159,21 @@ def classify_attempt(
     if not bool(syscall_result.get("success")):
         return _classification(
             "provider_error", reason=error_text or error_type or "provider failure"
+        )
+
+    persistence = call_record.get("content_persistence")
+    if persistence is not None and persistence != "full":
+        return _classification(
+            "custody_failure",
+            reason="exact call record was not retained under full-content persistence",
+        )
+    if (
+        "response" not in call_record
+        or call_record.get("response") != syscall_result.get("content")
+    ):
+        return _classification(
+            "custody_failure",
+            reason="caller-visible and retained response content differ",
         )
 
     raw_tool_calls = syscall_result.get("tool_calls")

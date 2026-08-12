@@ -1,6 +1,6 @@
 # Plan #5: Experiment Instrument Repair and Provider Qualification
 
-**Status:** In Progress
+**Status:** Complete
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None
@@ -106,6 +106,7 @@ instrument before spending on behavioral replicates.
 | `tests/test_provider_qualification.py` | `test_malformed_or_missing_tool_call_fails` | Missing, malformed, or illegal actions fail qualification visibly. |
 | `tests/test_provider_qualification.py` | `test_truncation_and_custody_mismatch_fail` | Transport truncation and non-identical durable payloads are separate hard failures. |
 | `tests/test_provider_qualification.py` | `test_metadata_only_call_record_fails_custody` | A redacted call record cannot satisfy exact-custody qualification. |
+| `tests/test_provider_qualification.py` | `test_nonidentical_retained_response_fails_custody` | Public readback must match caller-visible response content even when persistence metadata is absent. |
 | `tests/test_provider_qualification.py` | `test_frozen_case_order_is_balanced_and_alternating` | The 32-call dispatch order stays balanced and serially alternating. |
 | `tests/test_provider_qualification.py` | `test_frozen_summary_requires_threshold_and_zero_hard_failures` | The frozen 15/16 threshold passes only without timeout or truncation failures. |
 
@@ -121,17 +122,19 @@ instrument before spending on behavioral replicates.
 
 ## Acceptance Criteria
 
-- [ ] The runner's monitor remains responsive during a slow provider call.
-- [ ] Autonomous loop world mutations are serialized and fully drained before
+- [x] The runner's monitor remains responsive during a slow provider call.
+- [x] Autonomous loop world mutations are serialized and fully drained before
       `SimulationRunner.run()` returns.
-- [ ] Sync and async syscalls share reservation, settlement, trace, cost, and
+- [x] Sync and async syscalls share reservation, settlement, trace, cost, and
       error-cleanup behavior.
-- [ ] Exact public tool-call payloads are reopened from shared-client storage
+- [x] Exact public tool-call payloads are reopened from shared-client storage
       and compared with the AE3 result for every successful qualification call.
-- [ ] Evaluation 05 is executed exactly once under its frozen gate and evidence
+- [x] Evaluation 05 is executed exactly once under its frozen gate and evidence
       contract, or is stopped before dispatch if local controls fail.
-- [ ] Focused tests, full tests, type check, and diff hygiene pass.
-- [ ] No Evaluation 04 result or threshold is modified, and no fresh behavioral
+- [x] Focused tests, full tests, changed-file type checking, and diff hygiene
+      pass. Repository-wide mypy still reports 27 pre-existing errors in eight
+      unrelated modules.
+- [x] No Evaluation 04 result or threshold is modified, and no fresh behavioral
       evaluation begins without a new preregistration.
 
 ---
@@ -145,3 +148,19 @@ in-flight invocation is awaited to terminal completion; provider timeout is the
 outer bound. Evaluation 05 stops immediately on trace/custody corruption,
 budget exhaustion, or an unexpected configuration hash. A failed qualification
 is a result, not permission to tune and rerun.
+
+---
+
+## Completion Evidence
+
+- Runtime/classifier gate: 58 required tests passed after the post-run custody
+  regression fix.
+- Full repository suite: 71 tests passed.
+- Changed source files: mypy passed with no issues; document coupling and
+  `git diff --check` passed.
+- Evaluation 05 ran once from clean pushed revision `d9ad310`; 32/32 calls and
+  the evidence manifest completed for USD 0.0359061.
+- Frozen verdict: `not_qualified` because the classifier expected an
+  unexposed readback metadata key. Exact payload audit was 16/16 prescribed
+  and 15/16 minimal, but was not promoted into a qualification decision and no
+  rerun or behavioral evaluation was started.

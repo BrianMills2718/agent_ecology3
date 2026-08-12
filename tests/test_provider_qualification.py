@@ -30,7 +30,7 @@ def test_valid_tool_call_and_exact_custody_pass() -> None:
         },
         receipt={"status": "succeeded", "finish_reason": "tool_calls"},
         call_record={
-            "content_persistence": "full",
+            "response": "",
             "response_tool_calls": [tool_call],
         },
     )
@@ -55,6 +55,7 @@ def test_malformed_or_missing_tool_call_fails() -> None:
         receipt={"status": "succeeded", "finish_reason": "tool_calls"},
         call_record={
             "content_persistence": "full",
+            "response": "",
             "response_tool_calls": [malformed],
         },
     )
@@ -67,7 +68,11 @@ def test_malformed_or_missing_tool_call_fails() -> None:
             "tool_calls": [],
         },
         receipt={"status": "succeeded", "finish_reason": "stop"},
-        call_record={"content_persistence": "full", "response_tool_calls": []},
+        call_record={
+            "content_persistence": "full",
+            "response": "prose only",
+            "response_tool_calls": [],
+        },
     )
 
     assert malformed_result["terminal_class"] == "missing_or_malformed_action"
@@ -93,6 +98,7 @@ def test_illegal_action_fails() -> None:
         receipt={"status": "succeeded", "finish_reason": "tool_calls"},
         call_record={
             "content_persistence": "full",
+            "response": "",
             "response_tool_calls": [tool_call],
         },
     )
@@ -122,7 +128,11 @@ def test_truncation_and_custody_mismatch_fail() -> None:
             "tool_calls": [tool_call],
         },
         receipt={"status": "succeeded", "finish_reason": "tool_calls"},
-        call_record={"content_persistence": "full", "response_tool_calls": []},
+        call_record={
+            "content_persistence": "full",
+            "response": "",
+            "response_tool_calls": [],
+        },
     )
 
     assert truncation["terminal_class"] == "output_truncation"
@@ -142,7 +152,28 @@ def test_metadata_only_call_record_fails_custody() -> None:
         receipt={"status": "succeeded", "finish_reason": "tool_calls"},
         call_record={
             "content_persistence": "metadata_only",
+            "response": None,
             "response_tool_calls": None,
+        },
+    )
+
+    assert result["terminal_class"] == "custody_failure"
+    assert result["usable"] is False
+
+
+def test_nonidentical_retained_response_fails_custody() -> None:
+    result = classify_attempt(
+        principal_id="alpha_1",
+        syscall_result={
+            "success": True,
+            "trace_id": "ae3/eval05/event_8/payer/alpha_1",
+            "content": '{"action_type":"query_kernel","query_type":"resources"}',
+            "tool_calls": [],
+        },
+        receipt={"status": "succeeded", "finish_reason": "stop"},
+        call_record={
+            "response": '{"action_type":"query_kernel","query_type":"events"}',
+            "response_tool_calls": [],
         },
     )
 

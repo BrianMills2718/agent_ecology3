@@ -1,6 +1,6 @@
 # Accounting Constants and Update Registry
 
-Date: 2026-02-23
+Date: 2026-08-11
 
 This file tracks numeric/accounting knobs that may need future updates.
 
@@ -17,7 +17,7 @@ This file tracks numeric/accounting knobs that may need future updates.
 | `LLM_CLIENT_AGENT_BILLING_MODE` (default) | `subscription` | `llm_client/llm_client/agents.py` | Treat `claude-code`/`codex` as subscription-included (no API USD per call by default). | If billing model changes or you switch to explicit API-key metering for agent SDK workflows. | https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan, https://docs.anthropic.com/en/docs/claude-code/overview, https://ccusage.com/guide |
 | `FALLBACK_COST_FLOOR_USD_PER_TOKEN` | `0.000001` | `llm_client/llm_client/client.py` | Emergency fallback when provider cost computation is unavailable. | If fallback estimates prove too high/low in reconciliation. | Internal safeguard; calibrate against provider pricing pages and observed reconciliation deltas. |
 | AE3 token preflight heuristic | `chars / 4` | `agent_ecology3/src/agent_ecology3/world/world.py` (`_estimate_tokens`) | Fast preflight estimate before real usage returns. | If systematic token estimation error exceeds acceptable threshold. | Heuristic baseline; calibrate from observed `actual_tokens` in logs. |
-| AE3 cost preflight heuristic | `max(0.0002, est_tokens/1000 * 0.003)` | `agent_ecology3/src/agent_ecology3/world/world.py` (`call_llm_as_syscall`) | Budget reservation before settlement to actual marginal cost. | If reservation mismatch is routinely large. | Internal conservative default; calibrate from measured marginal cost distribution. |
+| AE3 cost preflight heuristic | `max(0.0002, est_tokens/1000 * 0.003)` | `agent_ecology3/src/agent_ecology3/world/world.py` (`_prepare_llm_syscall`) | Budget reservation before sync or async settlement to actual marginal cost. | If reservation mismatch is routinely large. | Internal conservative default; calibrate from measured marginal cost distribution. |
 | AE3 `llm.subscription_budget_charge_mode` | `estimated` | `agent_ecology3/config/config.yaml`, `agent_ecology3/src/agent_ecology3/config.py` | For `subscription_included` billing, choose llm_budget settlement basis (`actual`, `estimated`, `none`). | If subscription-mode runs become unrealistically unconstrained or over-constrained. | `agent_ecology3/docs/RESOURCE_ACCOUNTING.md`, https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan, https://docs.anthropic.com/en/docs/claude-code/overview |
 | AE3 `llm.subscription_estimated_cost_multiplier` | `1.0` | `agent_ecology3/config/config.yaml`, `agent_ecology3/src/agent_ecology3/config.py` | Scales estimated llm_budget burn in subscription mode. | If scarcity intensity is too weak/strong for target emergence regime. | Internal calibration knob tied to subscription-mode experiments (`scarcity_matrix`). |
 | AE3 rate limit defaults: `llm_calls_per_window` | `120` | `agent_ecology3/config/config.yaml` | Rolling call throttle. | Throughput tuning or provider rate-limit changes. | Internal operational default. |
@@ -47,6 +47,8 @@ These values are for operator awareness and alerting calibration only.
 
 2. For agent SDK subscription mode, provider USD may remain zero while llm_budget still depletes via `subscription_budget_charge_mode=estimated` (default) so scarcity remains binding inside AE3.
 
-3. Last verified 2026-02-23:
+3. Last verified 2026-08-11:
 - AE3 now passes `max_retries=0` explicitly for agent-SDK calls in `world.call_llm_as_syscall`.
-- Accounting constants in this document remain unchanged by that update.
+- The native async syscall route uses the same preflight heuristic and
+  settlement implementation as the synchronous route. Accounting constants in
+  this document remain unchanged by that update.

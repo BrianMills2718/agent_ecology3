@@ -71,7 +71,15 @@ Given expected impact, hybrid provides most value per engineering hour.
 
 ## Verification Note
 
-Last verified: 2026-02-23
+Last verified: 2026-08-11
 
 - `world.call_llm_as_syscall` now passes `max_retries=0` explicitly for agent-SDK models.
 - This does not change accounting semantics; it only removes repeated retry-disabled warning noise while preserving side-effect-safe no-retry behavior.
+- `world.call_llm_as_syscall` and `world.call_llm_as_syscall_async` now share
+  `_prepare_llm_syscall`, `_llm_call_kwargs`, `_settle_llm_syscall`, and
+  `_fail_llm_syscall`. Both routes reserve the same estimated budget/tokens,
+  reconcile the same measured usage/cost, and retain the same trace fields.
+- Async cancellation refunds the in-flight reservation and re-raises the
+  cancellation; normal runner shutdown drains the call instead of cancelling
+  it. Evaluation 05 observed 32 serial calls for USD 0.0359061 without changing
+  these accounting rules.

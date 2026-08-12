@@ -4,12 +4,35 @@ Date: 2026-02-23
 
 This documents the first runnable AE3 baseline after approving removals #1-#6.
 
-Last verified: 2026-02-23
+Last verified: 2026-08-11
 
 Recent runtime update verified against baseline assumptions:
 
 1. Agent-SDK syscall path now passes `max_retries=0` explicitly (`src/agent_ecology3/world/world.py`).
 2. This preserves existing side-effect-safe no-retry behavior and does not alter accounting semantics or kernel authority boundaries.
+
+## Async Experiment Boundary (2026-08-11)
+
+1. Production bootstrap loop artifacts now expose `async def run()` and await
+   `World.call_llm_as_syscall_async`, which dispatches through
+   `llm_client.acall_llm`.
+2. Sync and async syscalls share one preflight reservation, settlement, trace,
+   cost, and error-cleanup implementation. The accounting semantics below did
+   not fork.
+3. `SimulationRunner` serializes world-mutating loop invocations while keeping
+   its duration monitor responsive. Stop drains an in-flight invocation before
+   the runner returns; it does not cancel provider work and leave a later world
+   mutation.
+4. Legacy synchronous executable artifacts remain supported through a worker
+   thread when called from the async runner. Nested synchronous invocation is
+   covered by regression tests.
+5. The production prompt renderer and `ae3_action` schema are exposed as
+   canonical builders and reused by the provider qualification runner.
+6. Evaluation 05 preserved 32 exact traces and tool responses but returned
+   `not_qualified` because its classifier required a persistence metadata key
+   omitted by the public readback API. The classifier now proves custody using
+   exact response/tool equality; the frozen Eval05 verdict was not changed or
+   rerun.
 
 ## Implemented Core
 

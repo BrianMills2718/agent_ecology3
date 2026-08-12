@@ -122,5 +122,46 @@ Results are appended below only after local gates pass and the frozen run ends.
 
 ## Results
 
-Not run.
+Run once from clean revision `d9ad310c1275011df25dd8ff5951dd08ef2cf589`
+on 2026-08-12 from 02:54:57Z through 03:03:14Z. All 32 frozen serial
+attempts completed with no retry, timeout, truncation, cache hit, fallback
+model, stop condition, or budget exhaustion. Actual aggregate cost was
+USD 0.0359061.
 
+### Frozen runner verdict
+
+`not_qualified`. The frozen runner assigned `custody_failure` to all 32
+attempts, so Evaluation 05 does not clear the instrument and no behavioral
+evaluation may begin from this result.
+
+That verdict exposed an assay implementation defect rather than 32 lost tool
+payloads. `llm_client.observability.replay.get_call_record()` returned exact
+messages, response content, and `response_tool_calls`, but its public record did
+not include the SQLite-only `content_persistence` field. The Evaluation 05
+classifier required that absent key to equal `full` before comparing payloads.
+The SQLite rows themselves all recorded `content_persistence=full`.
+
+### Post-run diagnostic audit (not a qualification decision)
+
+The immutable evidence was audited without another model call:
+
+| Condition | Attempts | Provider success | Exact successful tool payloads | Timeout / truncation | Descriptive usable actions |
+|---|---:|---:|---:|---:|---:|
+| prescribed | 16 | 16 | 16/16 | 0 / 0 | 16/16 |
+| minimal | 16 | 15 | 15/15 | 0 / 0 | 15/16 |
+
+The one minimal failure was `LLMEmptyResponseError`; its durable receipt and
+call record were present. Across all 32 attempts, sent messages, caller-visible
+response content, and reopened response content were identical; caller-visible
+and reopened `response_tool_calls` were also identical (including the empty
+failure record). Median/max latency was 10.2715/16.49 seconds for prescribed
+and 13.033/56.291 seconds for minimal.
+
+Those observations would meet the semantic 15/16 thresholds after correcting
+the classifier, but they are explicitly not used to overwrite the frozen
+verdict. The classifier now proves full custody through exact response/tool
+equality and treats the persistence field as an additional check when the
+readback API supplies it. A future qualification requires a new evaluation
+number and preregistration; Evaluation 05 will not be rerun.
+
+Evidence: `docs/evaluations/evidence/05_provider_tool_qualification/`.
