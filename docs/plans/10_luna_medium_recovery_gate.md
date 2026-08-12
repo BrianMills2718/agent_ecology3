@@ -1,6 +1,6 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** In progress — Slices A-E passed; WU-10-05 completion review
+**Status:** Complete — Slices A-E and WU-10-05 accepted
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None
@@ -16,9 +16,8 @@
 - **Proven:** exact `codex/gpt-5.6-luna` at medium effort through direct CLI,
   subscription-included billing, one strict `query_kernel` action, passive
   `agent_message` event custody, and caller/readback equality.
-- **Next action:** use the canary's observed 7.7-second latency and 15,568-token
-  usage to bound one recoverable dashboard-visible PoC unit implementing the
-  conditional Slices D-E.
+- **Next action:** begin Luna-specific qualification and scarcity calibration
+  under Plan #11 without expanding the claims established by this PoC.
 - **Stop condition:** no multi-call Luna run begins until recovery prevents a
   settled or ambiguous attempt from being replaced after interruption.
 - **Evidence:** `docs/evaluations/evidence/plan10_luna_recovery_gate/`.
@@ -27,8 +26,8 @@
 
 ### Recoverable dashboard PoC checkpoint (2026-08-12)
 
-`WU-10-05` is the active bounded integration unit. Its provider-free vertical
-is implemented and frozen before the two-call authentic boundary:
+`WU-10-05` is the accepted bounded integration unit. Its provider-free vertical
+was frozen before the two-call authentic boundary:
 
 - an atomic Pydantic checkpoint records stable run/attempt identities,
   semantic request hashes, dispatch count, syscall result, trace, and the
@@ -727,20 +726,20 @@ loops.
       no automatic retry.
 - [x] Only reviewed passive Codex event types are accepted; active, missing,
       and unknown types fail closed after truthful settlement.
-- [ ] The canonical 16-attempt recovery fixture completes with exactly 16 fake
+- [x] The canonical 16-attempt recovery fixture completes with exactly 16 fake
       dispatches after a post-settlement restart.
-- [ ] Every ambiguous in-flight/action/corrupt-checkpoint case is terminally
+- [x] Every ambiguous in-flight/action/corrupt-checkpoint case is terminally
       invalid and causes no replacement dispatch.
-- [ ] Restored World, scheduler, logical time/ID, accounting, artifacts, and
+- [x] Restored World, scheduler, logical time/ID, accounting, artifacts, and
       model-visible state match the last committed checkpoint.
-- [ ] A detached worker survives launcher exit and exposes truthful status and
+- [x] A detached worker survives launcher exit and exposes truthful status and
       resume evidence to a new process.
 - [x] The live entry point refuses dispatch without exact one-call human
       acknowledgement.
 - [x] After separate authorization, one and only one authentic canary either
       passes every route/action/custody gate or retains a blocked bundle naming
       the failed boundary.
-- [ ] No Evaluation 07 input/evidence changes, no Evaluation 08 claim is made,
+- [x] No Evaluation 07 input/evidence changes, no Evaluation 08 claim is made,
       and Plan 11 remains blocked unless the canary passes.
 
 ---
@@ -767,11 +766,9 @@ loops.
   an authentic capability, two consecutive non-outcome increments, or three
   failures at the same boundary. The outcome and gates do not silently shrink.
 
-The next action is the human-decision boundary for Slice C: separately
-authorize one authentic Luna Medium call through the frozen production path.
-Until that exact authorization is given, no provider call is permitted. A
-passing canary selects the conditional Slices D-E before any multi-call run; a
-failed canary remains a terminal blocked receipt with no retry or route switch.
+The separately authorized canary and bounded two-attempt PoC both passed. Plan
+10 is complete; subsequent Luna qualification or scarcity calibration belongs
+to Plan 11 and requires its own bounded execution and claims.
 
 The listed files are the expected AE3 surfaces and may be narrowed during
 implementation. Plan 10 may not add a parallel LLM client or alter Evaluation

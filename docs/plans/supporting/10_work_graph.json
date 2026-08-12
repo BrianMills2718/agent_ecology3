@@ -524,10 +524,10 @@
         "max_active_per_claimant": 1,
         "named_owner_id": null
       },
-      "status": "completion_review",
-      "record_version": 3,
+      "status": "accepted",
+      "record_version": 4,
       "created_at": "2026-08-12T21:46:10Z",
-      "updated_at": "2026-08-12T22:14:33Z"
+      "updated_at": "2026-08-12T22:38:00Z"
     }
   ]
 }
