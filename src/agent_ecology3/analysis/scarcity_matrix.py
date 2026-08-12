@@ -314,6 +314,25 @@ def _evaluate_llm_engagement_validity(
     }
 
 
+def _resolve_invalid_run_policy(
+    *,
+    run_id: str,
+    llm_validity: dict[str, Any],
+    policy: str,
+) -> tuple[bool, bool, str | None]:
+    """Return aggregate inclusion, fail-after-record, and diagnostic message."""
+    if llm_validity.get("valid") is True:
+        return True, False, None
+    failed_checks = llm_validity.get("failed_checks")
+    failed = ",".join(str(item) for item in failed_checks) if isinstance(failed_checks, list) else "unknown"
+    invalid_msg = f"[scarcity-matrix] invalid llm engagement run={run_id} failed={failed or 'unknown'}"
+    if policy == "fail":
+        return False, True, invalid_msg
+    if policy == "drop":
+        return False, False, f"{invalid_msg} (dropped)"
+    return True, False, f"{invalid_msg} (included)"
+
+
 def _run_llm_preflight(cfg: AppConfig) -> dict[str, Any]:
     preflight_cfg = cfg.model_copy(deep=True)
     preflight_world = World(preflight_cfg, run_id=f"preflight_{time.time_ns()}")
@@ -662,19 +681,13 @@ def main() -> int:
                 run_meta,
                 thresholds=validity_thresholds,
             )
-            include_in_aggregate = True
-            if llm_validity["valid"] is not True:
-                invalid_msg = (
-                    f"[scarcity-matrix] invalid llm engagement run={run_id} "
-                    f"failed={','.join(llm_validity['failed_checks']) or 'unknown'}"
-                )
-                if args.invalid_run_policy == "fail":
-                    raise RuntimeError(invalid_msg)
-                if args.invalid_run_policy == "drop":
-                    include_in_aggregate = False
-                    print(f"{invalid_msg} (dropped)", flush=True)
-                else:
-                    print(f"{invalid_msg} (included)", flush=True)
+            include_in_aggregate, fail_after_record, invalid_msg = _resolve_invalid_run_policy(
+                run_id=run_id,
+                llm_validity=llm_validity,
+                policy=str(args.invalid_run_policy),
+            )
+            if invalid_msg is not None and not fail_after_record:
+                print(invalid_msg, flush=True)
 
             record = {
                 "ae3_run_id": run_id,
@@ -706,6 +719,8 @@ def main() -> int:
             )
             matrix_stream.flush()
             print(_format_run_completion(index=idx, runs=runs, run_id=run_id, summary=summary), flush=True)
+            if fail_after_record:
+                raise RuntimeError(invalid_msg)
 
     aggregate = aggregate_metrics(aggregate_rows)
     payload: dict[str, Any] = {

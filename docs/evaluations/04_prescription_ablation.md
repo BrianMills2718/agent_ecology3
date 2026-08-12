@@ -41,8 +41,9 @@ deterministic loop helper choices; provider sampling may remain stochastic.
 | minimal | on | no roles or objective cycle | `config/prompts/loop_prompt_minimal.txt` | Treatment |
 | llm_off | off | prescribed | no model call | Negative attribution control |
 
-All paid runs use 16 successful LLM syscalls as the normalization target and
-240 seconds as the safety cap. LLM-off runs use 8 seconds. Forced exploration
+All paid runs use 16 successful LLM syscalls as the normalization target and,
+after the preregistered infrastructure amendment below, 900 seconds as the
+safety cap. LLM-off runs use 8 seconds. Forced exploration
 is off. The action gate and recent-feedback state remain on in both paid
 conditions because they are validity/safety infrastructure, not behavioral
 targets.
@@ -108,6 +109,25 @@ Before interpretation, preserve:
 
 Results will be appended below only after the implementation and focused/full
 tests pass.
+
+## Infrastructure amendment before the decisive run
+
+The first prescribed-condition attempt (`run_20260812_005820`, seed `12100`)
+was retained as an invalid pilot and is excluded from every control and
+treatment count. Twelve serial provider attempts consumed 263.63 runtime
+seconds: ten succeeded, one timed out at 60 seconds, and one returned an empty
+response. Because synchronous provider calls block AE3's event loop, the
+240-second monitor could check its stop conditions only between calls. The run
+therefore ended below the frozen requirements at 10/16 successful syscalls and
+9/12 LLM-valid decisions. It nevertheless recorded 1.0 unit of
+LLM-valid downstream paid value; that observed outcome does not count.
+
+Before any valid control or treatment result, the safety cap was increased to
+900 seconds and `simulation.max_runtime_seconds` to 960. The hypothesis,
+conditions, prompts, model, seeds, sample size, successful-call target, outcome
+definition, pass thresholds, retry count, and spend caps are unchanged. The
+matrix fail policy was also repaired to persist an invalid run record before
+raising. These are infrastructure corrections, not outcome-threshold changes.
 
 ## Results
 

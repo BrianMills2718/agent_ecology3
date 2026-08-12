@@ -1,6 +1,6 @@
 simulation:
-  default_duration_seconds: 240
-  max_runtime_seconds: 300
+  default_duration_seconds: 900
+  max_runtime_seconds: 960
   summary_interval_seconds: 15
   loop:
     min_delay_seconds: 0.2

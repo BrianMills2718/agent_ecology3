@@ -17,6 +17,7 @@ from agent_ecology3.analysis.scarcity_matrix import (
 from agent_ecology3.analysis.scarcity_matrix import (
     _resolve_llm_validity_thresholds as resolve_llm_validity_thresholds,
 )
+from agent_ecology3.analysis.scarcity_matrix import _resolve_invalid_run_policy as resolve_invalid_run_policy
 
 model_override_acceptance = {
     "accepted_by": "brian",
@@ -389,3 +390,14 @@ def test_evaluate_llm_engagement_validity_reports_failed_checks() -> None:
     assert "min_llm_valid_decisions" in result["failed_checks"]
     assert "min_llm_valid_decision_rate" in result["failed_checks"]
     assert result["checks"]["min_llm_attempt_rate"]["passed"] is True
+
+
+def test_invalid_fail_policy_defers_failure_until_after_record() -> None:
+    include, fail_after_record, message = resolve_invalid_run_policy(
+        run_id="run_invalid",
+        llm_validity={"valid": False, "failed_checks": ["min_llm_calls"]},
+        policy="fail",
+    )
+    assert include is False
+    assert fail_after_record is True
+    assert message == "[scarcity-matrix] invalid llm engagement run=run_invalid failed=min_llm_calls"
