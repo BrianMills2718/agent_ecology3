@@ -9,6 +9,7 @@ Track all implementation work here.
 | 1 | [Example Plan](01_example.md) | Medium | Planned | - |
 | 2 | [Mint scorer llm_client migration](02_mint_scorer_llm_client.md) | High | ✅ Complete | - |
 | 3 | [Repository lineage and restart lessons](03_lineage_and_restart_lessons.md) | High | ✅ Complete | AE2/AE3 lifecycle decision |
+| 4 | [Prescriptive cognition ablation](04_prescription_ablation.md) | High | In Progress | Evidence independent of assigned roles/objective cycles |
 
 ## Status Key
 
