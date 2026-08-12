@@ -89,8 +89,9 @@ The maximum planned successful LLM syscalls are 97: one positive-control
 preflight plus `2 conditions * 3 runs * 16 calls`. Provider retries are zero.
 Each preflight/paid simulation has a shared `llm_client` root-trace budget of
 USD 0.25, for a configured aggregate ceiling of USD 1.75 across the seven paid
-trace scopes. The client also reserves USD 0.01 before each dispatch and caps
-output at 512 tokens. Stop before the matrices if preflight fails or reports a
+trace scopes. The client also reserves USD 0.01 before each dispatch and, after
+the infrastructure amendment below, caps output at 1,024 tokens. Stop before
+the matrices if preflight fails or reports a
 projected aggregate cost above USD 1.75. Stop a condition on a provider budget
 error rather than silently changing model, prompt, retries, or sample size.
 
@@ -128,6 +129,23 @@ conditions, prompts, model, seeds, sample size, successful-call target, outcome
 definition, pass thresholds, retry count, and spend caps are unchanged. The
 matrix fail policy was also repaired to persist an invalid run record before
 raising. These are infrastructure corrections, not outcome-threshold changes.
+
+The first post-horizon control attempt (`run_20260812_011048`, seed `12100`)
+reached 16 successful calls and 15 LLM-valid decisions, but six additional
+provider calls exhausted the 512-token output allowance before returning any
+action. Those fallback decisions reduced the LLM-valid-decision rate to 0.6818,
+below the frozen 0.75 threshold. The run is retained as the evaluation's one
+allowed invalid paid run; its 1.0 unit of LLM-valid downstream value does not
+count. The output cap was raised to 1,024 before continuing, while the USD 0.25
+trace cap, zero retries, prompts, model, seeds, sample size, call target, and
+all outcome thresholds remain unchanged. The invalid pilots plus preflight
+cost USD 0.0238663; reserving the full USD 0.25 cap for each of the six
+remaining condition runs keeps worst-case aggregate spend below USD 1.75.
+
+Because one paid run is invalid, even a passing 2/3 result is provisional under
+the frozen rule. Any additional invalid paid run makes Evaluation 04
+inconclusive; the matrix will retain and drop invalid rows rather than lose the
+remaining matched evidence.
 
 ## Results
 
