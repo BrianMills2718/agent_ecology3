@@ -14,6 +14,7 @@ Track all implementation work here.
 | 6 | [Public-readback provider qualification](06_public_readback_qualification.md) | High | ✅ Complete | Fresh prescribed-versus-minimal behavioral evaluation design/preregistration |
 | 7 | [Behavioral comparison preregistration](07_behavioral_comparison_preregistration.md) | High | ✅ Complete | Evaluation 07 implementation and separately authorized execution |
 | 8 | [Behavioral comparison runner](08_behavioral_comparison_runner.md) | High | ✅ Complete | Separately authorized Evaluation 07 execution |
+| 9 | [Behavioral comparison execution](09_behavioral_comparison_execution.md) | High | ✅ Complete (invalid) | New-number evaluation only |
 
 ## Status Key
 

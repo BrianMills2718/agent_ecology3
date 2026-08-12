@@ -4,7 +4,7 @@ Observed problems, concerns, and technical debt. Items start as **unconfirmed**
 observations and get triaged through investigation into confirmed issues, plans,
 or dismissed.
 
-**Last reviewed:** (date)
+**Last reviewed:** 2026-08-12
 
 ---
 
@@ -44,7 +44,25 @@ or dismissed.
 
 ## Confirmed
 
-(Items that need a fix but don't have a plan yet.)
+### ISSUE-001: Paid evaluation worker is not session-durable
+
+**Observed:** 2026-08-12
+**Status:** `confirmed`
+
+Evaluation 07's paid worker ended without graceful finalization after 189
+settled attempts. Raw events and per-attempt checkpoints survived, but the
+world/scheduler process did not, so the frozen no-rerun contract prohibited
+recovery of the partial seed-condition cell. Separately, a cancelled settled
+attempt in `pair_02/prescribed` produced an event without a linked
+loop-decision/custody record.
+
+**Required before another paid behavioral assay:** use a durable process
+supervisor independent of the interactive agent session; make settlement,
+decision/failure classification, cost, and custody persistence atomic; and
+prove recovery from cancellation at each persistence boundary without
+repeating a provider attempt. Any repaired assay must use a new evaluation
+number. See `docs/evaluations/07_behavioral_comparison.md` and
+`docs/LINEAGE_AND_RESTARTS.md`.
 
 ---
 

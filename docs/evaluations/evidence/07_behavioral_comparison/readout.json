@@ -1,0 +1,27 @@
+{
+  "absolute_rate_difference": 0.0,
+  "controls_passed": true,
+  "decision": "inconclusive_invalid",
+  "discordant_minimal_only": 0,
+  "discordant_prescribed_only": 1,
+  "effect_direction": "prescribed_higher",
+  "exact_one_sided_p": 0.5,
+  "minimal_positive": 0,
+  "minimal_rate": null,
+  "minimal_wilson_95": [
+    0.0,
+    0.79345069
+  ],
+  "prescribed_positive": 1,
+  "prescribed_rate": null,
+  "prescribed_wilson_95": [
+    0.20654931,
+    1.0
+  ],
+  "scarcity_binding_runs": {
+    "minimal": 0,
+    "prescribed": 0
+  },
+  "schema_version": "ae3_eval07_readout_v1",
+  "valid_pairs": 1
+}

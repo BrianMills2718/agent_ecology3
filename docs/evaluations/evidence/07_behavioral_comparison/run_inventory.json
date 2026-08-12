@@ -1,0 +1,56 @@
+{
+  "actual_cost_usd": 0.23998692,
+  "complete_reproduction_available": false,
+  "completed_attempts": 188,
+  "completed_pairs": 5,
+  "custody_record_cost_usd": 0.23998692,
+  "evaluation_id": 7,
+  "frozen_inputs": {
+    "checked_at": "2026-08-12T05:30:57.788774+00:00",
+    "execution_deadline": "2026-08-19T03:33:25+00:00",
+    "frozen_input_sha256": {
+      "config/config.behavioral_comparison_07.yaml": "285619a6b0e7c03dc284c68dc29a7527e616940aca6fc376b6b0d063e1f7ea38",
+      "config/evaluations/07_behavioral_cases.json": "f6b85149b7c37d38c64d266243776f3cc60a245ee76edbf665a18da440e67f09",
+      "config/prompts/loop_prompt_minimal.txt": "c1029d2fda78e6309de66d229c9a872bf17a23f11465f94106aed7a88792f96a",
+      "config/prompts/loop_prompt_variant.txt": "1c0219c4dc5dcf2aa0fb64b756546a4fa583c4e40a9f99108c7921a4b7fbc4b2",
+      "docs/evaluations/06_public_readback_qualification_signoff.md": "eabb724e732bfa2b946ccd538d9801241302a747f2861c9b4496b5be576c73b2",
+      "docs/evaluations/07_behavioral_comparison.md": "22b45f5aa776e13ce698c0270de04b992572f796cfec65ac27703393e2e4db61",
+      "docs/evaluations/evidence/06_public_readback_qualification/SHA256SUMS": "f1e3015781d8941fdfb9545b15d217811d32ad49ca70979fc3db26403d090e2b",
+      "src/agent_ecology3/analysis/emergence_report.py": "a29f7db96d31d7a65d94eae02aaa7c75df665d346666623ddcd05992797e2973",
+      "src/agent_ecology3/analysis/provider_qualification.py": "daaa900438d7f3cc10b6b286f397c2fb98159d4c09447ecb648fc300807a1da4",
+      "src/agent_ecology3/config.py": "4cae1f7e38aa74aa028dccf432ff1a5aa2e95f71e583a9a32eaa4fb732e415e3",
+      "src/agent_ecology3/world/action_executor.py": "685806400177df569b1e31d49cc3c8c855e2c1c7d73f7e056c4f986eedba2d39",
+      "src/agent_ecology3/world/actions.py": "05fea2088501b361060b1555b7bc8c60a1447406811ea138c0ab747ec2771fba",
+      "src/agent_ecology3/world/artifacts.py": "a45def77fe8a134d57f54a77ef573593e666de29b4b90818e05c4656ea46d794",
+      "src/agent_ecology3/world/contracts.py": "2162d62b6732d22e859654bf664355d739e0f56a076501cd4dcec4fa508790ca",
+      "src/agent_ecology3/world/executor.py": "ec07e396f91d8e69c1b7d8aede438427d0baf00556b987c6f64d6ac2ad5fe0a6",
+      "src/agent_ecology3/world/ledger.py": "3b5bf7dcc7075264842c52686bb2f56627f7ff93887488628b7ba11379f425a5",
+      "src/agent_ecology3/world/mint.py": "9627359a19fcec5ec3016988199b95999457e85a47dfad1b2dabd4ecbb1ac17f",
+      "src/agent_ecology3/world/queries.py": "fc12300543fa53820003bc941c1512de61547c7579e3dc4c89e3c4aa6231f17e",
+      "src/agent_ecology3/world/world.py": "a088fec29ee109c7458a1dfb1c9ef785611aab81f86fe24dbfec9f23a702ee97"
+    },
+    "passed": true,
+    "schedule": {
+      "balanced_first_condition": true,
+      "leakage": [],
+      "maximum_actual_cost_usd": 1.68,
+      "maximum_provider_attempts": 448,
+      "primary_pairs": 12,
+      "reserve_pairs": 2,
+      "unique_seeds": true
+    }
+  },
+  "git_revision": "117ffb41a5a7cca8bee1a5c26db80a491cb50fb9",
+  "local_controls": {
+    "command_output_retained": false,
+    "passed_before_dispatch": true
+  },
+  "pairs_started": 6,
+  "readout_decision": "inconclusive_invalid",
+  "recovery_revision": "097bc7dd12c55d3e89df9470fe590d93a8e83fd7",
+  "schema_version": "ae3_eval07_partial_evidence_v1",
+  "settled_provider_attempts": 189,
+  "stop_reason": "execution process terminated without graceful finalization during pair_06/prescribed after 13 settled attempts; exact external termination cause was not retained",
+  "valid_pairs": 1,
+  "worktree_clean_at_dispatch": true
+}

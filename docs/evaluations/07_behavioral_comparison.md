@@ -241,6 +241,47 @@ artifacts. A passing runner verdict without that signoff is not decision-ready.
 
 ## Results
 
-Not implemented and not run. This section may be appended only after the
-frozen run and independent reproduction; the preregistered text above remains
-immutable.
+**Terminal result (2026-08-12): inconclusive/invalid.** The preregistered text
+above is preserved as the pre-dispatch contract. The separately authorized
+one-shot execution began from pushed revision
+`117ffb41a5a7cca8bee1a5c26db80a491cb50fb9` after the zero-provider preflight
+passed. The process ended without graceful finalization during
+`pair_06/prescribed`, after 13 of that cell's 16 attempts had settled. The exact
+external termination cause was not retained, so this record does not assign a
+more specific cause.
+
+The terminal bundle records:
+
+- 189 settled provider attempts and 188 complete attempt-custody records;
+- five completed pairs and six started pairs;
+- one valid completed pair (`pair_03`) and four invalid completed pairs;
+- USD 0.23998692 actual cost, below both frozen ceilings; and
+- no complete reproduction receipt, because the partial run cannot satisfy the
+  saved-artifact contract without rerunning a seed-condition cell.
+
+The invalidity is not attributable only to the final process interruption.
+Across the five completed pairs, frozen run-validity failures included too few
+LLM-valid decisions, provider error/timeout terminal classes, illegal or
+malformed actions, and one cancelled settled attempt with no corresponding
+loop-decision/custody record. The sole valid pair had prescribed
+`llm_valid_downstream_value=3.0` and minimal `0.0`, but neither run showed the
+preregistered scarcity manipulation. One valid pair cannot support a rate,
+discordance, robustness, or large-effect claim.
+
+[`SHA256SUMS`](evidence/07_behavioral_comparison/SHA256SUMS) verifies the complete
+terminal bundle. [`interruption.json`](evidence/07_behavioral_comparison/interruption.json)
+also retains the pre-finalization hashes of all 57 files that existed when
+recovery began. The normal reproducer deliberately rejects the bundle as
+terminal partial evidence; this is a fail-closed result, not a missing success
+receipt to be reconstructed later.
+
+No prescribed-versus-minimal behavioral claim follows. Evaluation 07 must not
+be rerun, repaired, or retrospectively reclassified. Any further assay requires
+a new evaluation number and should first place the paid worker under a durable
+process supervisor, make settled-attempt/event/custody persistence atomic, and
+checkpoint enough world and scheduler state to recover without repeating a
+provider attempt.
+
+The [independent adversarial sign-off](07_behavioral_comparison_signoff.md)
+rejected the behavioral evidence and confirmed that the no-claim/no-rerun
+disposition is the only decision supported by the terminal record.

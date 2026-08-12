@@ -182,7 +182,7 @@ This addresses the operator requirement: subscription agents must still face bud
   exact shared-client readback, terminal failure classes, and a SHA-256 evidence
   manifest (`analysis.provider_qualification`).
 
-Evaluation status as of 2026-08-11:
+Evaluation status as of 2026-08-12:
 
 - Evaluation 04 remains inconclusive because scheduler blocking and
   provider/tool failures dominated its behavioral-validity denominator.
@@ -198,12 +198,14 @@ Evaluation status as of 2026-08-11:
   custody failures. An independent execution-based verifier signed off the
   instrument qualification only. This unblocks a new behavioral design and
   preregistration; it does not establish emergence or a prescription effect.
-- Evaluation 07 is that new preregistered design: 12 valid matched
-  prescribed/minimal pairs, up to two ordered reserve pairs, exact 16-attempt
-  runs, observed scarcity and full-custody gates, and a USD 1.68 maximum. It is
-  implemented but not run. The zero-provider preflight passes, and execution
-  still requires a clean pushed revision, passing controls, exact cost
-  acknowledgement, and separate human authorization.
+- Evaluation 07 executed once and terminated **inconclusive/invalid**. Its
+  zero-provider gates passed, but the paid worker ended without graceful
+  finalization during `pair_06/prescribed`. The retained bundle records 189
+  settled attempts, 188 complete custody records, five completed pairs, one
+  valid pair, and USD 0.23998692 actual cost. No included run demonstrated
+  binding scarcity, and complete saved-artifact reproduction is unavailable.
+  Evaluation 07 cannot be rerun or used for a prescribed-versus-minimal claim;
+  a new-number design is required for any further assay.
 
 ### 7.2 Entropy metric definition
 

@@ -165,6 +165,8 @@ Meta keeping both lines active.
 | Provider formatting failure is counted as behavior | MiniMax truncation and timeout errors lowered AE3's LLM-valid-decision rate enough to invalidate the first ablation before treatment. | Qualify model/prompt/tool-schema reliability separately, then freeze the behavioral evaluation without changing its thresholds midstream. |
 | Trace IDs mistaken for complete custody | Evaluation 04 linked every AE3 attempt to a shared-client receipt, but successful tool-call rows generally omitted the raw tool-call envelope. | Preserve rendered input, raw provider output/tool envelope, normalized decision, and receipt together; verify the chain before interpretation. |
 | Auxiliary metadata mistaken for the custody fact | Evaluation 05's public call records contained byte-for-byte matching response/tool payloads, but its classifier rejected all attempts because that API did not expose the SQLite `content_persistence` column. | Test the exact public readback shape before spend and establish custody from exact caller/readback equality. Treat missing optional metadata as an assay defect, not as proof that retained payloads differ. |
+| Paid evaluation lifetime tied to an interactive agent session | Evaluation 07's worker ended without running its finalizer after 189 settled attempts. The exact external termination cause was not retained, and the frozen no-rerun rule made the partial cell terminal. | Run paid assays under a durable supervisor independent of the chat/tool session. Persist world, scheduler, RNG, attempt, and cost state frequently enough that recovery never repeats a provider attempt. |
+| Settled attempt and custody checkpoint are not atomic | Evaluation 07 `pair_02/prescribed` retained 16 settled attempt events but only 15 loop decisions/custody records; the final `llm call cancelled` event crossed the stopping boundary without a linked attempt capture. | Commit settlement, decision/failure classification, and custody as one recoverable transaction, and exercise cancellation between each persistence boundary before spend. |
 | Process grows around the experiment | AE2 accumulated extensive plan, governance, dashboard, and documentation surfaces; AE3 later re-added meta-process tooling outside runtime. | Keep process outside runtime and require each new control to protect a reproduced failure or current shared-state boundary. |
 
 ## Current AE3 Watch Items
@@ -187,8 +189,11 @@ These are observed risks, not reasons to restart AE3 now.
    prescribed and 15/16 minimal calls, but its frozen classifier returned
    `not_qualified` because of the readback-metadata defect. Evaluation 06 then
    qualified the held-out provider/prompt/tool instrument with independent
-   signoff, but the required intervention-off behavioral comparison itself
-   remains outstanding.
+   signoff. Evaluation 07 attempted the required behavioral comparison, but
+   only one of five completed pairs was valid, no included run demonstrated
+   binding scarcity, and the worker ended during the sixth pair. The comparison
+   therefore remains unresolved, now with terminal partial evidence rather than
+   an unexecuted design.
 3. **Historical empirical claims are not self-contained in Git.** The README
    and `CHATGPT_FULL_CONTEXT.md` name run IDs and summary files, but a clean
    clone contains no tracked logs or summary JSON. Treat those claims as a
@@ -230,6 +235,12 @@ The review intentionally separates code health from thesis evidence:
   frozen reliability threshold for USD 0.03988458 and received independent
   adversarial signoff. This repairs the instrument prerequisite; it is not the
   missing behavioral comparison.
+- Evaluation 07 then made 189 settled calls for USD 0.23998692 before its paid
+  worker ended during `pair_06/prescribed`. Five pairs completed, only
+  `pair_03` was valid, no included run bound scarcity, and one earlier cancelled
+  attempt exposed a 16-event/15-custody split. The manifest and interruption
+  receipt verify the terminal partial bundle, but exact result reproduction is
+  intentionally unavailable.
 
 ## Advice and Next Decision
 
@@ -262,12 +273,14 @@ replace its frozen verdict. Any further qualification needs a new
 preregistration; do not recycle Evaluation 05 as a passing assay.
 
 Evaluation 06 supplied that new preregistration and passed its independently
-verified instrument gate. Evaluation 07 now supplies the fresh behavioral
-design/preregistration using that qualified boundary. Its bounded runner,
-zero-provider controls, custody checks, and saved-evidence reproducer are now
-implemented without executing the evaluation. The next legitimate step is a
-separately authorized run—not another repository rewrite and not retrospective
-promotion of Evaluation 04 or 05.
+verified instrument gate. Evaluation 07 used that boundary once, but terminated
+inconclusive/invalid after four of five completed pairs failed validity, the
+scarcity manipulation failed in the sole included pair, and the worker ended
+mid-cell. Its partial observations do not answer the behavioral question and
+must not be promoted or rerun. If the question remains worth the spend, the
+next legitimate step is a new-number design with a durable worker and atomic
+settlement/custody recovery—not another repository rewrite and not
+retrospective promotion of Evaluations 04, 05, or 07.
 
 If AE3 produces that evidence while retaining the essential contract/resource
 semantics needed for subsequent experiments, decide explicitly whether to mark
@@ -284,6 +297,7 @@ rewrite.
 - Historical AE3 experiments and caveats: [CHATGPT_FULL_CONTEXT.md](CHATGPT_FULL_CONTEXT.md)
 - Inconclusive prescription-ablation result and evidence: [Evaluation 04](evaluations/04_prescription_ablation.md)
 - One-shot provider/tool qualification and classifier failure: [Evaluation 05](evaluations/05_provider_tool_qualification.md)
+- Terminal paired behavioral attempt and interruption evidence: [Evaluation 07](evaluations/07_behavioral_comparison.md)
 - AE2 behavioral observations: [`SIMULATION_LEARNINGS.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/SIMULATION_LEARNINGS.md)
 - AE2 V1 gate: [`V1_ACCEPTANCE.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/V1_ACCEPTANCE.md)
 - AE1 mechanism code: [`agent_ecology` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology/tree/720920732373292d1353be9a1f8066016b6f5aa8)

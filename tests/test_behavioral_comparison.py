@@ -4,6 +4,7 @@ import json
 import shutil
 from copy import deepcopy
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -12,8 +13,13 @@ from agent_ecology3.analysis.behavioral_comparison import (
     CASES_PATH,
     FROZEN_INPUT_SHA256,
     MAX_ACTUAL_COST_USD,
+    PREREGISTRATION_PATH,
+    PREREGISTRATION_RESULTS_MARKER,
+    _frozen_input_matches,
+    _sha256,
     compute_readout,
     evaluate_run,
+    finalize_interrupted_evidence,
     main,
     reproduce_evidence,
     run_live,
@@ -150,7 +156,11 @@ def _pairs(pattern: list[tuple[bool, bool]]) -> list[dict[str, object]]:
     return rows
 
 
-def _write_reproduction_fixture(evidence: Path) -> dict[str, object]:
+def _write_reproduction_fixture(
+    evidence: Path,
+    *,
+    pair_limit: int = 12,
+) -> dict[str, object]:
     repo = Path.cwd()
     inputs = evidence / "inputs"
     inputs.mkdir(parents=True)
@@ -175,7 +185,7 @@ def _write_reproduction_fixture(evidence: Path) -> dict[str, object]:
     attempts: list[dict[str, object]] = []
     pairs: list[dict[str, object]] = []
     ordinal = 1
-    for spec in cases["pair_schedule"][:12]:
+    for spec in cases["pair_schedule"][:pair_limit]:
         pair_id = str(spec["pair_id"])
         seed = int(spec["seed"])
         first = str(spec["first_condition"])
@@ -225,6 +235,13 @@ def _write_reproduction_fixture(evidence: Path) -> dict[str, object]:
                 )
                 run_attempts.append(attempt)
                 ordinal += 1
+            events.append(
+                {
+                    "timestamp": "2026-08-12T00:00:02+00:00",
+                    "event_type": "simulation_stopped",
+                    "sequence": ordinal * 3,
+                }
+            )
             events_path.write_text(
                 "".join(json.dumps(event, sort_keys=True) + "\n" for event in events),
                 encoding="utf-8",
@@ -234,6 +251,10 @@ def _write_reproduction_fixture(evidence: Path) -> dict[str, object]:
                     attempt,
                     runtime_events=events,
                 )
+            (events_path.parent / "attempts.checkpoint.json").write_text(
+                json.dumps(run_attempts) + "\n",
+                encoding="utf-8",
+            )
             summary = summarize_events(events_path)
             scarcity = [
                 {
@@ -278,7 +299,7 @@ def _write_reproduction_fixture(evidence: Path) -> dict[str, object]:
             "git_revision": "fixture-revision",
             "completed_attempts": len(attempts),
             "completed_pairs": len(pairs),
-            "valid_pairs": 12,
+            "valid_pairs": len(pairs),
             "actual_cost_usd": cost,
             "stop_reason": None,
             "readout_decision": readout["decision"],
@@ -300,6 +321,24 @@ def test_frozen_inputs_schedule_and_budget_pass() -> None:
     assert observed["schedule"]["unique_seeds"] is True
     assert observed["schedule"]["maximum_provider_attempts"] == 448
     assert observed["schedule"]["maximum_actual_cost_usd"] == MAX_ACTUAL_COST_USD
+
+
+def test_preregistration_prefix_stays_frozen_while_results_are_appendable(
+    tmp_path: Path,
+) -> None:
+    source = Path(PREREGISTRATION_PATH).read_text(encoding="utf-8")
+    expected = FROZEN_INPUT_SHA256[PREREGISTRATION_PATH]
+    allowed = tmp_path / "allowed.md"
+    allowed.write_text(source, encoding="utf-8")
+    assert _frozen_input_matches(PREREGISTRATION_PATH, allowed, expected) is True
+
+    prefix, marker, results = source.partition(PREREGISTRATION_RESULTS_MARKER)
+    tampered = tmp_path / "tampered.md"
+    tampered.write_text(
+        prefix.replace("Falsifiable claim", "Changed claim", 1) + marker + results,
+        encoding="utf-8",
+    )
+    assert _frozen_input_matches(PREREGISTRATION_PATH, tampered, expected) is False
 
 
 def test_preflight_controls_are_zero_provider_and_detect_metric_origins() -> None:
@@ -405,6 +444,51 @@ def test_reproducer_verifies_manifest_and_saved_readout(tmp_path: Path) -> None:
         reproduce_evidence(evidence)
 
 
+def test_interruption_finalizer_preserves_terminal_partial_bundle(
+    tmp_path: Path,
+) -> None:
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    _write_reproduction_fixture(evidence, pair_limit=1)
+    raw_paths = sorted(
+        path
+        for path in evidence.rglob("*")
+        if path.is_file()
+        and (
+            "runtime_logs" in path.parts
+            or "inputs" in path.parts
+            or path.name in {"controls.json", "dispatch_plan.json"}
+        )
+    )
+    before = {str(path.relative_to(evidence)): _sha256(path) for path in raw_paths}
+    for filename in (
+        "attempts.json",
+        "pairs.json",
+        "readout.json",
+        "run_inventory.json",
+        "SHA256SUMS",
+    ):
+        (evidence / filename).unlink()
+
+    inventory = finalize_interrupted_evidence(
+        Path.cwd(),
+        evidence,
+        stop_reason="fixture process ended before pair 2",
+        observed_at=datetime(2026, 8, 12, tzinfo=UTC),
+    )
+
+    after = {str(path.relative_to(evidence)): _sha256(path) for path in raw_paths}
+    assert before == after
+    assert inventory["settled_provider_attempts"] == 32
+    assert inventory["completed_attempts"] == 32
+    assert inventory["completed_pairs"] == 1
+    assert inventory["valid_pairs"] == 1
+    assert inventory["complete_reproduction_available"] is False
+    assert inventory["readout_decision"] == "inconclusive_invalid"
+    with pytest.raises(RuntimeError, match="terminal partial evidence"):
+        reproduce_evidence(evidence)
+
+
 def test_cli_refuses_live_dispatch_without_exact_cost_acknowledgement() -> None:
     with pytest.raises(SystemExit, match="choose exactly one"):
         main([])
@@ -414,3 +498,10 @@ def test_cli_refuses_live_dispatch_without_exact_cost_acknowledgement() -> None:
 
     with pytest.raises(RuntimeError, match="exact USD 1.68 acknowledgement"):
         run_live(Path.cwd(), Path("unused-eval07-output"))
+
+    with pytest.raises(RuntimeError, match="already has terminal evidence"):
+        run_live(
+            Path.cwd(),
+            Path("unused-eval07-output"),
+            acknowledged_max_cost_usd=Decimal("1.68"),
+        )

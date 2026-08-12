@@ -1,0 +1,132 @@
+{
+  "condition_contracts": {
+    "minimal": {
+      "loop_cognition_mode": "minimal",
+      "prompt_path": "config/prompts/loop_prompt_minimal.txt"
+    },
+    "prescribed": {
+      "loop_cognition_mode": "prescribed",
+      "prompt_path": "config/prompts/loop_prompt_variant.txt"
+    }
+  },
+  "evaluation_id": 7,
+  "execution": {
+    "condition_order": "within each pair run first_condition, then the other condition",
+    "maximum_actual_cost_usd": 1.68,
+    "maximum_pairs": 14,
+    "maximum_provider_attempts": 448,
+    "provider_attempts_per_run": 16,
+    "provider_retries": 0,
+    "required_valid_pairs": 12,
+    "reserve_rule": "use reserve pairs in listed order only when either run in an earlier pair is invalid; never rerun a seed-condition cell"
+  },
+  "implementation_revision": "117ffb41a5a7cca8bee1a5c26db80a491cb50fb9",
+  "pair_schedule": [
+    {
+      "first_condition": "prescribed",
+      "pair_id": "pair_01",
+      "role": "primary",
+      "seed": 13200
+    },
+    {
+      "first_condition": "minimal",
+      "pair_id": "pair_02",
+      "role": "primary",
+      "seed": 13201
+    },
+    {
+      "first_condition": "prescribed",
+      "pair_id": "pair_03",
+      "role": "primary",
+      "seed": 13202
+    },
+    {
+      "first_condition": "minimal",
+      "pair_id": "pair_04",
+      "role": "primary",
+      "seed": 13203
+    },
+    {
+      "first_condition": "prescribed",
+      "pair_id": "pair_05",
+      "role": "primary",
+      "seed": 13204
+    },
+    {
+      "first_condition": "minimal",
+      "pair_id": "pair_06",
+      "role": "primary",
+      "seed": 13205
+    },
+    {
+      "first_condition": "prescribed",
+      "pair_id": "pair_07",
+      "role": "primary",
+      "seed": 13206
+    },
+    {
+      "first_condition": "minimal",
+      "pair_id": "pair_08",
+      "role": "primary",
+      "seed": 13207
+    },
+    {
+      "first_condition": "prescribed",
+      "pair_id": "pair_09",
+      "role": "primary",
+      "seed": 13208
+    },
+    {
+      "first_condition": "minimal",
+      "pair_id": "pair_10",
+      "role": "primary",
+      "seed": 13209
+    },
+    {
+      "first_condition": "prescribed",
+      "pair_id": "pair_11",
+      "role": "primary",
+      "seed": 13210
+    },
+    {
+      "first_condition": "minimal",
+      "pair_id": "pair_12",
+      "role": "primary",
+      "seed": 13211
+    },
+    {
+      "first_condition": "prescribed",
+      "pair_id": "pair_13",
+      "role": "reserve",
+      "seed": 13212
+    },
+    {
+      "first_condition": "minimal",
+      "pair_id": "pair_14",
+      "role": "reserve",
+      "seed": 13213
+    }
+  ],
+  "readout": {
+    "maximum_robust_candidate_rate_difference": 0.166667,
+    "mcnemar_one_sided_alpha": 0.05,
+    "minimum_behavioral_opportunity_positive_runs": 8,
+    "minimum_material_rate_difference": 0.5,
+    "minimum_scarcity_binding_runs_per_condition": 8,
+    "primary_per_run": "llm_valid_downstream_value > 0"
+  },
+  "run_validity": {
+    "exact_provider_attempts": 16,
+    "maximum_attempts_per_principal": 5,
+    "maximum_cache_hits": 0,
+    "maximum_custody_failures": 0,
+    "maximum_forced_explore_events": 0,
+    "maximum_provider_errors": 0,
+    "maximum_timeouts": 0,
+    "maximum_trace_failures": 0,
+    "maximum_truncations": 0,
+    "minimum_attempts_per_principal": 3,
+    "minimum_llm_valid_decisions": 15
+  },
+  "schema_version": "ae3_eval07_dispatch_plan_v1"
+}

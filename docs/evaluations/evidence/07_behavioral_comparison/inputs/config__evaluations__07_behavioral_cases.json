@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0.0",
+  "evaluation_id": "07_behavioral_comparison",
+  "stage": "exploratory_causal_pilot",
+  "base_revision": "c65ff34591dabb5e8ea9b26a193e24250a2821d5",
+  "conditions": {
+    "prescribed": {
+      "loop_cognition_mode": "prescribed",
+      "prompt_path": "config/prompts/loop_prompt_variant.txt"
+    },
+    "minimal": {
+      "loop_cognition_mode": "minimal",
+      "prompt_path": "config/prompts/loop_prompt_minimal.txt"
+    }
+  },
+  "pair_schedule": [
+    {"pair_id": "pair_01", "seed": 13200, "first_condition": "prescribed", "role": "primary"},
+    {"pair_id": "pair_02", "seed": 13201, "first_condition": "minimal", "role": "primary"},
+    {"pair_id": "pair_03", "seed": 13202, "first_condition": "prescribed", "role": "primary"},
+    {"pair_id": "pair_04", "seed": 13203, "first_condition": "minimal", "role": "primary"},
+    {"pair_id": "pair_05", "seed": 13204, "first_condition": "prescribed", "role": "primary"},
+    {"pair_id": "pair_06", "seed": 13205, "first_condition": "minimal", "role": "primary"},
+    {"pair_id": "pair_07", "seed": 13206, "first_condition": "prescribed", "role": "primary"},
+    {"pair_id": "pair_08", "seed": 13207, "first_condition": "minimal", "role": "primary"},
+    {"pair_id": "pair_09", "seed": 13208, "first_condition": "prescribed", "role": "primary"},
+    {"pair_id": "pair_10", "seed": 13209, "first_condition": "minimal", "role": "primary"},
+    {"pair_id": "pair_11", "seed": 13210, "first_condition": "prescribed", "role": "primary"},
+    {"pair_id": "pair_12", "seed": 13211, "first_condition": "minimal", "role": "primary"},
+    {"pair_id": "pair_13", "seed": 13212, "first_condition": "prescribed", "role": "reserve"},
+    {"pair_id": "pair_14", "seed": 13213, "first_condition": "minimal", "role": "reserve"}
+  ],
+  "execution": {
+    "required_valid_pairs": 12,
+    "maximum_pairs": 14,
+    "provider_attempts_per_run": 16,
+    "maximum_provider_attempts": 448,
+    "maximum_actual_cost_usd": 1.68,
+    "provider_retries": 0,
+    "condition_order": "within each pair run first_condition, then the other condition",
+    "reserve_rule": "use reserve pairs in listed order only when either run in an earlier pair is invalid; never rerun a seed-condition cell"
+  },
+  "run_validity": {
+    "exact_provider_attempts": 16,
+    "minimum_llm_valid_decisions": 15,
+    "minimum_attempts_per_principal": 3,
+    "maximum_attempts_per_principal": 5,
+    "maximum_provider_errors": 0,
+    "maximum_timeouts": 0,
+    "maximum_truncations": 0,
+    "maximum_trace_failures": 0,
+    "maximum_custody_failures": 0,
+    "maximum_cache_hits": 0,
+    "maximum_forced_explore_events": 0
+  },
+  "readout": {
+    "primary_per_run": "llm_valid_downstream_value > 0",
+    "minimum_behavioral_opportunity_positive_runs": 8,
+    "minimum_material_rate_difference": 0.5,
+    "maximum_robust_candidate_rate_difference": 0.166667,
+    "mcnemar_one_sided_alpha": 0.05,
+    "minimum_scarcity_binding_runs_per_condition": 8
+  },
+  "llm_off_negative_control_seeds": [13200, 13201, 13202]
+}

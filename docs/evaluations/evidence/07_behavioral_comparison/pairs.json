@@ -1,0 +1,2624 @@
+[
+  {
+    "condition_order": [
+      "prescribed",
+      "minimal"
+    ],
+    "included": false,
+    "pair_id": "pair_01",
+    "role": "primary",
+    "runs": {
+      "minimal": {
+        "actual_cost_usd": 0.02186275,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "minimal",
+        "events_path": "runtime_logs/minimal/pair_01/events.jsonl",
+        "failed_checks": [],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 16,
+        "llm_valid_downstream_value": 0.0,
+        "pair_id": "pair_01",
+        "primary_positive": false,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13200,
+        "summary": {
+          "action_entropy_bits": 1.124,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 1,
+            "read_artifact": 59,
+            "submit_to_mint": 1,
+            "write_artifact": 3
+          },
+          "actions_total": 80,
+          "artifact_cross_paid_revenue": {},
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 0.0,
+          "cross_paid_consumption_events": 0,
+          "cross_read_events": 11,
+          "cross_transfer_amount": 0,
+          "decision_origin_counts": {
+            "llm_valid": 16
+          },
+          "decision_origin_share": {
+            "llm_valid": 1.0
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T05:40:37.819736+00:00",
+          "errors": {},
+          "event_types": {
+            "action": 80,
+            "artifact_read": 59,
+            "artifact_written": 3,
+            "invoke_success": 32,
+            "kernel_query": 1,
+            "llm_syscall": 16,
+            "loop_decision": 16,
+            "mint_submission": 1,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "world_initialized": 1
+          },
+          "events_total": 211,
+          "fallback_rate": 0.0,
+          "final_scrip": {
+            "alpha_1": 2,
+            "alpha_2": 2,
+            "alpha_3": 1,
+            "alpha_4": 2
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.0,
+          "kernel_queries_success": 1,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 1.0,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 0,
+          "llm_calls": 16,
+          "llm_cost": 0.021863,
+          "llm_error_rate": 0.0,
+          "llm_success_total": 16,
+          "llm_valid_decision_rate": 1.0,
+          "llm_valid_decision_total": 16,
+          "llm_valid_downstream_value": 0.0,
+          "loop_action_entropy_bits": 1.324,
+          "loop_action_types": {
+            "query_kernel": 1,
+            "read_artifact": 11,
+            "submit_to_mint": 1,
+            "write_artifact": 3
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 1,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 16
+          },
+          "paid_consumption_edge_events": {},
+          "paid_consumption_edges": {},
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            },
+            "alpha_4": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            }
+          },
+          "query_types": {
+            "events": 1
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_3": 2,
+            "alpha_2->alpha_1": 2,
+            "alpha_2->alpha_2": 12,
+            "alpha_2->alpha_3": 2,
+            "alpha_3->alpha_1": 1,
+            "alpha_3->alpha_3": 12,
+            "alpha_4->alpha_1": 2,
+            "alpha_4->alpha_3": 2,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 59,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 0.0,
+          "reuse_weighted_artifact_values": {},
+          "revenue_by_artifact_type": {},
+          "specialization_hhi_by_principal": {},
+          "specialization_hhi_mean": 0.0,
+          "started_at": "2026-08-12T05:35:28.174018+00:00",
+          "transfer_edges": {},
+          "transfers": 0,
+          "value_by_decision_origin": {},
+          "writes": 3
+        },
+        "terminal_classes": {
+          "usable_tool_action": 16
+        },
+        "valid": true
+      },
+      "prescribed": {
+        "actual_cost_usd": 0.01986288,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "prescribed",
+        "events_path": "runtime_logs/prescribed/pair_01/events.jsonl",
+        "failed_checks": [
+          "minimum_llm_valid_decisions",
+          "terminal_classes"
+        ],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 13,
+        "llm_valid_downstream_value": 2.0,
+        "pair_id": "pair_01",
+        "primary_positive": true,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13200,
+        "summary": {
+          "action_entropy_bits": 1.482,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 4,
+            "read_artifact": 53,
+            "transfer": 1,
+            "transfer_resource": 1,
+            "write_artifact": 5
+          },
+          "actions_total": 80,
+          "artifact_cross_paid_revenue": {
+            "alpha_1_market_intel": 1.0,
+            "alpha_4_opportunity_brief": 1.0
+          },
+          "cross_llm_budget_transfer_amount": 0.1,
+          "cross_paid_consumption_amount": 2.0,
+          "cross_paid_consumption_events": 2,
+          "cross_read_events": 5,
+          "cross_transfer_amount": 1,
+          "decision_origin_counts": {
+            "llm_invalid_fallback": 3,
+            "llm_valid": 13
+          },
+          "decision_origin_share": {
+            "llm_invalid_fallback": 0.1875,
+            "llm_valid": 0.8125
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T05:35:28.147505+00:00",
+          "errors": {},
+          "event_types": {
+            "action": 80,
+            "artifact_read": 53,
+            "artifact_written": 5,
+            "invoke_success": 32,
+            "kernel_query": 4,
+            "llm_syscall": 15,
+            "llm_syscall_error": 1,
+            "loop_decision": 16,
+            "resource_transfer": 1,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "transfer": 1,
+            "world_initialized": 1
+          },
+          "events_total": 211,
+          "fallback_rate": 0.1875,
+          "final_scrip": {
+            "alpha_1": 3,
+            "alpha_2": 1,
+            "alpha_3": 1,
+            "alpha_4": 2
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.1875,
+          "kernel_queries_success": 4,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 0.9375,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.1,
+          "llm_call_errors": 1,
+          "llm_calls": 15,
+          "llm_cost": 0.019863,
+          "llm_error_rate": 0.0625,
+          "llm_success_total": 15,
+          "llm_valid_decision_rate": 0.8125,
+          "llm_valid_decision_total": 13,
+          "llm_valid_downstream_value": 2.0,
+          "loop_action_entropy_bits": 2.049,
+          "loop_action_types": {
+            "query_kernel": 4,
+            "read_artifact": 5,
+            "transfer": 1,
+            "transfer_resource": 1,
+            "write_artifact": 5
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 0,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 15
+          },
+          "paid_consumption_edge_events": {
+            "alpha_2->alpha_1": 1,
+            "alpha_3->alpha_4": 1
+          },
+          "paid_consumption_edges": {
+            "alpha_2->alpha_1": 1.0,
+            "alpha_3->alpha_4": 1.0
+          },
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 3,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 3
+            },
+            "alpha_4": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            }
+          },
+          "query_types": {
+            "artifacts": 4
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_2": 1,
+            "alpha_2->alpha_1": 1,
+            "alpha_2->alpha_2": 12,
+            "alpha_3->alpha_2": 1,
+            "alpha_3->alpha_3": 12,
+            "alpha_3->alpha_4": 1,
+            "alpha_4->alpha_2": 1,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 53,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {
+            "llm_budget:alpha_1->alpha_4": 0.1
+          },
+          "resource_transfers_total": 1,
+          "reuse_weighted_artifact_value_total": 3.386294,
+          "reuse_weighted_artifact_values": {
+            "alpha_1_market_intel": 1.693147,
+            "alpha_4_opportunity_brief": 1.693147
+          },
+          "revenue_by_artifact_type": {
+            "alpha_1": {
+              "report": 1.0
+            },
+            "alpha_4": {
+              "report": 1.0
+            }
+          },
+          "specialization_hhi_by_principal": {
+            "alpha_1": 1.0,
+            "alpha_4": 1.0
+          },
+          "specialization_hhi_mean": 1.0,
+          "started_at": "2026-08-12T05:31:14.429734+00:00",
+          "transfer_edges": {
+            "alpha_4->alpha_1": 1
+          },
+          "transfers": 1,
+          "value_by_decision_origin": {
+            "llm_valid": 2.0
+          },
+          "writes": 5
+        },
+        "terminal_classes": {
+          "illegal_action": 1,
+          "provider_error": 1,
+          "usable_json_action": 1,
+          "usable_tool_action": 13
+        },
+        "valid": false
+      }
+    },
+    "seed": 13200,
+    "valid": false
+  },
+  {
+    "condition_order": [
+      "minimal",
+      "prescribed"
+    ],
+    "included": false,
+    "pair_id": "pair_02",
+    "role": "primary",
+    "runs": {
+      "minimal": {
+        "actual_cost_usd": 0.02408227,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "minimal",
+        "events_path": "runtime_logs/minimal/pair_02/events.jsonl",
+        "failed_checks": [
+          "minimum_llm_valid_decisions"
+        ],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 13,
+        "llm_valid_downstream_value": 0.0,
+        "pair_id": "pair_02",
+        "primary_positive": false,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13201,
+        "summary": {
+          "action_entropy_bits": 1.307,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 4,
+            "read_artifact": 56,
+            "submit_to_mint": 2,
+            "write_artifact": 2
+          },
+          "actions_total": 80,
+          "artifact_cross_paid_revenue": {},
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 0.0,
+          "cross_paid_consumption_events": 0,
+          "cross_read_events": 6,
+          "cross_transfer_amount": 0,
+          "decision_origin_counts": {
+            "llm_invalid_fallback": 3,
+            "llm_valid": 13
+          },
+          "decision_origin_share": {
+            "llm_invalid_fallback": 0.1875,
+            "llm_valid": 0.8125
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T05:46:33.039149+00:00",
+          "errors": {},
+          "event_types": {
+            "action": 80,
+            "artifact_read": 56,
+            "artifact_written": 2,
+            "invoke_success": 32,
+            "kernel_query": 4,
+            "llm_syscall": 16,
+            "loop_decision": 16,
+            "mint_submission": 2,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "world_initialized": 1
+          },
+          "events_total": 211,
+          "fallback_rate": 0.1875,
+          "final_scrip": {
+            "alpha_1": 1,
+            "alpha_2": 1,
+            "alpha_3": 2,
+            "alpha_4": 2
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.1875,
+          "kernel_queries_success": 4,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 1.0,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 0,
+          "llm_calls": 16,
+          "llm_cost": 0.024082,
+          "llm_error_rate": 0.0,
+          "llm_success_total": 16,
+          "llm_valid_decision_rate": 0.8125,
+          "llm_valid_decision_total": 13,
+          "llm_valid_downstream_value": 0.0,
+          "loop_action_entropy_bits": 1.75,
+          "loop_action_types": {
+            "query_kernel": 4,
+            "read_artifact": 8,
+            "submit_to_mint": 2,
+            "write_artifact": 2
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 2,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 16
+          },
+          "paid_consumption_edge_events": {},
+          "paid_consumption_edges": {},
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_4": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            }
+          },
+          "query_types": {
+            "events": 1,
+            "resources": 3
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 13,
+            "alpha_2->alpha_1": 2,
+            "alpha_2->alpha_2": 12,
+            "alpha_3->alpha_1": 3,
+            "alpha_3->alpha_3": 12,
+            "alpha_4->alpha_1": 1,
+            "alpha_4->alpha_4": 13
+          },
+          "reads_success": 56,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 0.0,
+          "reuse_weighted_artifact_values": {},
+          "revenue_by_artifact_type": {},
+          "specialization_hhi_by_principal": {},
+          "specialization_hhi_mean": 0.0,
+          "started_at": "2026-08-12T05:40:37.917570+00:00",
+          "transfer_edges": {},
+          "transfers": 0,
+          "value_by_decision_origin": {},
+          "writes": 2
+        },
+        "terminal_classes": {
+          "usable_tool_action": 16
+        },
+        "valid": false
+      },
+      "prescribed": {
+        "actual_cost_usd": 0.01368866,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 3
+        },
+        "attempts": 15,
+        "auxiliary_provider_calls": 0,
+        "condition": "prescribed",
+        "events_path": "runtime_logs/prescribed/pair_02/events.jsonl",
+        "failed_checks": [
+          "exact_attempts",
+          "minimum_llm_valid_decisions",
+          "terminal_classes",
+          "runtime_attempt_events"
+        ],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 14,
+        "llm_valid_downstream_value": 1.0,
+        "pair_id": "pair_02",
+        "primary_positive": true,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13201,
+        "summary": {
+          "action_entropy_bits": 1.391,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 7,
+            "read_artifact": 52,
+            "write_artifact": 4
+          },
+          "actions_total": 79,
+          "artifact_cross_paid_revenue": {
+            "alpha_1_market_brief": 1.0
+          },
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 1.0,
+          "cross_paid_consumption_events": 1,
+          "cross_read_events": 4,
+          "cross_transfer_amount": 0,
+          "decision_origin_counts": {
+            "llm_invalid_fallback": 1,
+            "llm_valid": 14
+          },
+          "decision_origin_share": {
+            "llm_invalid_fallback": 0.0667,
+            "llm_valid": 0.9333
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T06:14:30.610006+00:00",
+          "errors": {
+            "runtime_error": 1
+          },
+          "event_types": {
+            "action": 79,
+            "artifact_read": 52,
+            "artifact_written": 4,
+            "invoke_failure": 1,
+            "invoke_success": 30,
+            "kernel_query": 7,
+            "llm_syscall": 14,
+            "llm_syscall_error": 2,
+            "loop_decision": 15,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "world_initialized": 1
+          },
+          "events_total": 207,
+          "fallback_rate": 0.0667,
+          "final_scrip": {
+            "alpha_1": 2,
+            "alpha_2": 2,
+            "alpha_3": 1,
+            "alpha_4": 2
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.0667,
+          "kernel_queries_success": 7,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 0.9333,
+          "llm_attempted_total": 15,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 2,
+          "llm_calls": 14,
+          "llm_cost": 0.013689,
+          "llm_error_rate": 0.125,
+          "llm_success_total": 14,
+          "llm_valid_decision_rate": 0.9333,
+          "llm_valid_decision_total": 14,
+          "llm_valid_downstream_value": 1.0,
+          "loop_action_entropy_bits": 1.53,
+          "loop_action_types": {
+            "query_kernel": 7,
+            "read_artifact": 4,
+            "write_artifact": 4
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 3,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 3
+            }
+          },
+          "loop_decisions_total": 15,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 0,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 14
+          },
+          "paid_consumption_edge_events": {
+            "alpha_3->alpha_1": 1
+          },
+          "paid_consumption_edges": {
+            "alpha_3->alpha_1": 1.0
+          },
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 3
+            },
+            "alpha_4": {
+              "actions": 19,
+              "errors": 1,
+              "final_scrip": 2,
+              "llm_calls": 3
+            }
+          },
+          "query_types": {
+            "artifacts": 7
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_3": 1,
+            "alpha_2->alpha_2": 12,
+            "alpha_2->alpha_3": 1,
+            "alpha_3->alpha_1": 1,
+            "alpha_3->alpha_3": 12,
+            "alpha_4->alpha_3": 1,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 52,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 1.693147,
+          "reuse_weighted_artifact_values": {
+            "alpha_1_market_brief": 1.693147
+          },
+          "revenue_by_artifact_type": {
+            "alpha_1": {
+              "brief": 1.0
+            }
+          },
+          "specialization_hhi_by_principal": {
+            "alpha_1": 1.0
+          },
+          "specialization_hhi_mean": 1.0,
+          "started_at": "2026-08-12T05:46:33.110761+00:00",
+          "transfer_edges": {},
+          "transfers": 0,
+          "value_by_decision_origin": {
+            "llm_valid": 1.0
+          },
+          "writes": 4
+        },
+        "terminal_classes": {
+          "provider_error": 1,
+          "usable_tool_action": 14
+        },
+        "valid": false
+      }
+    },
+    "seed": 13201,
+    "valid": false
+  },
+  {
+    "condition_order": [
+      "prescribed",
+      "minimal"
+    ],
+    "included": true,
+    "pair_id": "pair_03",
+    "role": "primary",
+    "runs": {
+      "minimal": {
+        "actual_cost_usd": 0.0236202,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "minimal",
+        "events_path": "runtime_logs/minimal/pair_03/events.jsonl",
+        "failed_checks": [],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 16,
+        "llm_valid_downstream_value": 0.0,
+        "pair_id": "pair_03",
+        "primary_positive": false,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13202,
+        "summary": {
+          "action_entropy_bits": 1.19,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 2,
+            "read_artifact": 58,
+            "submit_to_mint": 1,
+            "write_artifact": 3
+          },
+          "actions_total": 80,
+          "artifact_cross_paid_revenue": {},
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 0.0,
+          "cross_paid_consumption_events": 0,
+          "cross_read_events": 9,
+          "cross_transfer_amount": 0,
+          "decision_origin_counts": {
+            "llm_valid": 16
+          },
+          "decision_origin_share": {
+            "llm_valid": 1.0
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T06:27:46.453360+00:00",
+          "errors": {},
+          "event_types": {
+            "action": 80,
+            "artifact_read": 58,
+            "artifact_written": 3,
+            "invoke_success": 32,
+            "kernel_query": 2,
+            "llm_syscall": 16,
+            "loop_decision": 16,
+            "mint_submission": 1,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "world_initialized": 1
+          },
+          "events_total": 211,
+          "fallback_rate": 0.0,
+          "final_scrip": {
+            "alpha_1": 2,
+            "alpha_2": 2,
+            "alpha_3": 1,
+            "alpha_4": 2
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.0,
+          "kernel_queries_success": 2,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 1.0,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 0,
+          "llm_calls": 16,
+          "llm_cost": 0.02362,
+          "llm_error_rate": 0.0,
+          "llm_success_total": 16,
+          "llm_valid_decision_rate": 1.0,
+          "llm_valid_decision_total": 16,
+          "llm_valid_downstream_value": 0.0,
+          "loop_action_entropy_bits": 1.502,
+          "loop_action_types": {
+            "query_kernel": 2,
+            "read_artifact": 10,
+            "submit_to_mint": 1,
+            "write_artifact": 3
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 1,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 16
+          },
+          "paid_consumption_edge_events": {},
+          "paid_consumption_edges": {},
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            },
+            "alpha_4": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            }
+          },
+          "query_types": {
+            "events": 1,
+            "mint": 1
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_3": 3,
+            "alpha_2->alpha_2": 12,
+            "alpha_2->alpha_3": 2,
+            "alpha_3->alpha_3": 13,
+            "alpha_4->alpha_3": 4,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 58,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 0.0,
+          "reuse_weighted_artifact_values": {},
+          "revenue_by_artifact_type": {},
+          "specialization_hhi_by_principal": {},
+          "specialization_hhi_mean": 0.0,
+          "started_at": "2026-08-12T06:23:04.635804+00:00",
+          "transfer_edges": {},
+          "transfers": 0,
+          "value_by_decision_origin": {},
+          "writes": 3
+        },
+        "terminal_classes": {
+          "usable_tool_action": 16
+        },
+        "valid": true
+      },
+      "prescribed": {
+        "actual_cost_usd": 0.01762611,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "prescribed",
+        "events_path": "runtime_logs/prescribed/pair_03/events.jsonl",
+        "failed_checks": [],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 16,
+        "llm_valid_downstream_value": 3.0,
+        "pair_id": "pair_03",
+        "primary_positive": true,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13202,
+        "summary": {
+          "action_entropy_bits": 1.405,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 11,
+            "read_artifact": 51,
+            "write_artifact": 2
+          },
+          "actions_total": 80,
+          "artifact_cross_paid_revenue": {
+            "alpha_3_audit_methodology": 3.0
+          },
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 3.0,
+          "cross_paid_consumption_events": 3,
+          "cross_read_events": 3,
+          "cross_transfer_amount": 0,
+          "decision_origin_counts": {
+            "llm_valid": 16
+          },
+          "decision_origin_share": {
+            "llm_valid": 1.0
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T06:23:04.580722+00:00",
+          "errors": {},
+          "event_types": {
+            "action": 80,
+            "artifact_read": 51,
+            "artifact_written": 2,
+            "invoke_success": 32,
+            "kernel_query": 11,
+            "llm_syscall": 16,
+            "loop_decision": 16,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "world_initialized": 1
+          },
+          "events_total": 211,
+          "fallback_rate": 0.0,
+          "final_scrip": {
+            "alpha_1": 1,
+            "alpha_2": 1,
+            "alpha_3": 5,
+            "alpha_4": 1
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.0,
+          "kernel_queries_success": 11,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 1.0,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 0,
+          "llm_calls": 16,
+          "llm_cost": 0.017626,
+          "llm_error_rate": 0.0,
+          "llm_success_total": 16,
+          "llm_valid_decision_rate": 1.0,
+          "llm_valid_decision_total": 16,
+          "llm_valid_downstream_value": 3.0,
+          "loop_action_entropy_bits": 1.199,
+          "loop_action_types": {
+            "query_kernel": 11,
+            "read_artifact": 3,
+            "write_artifact": 2
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 0,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 16
+          },
+          "paid_consumption_edge_events": {
+            "alpha_1->alpha_3": 1,
+            "alpha_2->alpha_3": 1,
+            "alpha_4->alpha_3": 1
+          },
+          "paid_consumption_edges": {
+            "alpha_1->alpha_3": 1.0,
+            "alpha_2->alpha_3": 1.0,
+            "alpha_4->alpha_3": 1.0
+          },
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 5,
+              "llm_calls": 4
+            },
+            "alpha_4": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            }
+          },
+          "query_types": {
+            "artifacts": 11
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_3": 1,
+            "alpha_2->alpha_2": 12,
+            "alpha_2->alpha_3": 1,
+            "alpha_3->alpha_3": 12,
+            "alpha_4->alpha_3": 1,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 51,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 7.158883,
+          "reuse_weighted_artifact_values": {
+            "alpha_3_audit_methodology": 7.158883
+          },
+          "revenue_by_artifact_type": {
+            "alpha_3": {
+              "methodology": 3.0
+            }
+          },
+          "specialization_hhi_by_principal": {
+            "alpha_3": 1.0
+          },
+          "specialization_hhi_mean": 1.0,
+          "started_at": "2026-08-12T06:14:30.684786+00:00",
+          "transfer_edges": {},
+          "transfers": 0,
+          "value_by_decision_origin": {
+            "llm_valid": 3.0
+          },
+          "writes": 2
+        },
+        "terminal_classes": {
+          "usable_tool_action": 16
+        },
+        "valid": true
+      }
+    },
+    "seed": 13202,
+    "valid": true
+  },
+  {
+    "condition_order": [
+      "minimal",
+      "prescribed"
+    ],
+    "included": false,
+    "pair_id": "pair_04",
+    "role": "primary",
+    "runs": {
+      "minimal": {
+        "actual_cost_usd": 0.02196396,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "minimal",
+        "events_path": "runtime_logs/minimal/pair_04/events.jsonl",
+        "failed_checks": [
+          "minimum_llm_valid_decisions",
+          "terminal_classes"
+        ],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 13,
+        "llm_valid_downstream_value": 0.0,
+        "pair_id": "pair_04",
+        "primary_positive": false,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13203,
+        "summary": {
+          "action_entropy_bits": 1.422,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 7,
+            "read_artifact": 53,
+            "submit_to_mint": 1,
+            "write_artifact": 3
+          },
+          "actions_total": 80,
+          "artifact_cross_paid_revenue": {},
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 0.0,
+          "cross_paid_consumption_events": 0,
+          "cross_read_events": 4,
+          "cross_transfer_amount": 0,
+          "decision_origin_counts": {
+            "llm_invalid_fallback": 3,
+            "llm_valid": 13
+          },
+          "decision_origin_share": {
+            "llm_invalid_fallback": 0.1875,
+            "llm_valid": 0.8125
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T06:45:17.272665+00:00",
+          "errors": {},
+          "event_types": {
+            "action": 80,
+            "artifact_read": 53,
+            "artifact_written": 3,
+            "invoke_success": 32,
+            "kernel_query": 7,
+            "llm_syscall": 15,
+            "llm_syscall_error": 1,
+            "loop_decision": 16,
+            "mint_submission": 1,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "world_initialized": 1
+          },
+          "events_total": 211,
+          "fallback_rate": 0.1875,
+          "final_scrip": {
+            "alpha_1": 2,
+            "alpha_2": 2,
+            "alpha_3": 2,
+            "alpha_4": 1
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.1875,
+          "kernel_queries_success": 7,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 0.9375,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 1,
+          "llm_calls": 15,
+          "llm_cost": 0.021964,
+          "llm_error_rate": 0.0625,
+          "llm_success_total": 15,
+          "llm_valid_decision_rate": 0.8125,
+          "llm_valid_decision_total": 13,
+          "llm_valid_downstream_value": 0.0,
+          "loop_action_entropy_bits": 1.749,
+          "loop_action_types": {
+            "query_kernel": 7,
+            "read_artifact": 5,
+            "submit_to_mint": 1,
+            "write_artifact": 3
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 1,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 15
+          },
+          "paid_consumption_edge_events": {},
+          "paid_consumption_edges": {},
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_4": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 3
+            }
+          },
+          "query_types": {
+            "artifacts": 2,
+            "balances": 2,
+            "resources": 3
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_4": 1,
+            "alpha_2->alpha_1": 1,
+            "alpha_2->alpha_2": 12,
+            "alpha_2->alpha_4": 1,
+            "alpha_3->alpha_1": 1,
+            "alpha_3->alpha_3": 13,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 53,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 0.0,
+          "reuse_weighted_artifact_values": {},
+          "revenue_by_artifact_type": {},
+          "specialization_hhi_by_principal": {},
+          "specialization_hhi_mean": 0.0,
+          "started_at": "2026-08-12T06:27:46.519804+00:00",
+          "transfer_edges": {},
+          "transfers": 0,
+          "value_by_decision_origin": {},
+          "writes": 3
+        },
+        "terminal_classes": {
+          "provider_error": 1,
+          "usable_tool_action": 15
+        },
+        "valid": false
+      },
+      "prescribed": {
+        "actual_cost_usd": 0.0209646,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "prescribed",
+        "events_path": "runtime_logs/prescribed/pair_04/events.jsonl",
+        "failed_checks": [],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 15,
+        "llm_valid_downstream_value": 0.0,
+        "pair_id": "pair_04",
+        "primary_positive": false,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13203,
+        "summary": {
+          "action_entropy_bits": 1.504,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 7,
+            "read_artifact": 52,
+            "transfer": 1,
+            "write_artifact": 5
+          },
+          "actions_total": 81,
+          "artifact_cross_paid_revenue": {},
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 0.0,
+          "cross_paid_consumption_events": 0,
+          "cross_read_events": 3,
+          "cross_transfer_amount": 1,
+          "decision_origin_counts": {
+            "llm_valid": 15,
+            "recovery": 1
+          },
+          "decision_origin_share": {
+            "llm_valid": 0.9375,
+            "recovery": 0.0625
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_valid": 3,
+                "recovery": 1
+              },
+              "share": {
+                "llm_valid": 0.75,
+                "recovery": 0.25
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T06:49:14.097635+00:00",
+          "errors": {
+            "not_authorized": 1
+          },
+          "event_types": {
+            "action": 81,
+            "artifact_read": 51,
+            "artifact_written": 5,
+            "invoke_failure": 1,
+            "invoke_success": 32,
+            "kernel_query": 7,
+            "llm_syscall": 16,
+            "loop_decision": 16,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "transfer": 1,
+            "world_initialized": 1
+          },
+          "events_total": 213,
+          "fallback_rate": 0.0625,
+          "final_scrip": {
+            "alpha_1": 2,
+            "alpha_2": 2,
+            "alpha_3": 2,
+            "alpha_4": 1
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.0,
+          "kernel_queries_success": 7,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 1.0,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 0,
+          "llm_calls": 16,
+          "llm_cost": 0.020965,
+          "llm_error_rate": 0.0,
+          "llm_success_total": 16,
+          "llm_valid_decision_rate": 0.9375,
+          "llm_valid_decision_total": 15,
+          "llm_valid_downstream_value": 0.0,
+          "loop_action_entropy_bits": 1.772,
+          "loop_action_types": {
+            "query_kernel": 7,
+            "read_artifact": 4,
+            "transfer": 1,
+            "write_artifact": 4
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 0,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 16
+          },
+          "paid_consumption_edge_events": {},
+          "paid_consumption_edges": {},
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_4": {
+              "actions": 21,
+              "errors": 1,
+              "final_scrip": 1,
+              "llm_calls": 4
+            }
+          },
+          "query_types": {
+            "artifacts": 7
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_4": 1,
+            "alpha_2->alpha_2": 12,
+            "alpha_2->alpha_4": 1,
+            "alpha_3->alpha_3": 12,
+            "alpha_3->alpha_4": 1,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 51,
+          "recovery_fallback_rate": 0.0625,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 0.0,
+          "reuse_weighted_artifact_values": {},
+          "revenue_by_artifact_type": {},
+          "specialization_hhi_by_principal": {},
+          "specialization_hhi_mean": 0.0,
+          "started_at": "2026-08-12T06:45:17.304070+00:00",
+          "transfer_edges": {
+            "alpha_4->alpha_1": 1
+          },
+          "transfers": 1,
+          "value_by_decision_origin": {},
+          "writes": 5
+        },
+        "terminal_classes": {
+          "usable_tool_action": 16
+        },
+        "valid": true
+      }
+    },
+    "seed": 13203,
+    "valid": false
+  },
+  {
+    "condition_order": [
+      "prescribed",
+      "minimal"
+    ],
+    "included": false,
+    "pair_id": "pair_05",
+    "role": "primary",
+    "runs": {
+      "minimal": {
+        "actual_cost_usd": 0.01977276,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "minimal",
+        "events_path": "runtime_logs/minimal/pair_05/events.jsonl",
+        "failed_checks": [],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 15,
+        "llm_valid_downstream_value": 0.0,
+        "pair_id": "pair_05",
+        "primary_positive": false,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13204,
+        "summary": {
+          "action_entropy_bits": 1.196,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 5,
+            "read_artifact": 57,
+            "write_artifact": 2
+          },
+          "actions_total": 80,
+          "artifact_cross_paid_revenue": {},
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 0.0,
+          "cross_paid_consumption_events": 0,
+          "cross_read_events": 7,
+          "cross_transfer_amount": 0,
+          "decision_origin_counts": {
+            "llm_invalid_fallback": 1,
+            "llm_valid": 15
+          },
+          "decision_origin_share": {
+            "llm_invalid_fallback": 0.0625,
+            "llm_valid": 0.9375
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T08:05:36.825321+00:00",
+          "errors": {},
+          "event_types": {
+            "action": 80,
+            "artifact_read": 57,
+            "artifact_written": 2,
+            "invoke_success": 32,
+            "kernel_query": 5,
+            "llm_syscall": 16,
+            "loop_decision": 16,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "world_initialized": 1
+          },
+          "events_total": 211,
+          "fallback_rate": 0.0625,
+          "final_scrip": {
+            "alpha_1": 2,
+            "alpha_2": 2,
+            "alpha_3": 2,
+            "alpha_4": 2
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.0625,
+          "kernel_queries_success": 5,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 1.0,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 0,
+          "llm_calls": 16,
+          "llm_cost": 0.019773,
+          "llm_error_rate": 0.0,
+          "llm_success_total": 16,
+          "llm_valid_decision_rate": 0.9375,
+          "llm_valid_decision_total": 15,
+          "llm_valid_downstream_value": 0.0,
+          "loop_action_entropy_bits": 1.366,
+          "loop_action_types": {
+            "query_kernel": 5,
+            "read_artifact": 9,
+            "write_artifact": 2
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 0,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 16
+          },
+          "paid_consumption_edge_events": {},
+          "paid_consumption_edges": {},
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            },
+            "alpha_4": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 2,
+              "llm_calls": 4
+            }
+          },
+          "query_types": {
+            "balances": 3,
+            "events": 1,
+            "resources": 1
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_2": 1,
+            "alpha_2->alpha_2": 13,
+            "alpha_3->alpha_2": 3,
+            "alpha_3->alpha_3": 13,
+            "alpha_4->alpha_2": 3,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 57,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 0.0,
+          "reuse_weighted_artifact_values": {},
+          "revenue_by_artifact_type": {},
+          "specialization_hhi_by_principal": {},
+          "specialization_hhi_mean": 0.0,
+          "started_at": "2026-08-12T08:02:13.681135+00:00",
+          "transfer_edges": {},
+          "transfers": 0,
+          "value_by_decision_origin": {},
+          "writes": 2
+        },
+        "terminal_classes": {
+          "missing_or_malformed_action": 1,
+          "usable_tool_action": 15
+        },
+        "valid": true
+      },
+      "prescribed": {
+        "actual_cost_usd": 0.02117406,
+        "attempt_distribution": {
+          "alpha_1": 4,
+          "alpha_2": 4,
+          "alpha_3": 4,
+          "alpha_4": 4
+        },
+        "attempts": 16,
+        "auxiliary_provider_calls": 0,
+        "condition": "prescribed",
+        "events_path": "runtime_logs/prescribed/pair_05/events.jsonl",
+        "failed_checks": [
+          "terminal_classes"
+        ],
+        "forced_explore_rate": 0.0,
+        "llm_valid_decisions": 15,
+        "llm_valid_downstream_value": 5.0,
+        "pair_id": "pair_05",
+        "primary_positive": true,
+        "scarcity_binding": false,
+        "scarcity_receipts": [],
+        "seed": 13204,
+        "summary": {
+          "action_entropy_bits": 1.437,
+          "action_types": {
+            "invoke_artifact": 16,
+            "query_kernel": 5,
+            "read_artifact": 53,
+            "transfer": 1,
+            "write_artifact": 5
+          },
+          "actions_total": 80,
+          "artifact_cross_paid_revenue": {
+            "alpha_1_market_signals_v1": 4.0,
+            "alpha_4_scout_brief_v1": 1.0
+          },
+          "cross_llm_budget_transfer_amount": 0,
+          "cross_paid_consumption_amount": 5.0,
+          "cross_paid_consumption_events": 5,
+          "cross_read_events": 5,
+          "cross_transfer_amount": 1,
+          "decision_origin_counts": {
+            "llm_invalid_fallback": 1,
+            "llm_valid": 15
+          },
+          "decision_origin_share": {
+            "llm_invalid_fallback": 0.0625,
+            "llm_valid": 0.9375
+          },
+          "decision_origin_trends": {
+            "alpha_1": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_2": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            },
+            "alpha_3": {
+              "counts": {
+                "llm_invalid_fallback": 1,
+                "llm_valid": 3
+              },
+              "share": {
+                "llm_invalid_fallback": 0.25,
+                "llm_valid": 0.75
+              }
+            },
+            "alpha_4": {
+              "counts": {
+                "llm_valid": 4
+              },
+              "share": {
+                "llm_valid": 1.0
+              }
+            }
+          },
+          "decision_success_rate": 1.0,
+          "dominant_model": "minimax/minimax-m3",
+          "ended_at": "2026-08-12T08:02:13.655778+00:00",
+          "errors": {},
+          "event_types": {
+            "action": 80,
+            "artifact_read": 53,
+            "artifact_written": 5,
+            "invoke_success": 32,
+            "kernel_query": 5,
+            "llm_syscall": 15,
+            "llm_syscall_error": 1,
+            "loop_decision": 16,
+            "simulation_started": 1,
+            "simulation_stopped": 1,
+            "transfer": 1,
+            "world_initialized": 1
+          },
+          "events_total": 211,
+          "fallback_rate": 0.0625,
+          "final_scrip": {
+            "alpha_1": 4,
+            "alpha_2": 1,
+            "alpha_3": 0,
+            "alpha_4": 1
+          },
+          "forced_explore_rate": 0.0,
+          "forced_explore_reason_counts": {},
+          "forced_explore_value_share": 0.0,
+          "gate_fallback_rate": 0.0625,
+          "kernel_queries_success": 5,
+          "llm_attempt_rate": 1.0,
+          "llm_attempt_success_rate": 0.9375,
+          "llm_attempted_total": 16,
+          "llm_budget_transfer_amount": 0.0,
+          "llm_call_errors": 1,
+          "llm_calls": 15,
+          "llm_cost": 0.021174,
+          "llm_error_rate": 0.0625,
+          "llm_success_total": 15,
+          "llm_valid_decision_rate": 0.9375,
+          "llm_valid_decision_total": 15,
+          "llm_valid_downstream_value": 5.0,
+          "loop_action_entropy_bits": 1.823,
+          "loop_action_types": {
+            "query_kernel": 5,
+            "read_artifact": 5,
+            "transfer": 1,
+            "write_artifact": 5
+          },
+          "loop_decision_trends": {
+            "alpha_1": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_2": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_3": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.25,
+              "fallbacks": 1,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            },
+            "alpha_4": {
+              "decision_success_rate": 1.0,
+              "decisions": 4,
+              "errors": 0,
+              "fallback_rate": 0.0,
+              "fallbacks": 0,
+              "repeat_error_rate": 0.0,
+              "repeat_errors": 0,
+              "successes": 4
+            }
+          },
+          "loop_decisions_total": 16,
+          "mint_downstream_value": 0.0,
+          "mint_downstream_value_ratio": 0.0,
+          "mint_submissions": 0,
+          "minted_artifact_count": 0,
+          "minted_with_downstream_value_count": 0,
+          "model_counts": {
+            "minimax/minimax-m3": 15
+          },
+          "paid_consumption_edge_events": {
+            "alpha_1->alpha_4": 1,
+            "alpha_2->alpha_1": 1,
+            "alpha_3->alpha_1": 1,
+            "alpha_4->alpha_1": 2
+          },
+          "paid_consumption_edges": {
+            "alpha_1->alpha_4": 1.0,
+            "alpha_2->alpha_1": 1.0,
+            "alpha_3->alpha_1": 1.0,
+            "alpha_4->alpha_1": 2.0
+          },
+          "per_principal": {
+            "alpha_1": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 4,
+              "llm_calls": 4
+            },
+            "alpha_2": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            },
+            "alpha_3": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 0,
+              "llm_calls": 3
+            },
+            "alpha_4": {
+              "actions": 20,
+              "errors": 0,
+              "final_scrip": 1,
+              "llm_calls": 4
+            }
+          },
+          "query_types": {
+            "artifacts": 5
+          },
+          "read_edges": {
+            "alpha_1->alpha_1": 12,
+            "alpha_1->alpha_4": 1,
+            "alpha_2->alpha_1": 1,
+            "alpha_2->alpha_2": 12,
+            "alpha_3->alpha_1": 1,
+            "alpha_3->alpha_3": 12,
+            "alpha_4->alpha_1": 2,
+            "alpha_4->alpha_4": 12
+          },
+          "reads_success": 53,
+          "recovery_fallback_rate": 0.0,
+          "repeat_error_rate": 0.0,
+          "resource_transfer_edges": {},
+          "resource_transfers_total": 0,
+          "reuse_weighted_artifact_value_total": 11.238325,
+          "reuse_weighted_artifact_values": {
+            "alpha_1_market_signals_v1": 9.545177,
+            "alpha_4_scout_brief_v1": 1.693147
+          },
+          "revenue_by_artifact_type": {
+            "alpha_1": {
+              "market_report": 4.0
+            },
+            "alpha_4": {
+              "market_report": 1.0
+            }
+          },
+          "specialization_hhi_by_principal": {
+            "alpha_1": 1.0,
+            "alpha_4": 1.0
+          },
+          "specialization_hhi_mean": 1.0,
+          "started_at": "2026-08-12T06:49:14.120791+00:00",
+          "transfer_edges": {
+            "alpha_3->alpha_2": 1
+          },
+          "transfers": 1,
+          "value_by_decision_origin": {
+            "llm_valid": 5.0
+          },
+          "writes": 5
+        },
+        "terminal_classes": {
+          "illegal_action": 1,
+          "provider_timeout": 1,
+          "usable_tool_action": 14
+        },
+        "valid": false
+      }
+    },
+    "seed": 13204,
+    "valid": false
+  }
+]

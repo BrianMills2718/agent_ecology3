@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import math
 import shutil
@@ -39,6 +40,10 @@ PREREGISTRATION_PATH = "docs/evaluations/07_behavioral_comparison.md"
 DEFAULT_OUTPUT = "docs/evaluations/evidence/07_behavioral_comparison"
 EXECUTION_DEADLINE = datetime(2026, 8, 19, 3, 33, 25, tzinfo=UTC)
 MAX_ACTUAL_COST_USD = 1.68
+PREREGISTRATION_RESULTS_MARKER = "\n## Results\n"
+FROZEN_PREREGISTRATION_PREFIX_SHA256 = (
+    "5e8234c853d081a66821f56f2b46f8993eae1187de38fd4d342b1225e2fa81ce"
+)
 
 FROZEN_INPUT_SHA256: dict[str, str] = {
     CONFIG_PATH: "285619a6b0e7c03dc284c68dc29a7527e616940aca6fc376b6b0d063e1f7ea38",
@@ -102,6 +107,18 @@ def _read_json(path: Path) -> Any:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _frozen_input_matches(relative: str, path: Path, expected: str) -> bool:
+    digest = _sha256(path)
+    if digest == expected:
+        return True
+    if relative != PREREGISTRATION_PATH:
+        return False
+    current = path.read_text(encoding="utf-8")
+    prefix, marker, _results = current.partition(PREREGISTRATION_RESULTS_MARKER)
+    prefix_digest = hashlib.sha256(prefix.encode("utf-8")).hexdigest()
+    return bool(marker) and prefix_digest == FROZEN_PREREGISTRATION_PREFIX_SHA256
 
 
 def _regular_files(root: Path) -> set[str]:
@@ -230,9 +247,10 @@ def verify_frozen_inputs(
     repo = repo.resolve()
     observed: dict[str, str] = {}
     for relative, expected in FROZEN_INPUT_SHA256.items():
-        digest = _sha256(repo / relative)
+        path = repo / relative
+        digest = _sha256(path)
         observed[relative] = digest
-        if digest != expected:
+        if not _frozen_input_matches(relative, path, expected):
             raise RuntimeError(
                 f"frozen Evaluation 07 input mismatch for {relative}: "
                 f"expected {expected}, observed {digest}"
@@ -874,7 +892,7 @@ def _verify_saved_contract(
             raise RuntimeError(f"bundled frozen input is missing: {relative}")
         observed = _sha256(bundled)
         input_hashes[relative] = observed
-        if observed != expected:
+        if not _frozen_input_matches(relative, bundled, expected):
             raise RuntimeError(f"bundled frozen input differs: {relative}")
 
     bundled_cases = _read_json(
@@ -975,6 +993,11 @@ def reproduce_evidence(evidence: Path) -> dict[str, Any]:
     attempts = _read_json(evidence / "attempts.json")
     inventory = _read_json(evidence / "run_inventory.json")
     saved_readout = _read_json(evidence / "readout.json")
+    if isinstance(inventory, dict) and inventory.get("stop_reason"):
+        raise RuntimeError(
+            "terminal partial evidence cannot satisfy complete reproduction; "
+            "verify SHA256SUMS and interruption.json instead"
+        )
     if not isinstance(pairs, list) or not isinstance(attempts, list):
         raise TypeError("saved pairs/attempts are malformed")
     contract = _verify_saved_contract(
@@ -1369,6 +1392,260 @@ def _merge_checkpoint_attempts(
     return [by_ordinal[ordinal] for ordinal in sorted(by_ordinal)]
 
 
+def _interrupted_cell_events(
+    output: Path,
+    *,
+    condition: str,
+    pair_id: str,
+) -> tuple[Path | None, list[dict[str, Any]]]:
+    candidates = (
+        output / "runtime_logs" / condition / pair_id / "events.jsonl",
+        output
+        / "runtime_logs"
+        / condition
+        / f"eval07_{condition}_{pair_id}"
+        / "events.jsonl",
+    )
+    for path in candidates:
+        if path.is_file():
+            events = [
+                json.loads(raw)
+                for raw in path.read_text(encoding="utf-8").splitlines()
+                if raw.strip()
+            ]
+            return path, events
+    return None, []
+
+
+def finalize_interrupted_evidence(
+    repo: Path,
+    output: Path,
+    *,
+    stop_reason: str,
+    observed_at: datetime | None = None,
+) -> dict[str, Any]:
+    """Finalize a terminal interrupted Eval07 bundle without provider access."""
+
+    repo = repo.resolve()
+    output = output.resolve()
+    if not stop_reason.strip():
+        raise ValueError("interrupted evidence requires a non-empty stop reason")
+    if (output / "run_inventory.json").exists():
+        raise RuntimeError("refusing to overwrite an existing Eval07 run inventory")
+    controls = _read_json(output / "controls.json")
+    dispatch = _read_json(output / "dispatch_plan.json")
+    if not isinstance(controls, dict) or controls.get("passed") is not True:
+        raise RuntimeError("interrupted evidence lacks passing pre-dispatch controls")
+    if not isinstance(dispatch, dict) or dispatch.get("evaluation_id") != EVALUATION_ID:
+        raise RuntimeError("interrupted evidence lacks the frozen dispatch plan")
+
+    raw_hashes = {
+        relative: _sha256(output / relative)
+        for relative in sorted(_regular_files(output))
+    }
+    cases = _read_json(output / "inputs" / CASES_PATH.replace("/", "__"))
+    if not isinstance(cases, dict) or not isinstance(cases.get("pair_schedule"), list):
+        raise TypeError("bundled Evaluation 07 schedule is malformed")
+
+    checkpoint_attempts = _merge_checkpoint_attempts(output, [])
+    ordinals = [int(attempt.get("ordinal") or -1) for attempt in checkpoint_attempts]
+    if ordinals != list(range(1, len(checkpoint_attempts) + 1)):
+        raise RuntimeError("interrupted attempt ordinals are not exact and contiguous")
+
+    events_by_cell: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    events_path_by_cell: dict[tuple[str, str], Path] = {}
+    settled_attempts = 0
+    event_cost = 0.0
+    cell_inventory: list[dict[str, Any]] = []
+    for spec in cases["pair_schedule"]:
+        if not isinstance(spec, dict):
+            continue
+        pair_id = str(spec.get("pair_id") or "")
+        for condition in ("prescribed", "minimal"):
+            path, events = _interrupted_cell_events(
+                output,
+                condition=condition,
+                pair_id=pair_id,
+            )
+            if path is None:
+                continue
+            cell = (pair_id, condition)
+            events_by_cell[cell] = events
+            events_path_by_cell[cell] = path
+            settled = [
+                event
+                for event in events
+                if event.get("event_type") in {"llm_syscall", "llm_syscall_error"}
+            ]
+            decisions = [
+                event for event in events if event.get("event_type") == "loop_decision"
+            ]
+            stopped = sum(
+                event.get("event_type") == "simulation_stopped" for event in events
+            )
+            settled_attempts += len(settled)
+            event_cost += sum(float(event.get("actual_cost") or 0.0) for event in settled)
+            cell_inventory.append(
+                {
+                    "pair_id": pair_id,
+                    "condition": condition,
+                    "events_path": str(path.relative_to(output)),
+                    "settled_attempts": len(settled),
+                    "loop_decisions": len(decisions),
+                    "simulation_stopped_events": stopped,
+                }
+            )
+
+    attempts: list[dict[str, Any]] = []
+    for saved in checkpoint_attempts:
+        attempt = deepcopy(saved)
+        pair_id = str(attempt.get("pair_id") or "")
+        condition = str(attempt.get("condition") or "")
+        cell = (pair_id, condition)
+        events = events_by_cell.get(cell, [])
+        events_path = events_path_by_cell.get(cell)
+        trace_id = attempt.get("syscall_result", {}).get("trace_id")
+        matches = [
+            event
+            for event in events
+            if event.get("event_type") == "loop_decision"
+            and event.get("llm_trace_id") == trace_id
+        ]
+        attempt["loop_decision"] = matches[0] if len(matches) == 1 else None
+        if events_path is not None:
+            attempt["runtime_events_path"] = str(events_path.relative_to(output))
+        attempt["verification"] = verify_attempt_record(
+            attempt,
+            runtime_events=events,
+        )
+        attempts.append(attempt)
+
+    pairs: list[dict[str, Any]] = []
+    included_count = 0
+    for spec in cases["pair_schedule"]:
+        if not isinstance(spec, dict):
+            continue
+        pair_id = str(spec.get("pair_id") or "")
+        seed = int(spec.get("seed") or -1)
+        first = str(spec.get("first_condition") or "")
+        order = [first, "minimal" if first == "prescribed" else "prescribed"]
+        runs: dict[str, Any] = {}
+        pair_complete = True
+        for condition in ("prescribed", "minimal"):
+            cell = (pair_id, condition)
+            events = events_by_cell.get(cell, [])
+            if not events or not any(
+                event.get("event_type") == "simulation_stopped" for event in events
+            ):
+                pair_complete = False
+                break
+            cell_attempts = [
+                attempt
+                for attempt in attempts
+                if attempt.get("pair_id") == pair_id
+                and attempt.get("condition") == condition
+            ]
+            events_path = events_path_by_cell[cell]
+            summary = summarize_events(events_path)
+            scarcity = _scarcity_receipts(cell_attempts, events)
+            run = evaluate_run(
+                condition=condition,
+                pair_id=pair_id,
+                attempts=cell_attempts,
+                summary=summary,
+                scarcity_receipts=scarcity,
+                auxiliary_provider_calls=sum(
+                    event.get("event_type") == "mint_auction" for event in events
+                ),
+                runtime_events=events,
+            )
+            run["seed"] = seed
+            run["events_path"] = str(events_path.relative_to(output))
+            runs[condition] = run
+        if not pair_complete:
+            break
+        pair_valid = all(bool(runs[name]["valid"]) for name in ("prescribed", "minimal"))
+        included = pair_valid and included_count < 12
+        if included:
+            included_count += 1
+        pairs.append(
+            {
+                "pair_id": pair_id,
+                "seed": seed,
+                "role": spec.get("role"),
+                "condition_order": order,
+                "valid": pair_valid,
+                "included": included,
+                "runs": runs,
+            }
+        )
+
+    readout = compute_readout(pairs, controls_passed=bool(controls.get("passed")))
+    checkpoint_cost = round(
+        sum(float(attempt.get("cost_usd") or 0.0) for attempt in attempts),
+        8,
+    )
+    event_cost = round(event_cost, 8)
+    if settled_attempts > 448 or event_cost > MAX_ACTUAL_COST_USD:
+        raise RuntimeError("interrupted evidence exceeds a frozen exposure ceiling")
+    observed = observed_at or datetime.now(UTC)
+    if observed.tzinfo is None:
+        observed = observed.replace(tzinfo=UTC)
+    recovery_revision = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo, text=True
+    ).strip()
+    interruption = {
+        "schema_version": "ae3_eval07_interruption_v1",
+        "terminal": True,
+        "observed_at": observed.astimezone(UTC).isoformat(),
+        "stop_reason": stop_reason.strip(),
+        "further_provider_dispatch_authorized": False,
+        "raw_files_before_finalization_sha256": raw_hashes,
+        "cells": cell_inventory,
+        "settled_provider_attempts": settled_attempts,
+        "full_custody_attempt_records": len(attempts),
+        "recovery_revision": recovery_revision,
+    }
+    inventory = {
+        "schema_version": "ae3_eval07_partial_evidence_v1",
+        "evaluation_id": EVALUATION_ID,
+        "git_revision": dispatch.get("implementation_revision"),
+        "recovery_revision": recovery_revision,
+        "worktree_clean_at_dispatch": True,
+        "frozen_inputs": controls.get("frozen_inputs"),
+        "local_controls": {
+            "passed_before_dispatch": True,
+            "command_output_retained": False,
+        },
+        "settled_provider_attempts": settled_attempts,
+        "completed_attempts": len(attempts),
+        "completed_pairs": len(pairs),
+        "pairs_started": len({row["pair_id"] for row in cell_inventory}),
+        "valid_pairs": included_count,
+        "actual_cost_usd": event_cost,
+        "custody_record_cost_usd": checkpoint_cost,
+        "stop_reason": stop_reason.strip(),
+        "readout_decision": readout["decision"],
+        "complete_reproduction_available": False,
+    }
+    _write_json(output / "attempts.json", attempts)
+    _write_json(output / "pairs.json", pairs)
+    _write_json(output / "readout.json", readout)
+    _write_json(output / "interruption.json", interruption)
+    _write_json(output / "run_inventory.json", inventory)
+    (output / "README.md").write_text(
+        "# Evaluation 07 terminal partial evidence\n\n"
+        "The one-shot process ended before the frozen schedule completed. Raw "
+        "events and per-attempt checkpoints are preserved; `interruption.json` "
+        "records their pre-finalization hashes. This bundle is terminal and "
+        "cannot support complete-result reproduction or a behavioral claim.\n",
+        encoding="utf-8",
+    )
+    write_manifest(output)
+    verify_manifest(output)
+    return inventory
+
+
 def _dispatch_plan(cases: dict[str, Any], revision: str) -> dict[str, Any]:
     return {
         "schema_version": "ae3_eval07_dispatch_plan_v1",
@@ -1394,6 +1671,12 @@ def run_live(
         raise RuntimeError("Eval07 live execution requires exact USD 1.68 acknowledgement")
     repo = repo.resolve()
     output = output.resolve()
+    existing_inventory = repo / DEFAULT_OUTPUT / "run_inventory.json"
+    if existing_inventory.is_file():
+        raise RuntimeError(
+            "Evaluation 07 already has terminal evidence; a second live dispatch "
+            "is prohibited"
+        )
     if output.exists():
         raise RuntimeError(f"refusing to overwrite existing Eval07 evidence: {output}")
     frozen = verify_frozen_inputs(repo)
@@ -1507,12 +1790,38 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--reproduce", type=Path, default=None)
     parser.add_argument("--run-live", action="store_true")
+    parser.add_argument("--finalize-interrupted", action="store_true")
+    parser.add_argument("--stop-reason", type=str, default=None)
     parser.add_argument("--acknowledge-max-cost-usd", type=Decimal, default=None)
     args = parser.parse_args(argv)
-    selected = sum(bool(value) for value in (args.preflight, args.reproduce, args.run_live))
+    selected = sum(
+        bool(value)
+        for value in (
+            args.preflight,
+            args.reproduce,
+            args.run_live,
+            args.finalize_interrupted,
+        )
+    )
     if selected != 1:
-        raise SystemExit("choose exactly one of --preflight, --reproduce, or --run-live")
+        raise SystemExit(
+            "choose exactly one of --preflight, --reproduce, --run-live, "
+            "or --finalize-interrupted"
+        )
     repo = args.repo.resolve()
+    if args.finalize_interrupted:
+        if not args.stop_reason:
+            raise SystemExit("--finalize-interrupted requires --stop-reason")
+        output = args.output or Path(DEFAULT_OUTPUT)
+        if not output.is_absolute():
+            output = repo / output
+        inventory = finalize_interrupted_evidence(
+            repo,
+            output,
+            stop_reason=args.stop_reason,
+        )
+        print(json.dumps(inventory, indent=2, sort_keys=True))
+        return 0
     if args.run_live:
         if args.acknowledge_max_cost_usd != Decimal("1.68"):
             raise SystemExit(
