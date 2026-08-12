@@ -25,6 +25,49 @@
 - **Non-claim:** the canary establishes route compatibility only; it does not
   establish reliability, behavioral effect, or valid scarcity parameters.
 
+### Recoverable dashboard PoC checkpoint (2026-08-12)
+
+`WU-10-05` is the active bounded integration unit. Its provider-free vertical
+is implemented and frozen before the two-call authentic boundary:
+
+- an atomic Pydantic checkpoint records stable run/attempt identities,
+  semantic request hashes, dispatch count, syscall result, trace, and the
+  `dispatching -> provider_settled -> applying -> committed` boundary;
+- restart rebuilds the deterministic `World`, reapplies the cached settlement
+  accounting, and replays the retained response through the normal generated
+  loop and kernel action seam rather than making a replacement call;
+- measured local CPU jitter is removed from the recoverable model prompt so it
+  cannot create false replay drift; the actual dashboard resource state remains
+  unchanged and visible;
+- dispatch ambiguity, corrupt custody, request/trace drift, or interruption
+  during action application becomes terminal `invalid` and raises past the
+  loop's ordinary fallback behavior;
+- the canonical 16-attempt fixture interrupts after attempt 8 settlement,
+  restarts, and ends with exactly 16 provider dispatches and 16 committed
+  attempts; and
+- `scripts/run_recoverable_evaluation.py` owns detached `start`, `status`,
+  `resume`, `pause`, `stop`, and `shutdown` around the existing runner and
+  dashboard. Start is paused, requires exact acknowledgement
+  `plan10/luna-medium/dashboard-poc/v1`, and is frozen to two attempts.
+
+The authentic run must start only from a clean pushed AE3 revision and the
+exact clean accepted shared client. It uses `codex/gpt-5.6-luna`, medium
+reasoning, CLI transport, read-only sandbox, isolated home,
+subscription-included billing, zero retries/fallbacks, and no MCP server.
+
+#### Existing dashboard continuity contract
+
+| Entry point | State | Preserved or extended surfaces |
+| --- | --- | --- |
+| `/` direct load or refresh | paused | Existing state/events panes and resume/pause/stop controls; add stable run, attempt progress, and custody status pills |
+| `/` | running | Same panes and controls update through existing 1.5-second polling; actions, events, balances, quotas, and budget remain visible |
+| `/` | completed, stopped, or invalid | Reviewable final state/events and stable run/custody identity remain visible; no result is silently presented as running |
+| `/state`, `/events` | all states | Existing response remains additive; `recovery` is the only new top-level projection |
+
+No navigation, projection, control, or lifecycle state is removed. A fresh
+browser observation of paused -> running -> completed plus console, failed
+request, and backend-log inspection remains required at the authentic boundary.
+
 ### Slice C checkpoint (2026-08-12)
 
 The one authentic canary passed with exactly one provider dispatch and no

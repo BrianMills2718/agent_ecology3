@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, cast
 
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
-
 
 _DASHBOARD_HTML = """<!doctype html>
 <html lang=\"en\">
@@ -170,6 +170,11 @@ _DASHBOARD_HTML = """<!doctype html>
       if (state.event_number !== undefined) status.push(`<span class="pill">events: ${state.event_number}</span>`);
       if (state.principal_count !== undefined) status.push(`<span class="pill">principals: ${state.principal_count}</span>`);
       if (state.artifact_count !== undefined) status.push(`<span class="pill">artifacts: ${state.artifact_count}</span>`);
+      if (state.recovery) {
+        status.push(`<span class="pill">run: ${state.recovery.run_id}</span>`);
+        status.push(`<span class="pill">Luna attempts: ${state.recovery.committed_attempts}/${state.recovery.target_attempts}</span>`);
+        status.push(`<span class="pill">custody: ${state.recovery.lifecycle_state}</span>`);
+      }
       document.getElementById('statusLine').innerHTML = status.join(' ');
     }
 
@@ -222,12 +227,14 @@ def create_app(
     *,
     world_provider: Callable[[], Any | None] | None = None,
     runner_provider: Callable[[], Any | None] | None = None,
+    recovery_provider: Callable[[], dict[str, Any] | None] | None = None,
     jsonl_path: str | None = None,
 ) -> FastAPI:
     """Create a minimal dashboard app for live run or log-only mode."""
 
     world_provider = world_provider or (lambda: None)
     runner_provider = runner_provider or (lambda: None)
+    recovery_provider = recovery_provider or (lambda: None)
     log_path = Path(jsonl_path) if jsonl_path else None
 
     app = FastAPI(title="Agent Ecology 3 Dashboard", version="0.1.0")
@@ -245,8 +252,9 @@ def create_app(
         world = world_provider()
         runner = runner_provider()
         if world is not None:
-            payload = world.get_state_summary(event_limit=150)
+            payload = cast(dict[str, Any], world.get_state_summary(event_limit=150))
             payload["runner"] = runner.get_status().__dict__ if runner is not None else None
+            payload["recovery"] = recovery_provider()
             return payload
 
         events = _read_jsonl_tail(log_path, 150) if log_path else []
@@ -258,6 +266,7 @@ def create_app(
             "artifact_count": None,
             "events": events,
             "runner": None,
+            "recovery": recovery_provider(),
             "log_path": str(log_path) if log_path else None,
         }
 
