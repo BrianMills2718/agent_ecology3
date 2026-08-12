@@ -12,6 +12,7 @@ Track all implementation work here.
 | 4 | [Prescriptive cognition ablation](04_prescription_ablation.md) | High | ✅ Complete | Evidence independent of assigned roles/objective cycles |
 | 5 | [Experiment instrument repair and provider qualification](05_experiment_instrument_repair.md) | High | ✅ Complete | Fresh provider qualification with public-readback control |
 | 6 | [Public-readback provider qualification](06_public_readback_qualification.md) | High | ✅ Complete | Fresh prescribed-versus-minimal behavioral evaluation design/preregistration |
+| 7 | [Behavioral comparison preregistration](07_behavioral_comparison_preregistration.md) | High | ✅ Complete | Evaluation 07 implementation and separately authorized execution |
 
 ## Status Key
 

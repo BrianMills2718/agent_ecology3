@@ -113,6 +113,10 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
   usable, with zero timeout, truncation, trace, or custody failures. It unblocks
   design/preregistration of a fresh behavioral comparison; it does not itself
   establish emergence or a prescription effect.
+- Evaluation 07 now preregisters that behavioral comparison as a 12-pair
+  exploratory pilot with two ordered reserve pairs, attempt-based stopping,
+  observed scarcity checks, and a USD 1.68 hard ceiling. It is not implemented
+  or run, and this preregistration does not authorize provider spend.
 - `phase1_suite` runs baseline/reduced/off matrix conditions in sequence and writes a scenario-level cohort comparison from `llm_client.compare_cohorts`.
 - `phase1_suite` launches matrix children with unbuffered Python (`-u`) so condition driver logs stream progress in real time.
 - `matrix_progress` summarizes in-flight matrix JSONL files (completed replicate count, rolling aggregate metrics, last-run key signals) during long-running suites.

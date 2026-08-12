@@ -198,6 +198,11 @@ Evaluation status as of 2026-08-11:
   custody failures. An independent execution-based verifier signed off the
   instrument qualification only. This unblocks a new behavioral design and
   preregistration; it does not establish emergence or a prescription effect.
+- Evaluation 07 is that new preregistered design: 12 valid matched
+  prescribed/minimal pairs, up to two ordered reserve pairs, exact 16-attempt
+  runs, observed scarcity and full-custody gates, and a USD 1.68 maximum. It is
+  not implemented or run; execution requires a clean pushed implementation,
+  passing controls, and separate human authorization.
 
 ### 7.2 Entropy metric definition
 
