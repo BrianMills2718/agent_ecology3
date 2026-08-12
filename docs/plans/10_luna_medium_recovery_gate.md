@@ -1,6 +1,6 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** In progress — Slice A passed; canary-safety Slice B next
+**Status:** In progress — Slices A-B passed; one-call canary awaits authorization
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None; live canary dispatch remains separately authorized
@@ -50,6 +50,25 @@ rather than the exact reviewed dependency revision. The user approved the
 recommended PoC correction on 2026-08-12: close those one-call safety gaps
 before the canary, then require the full recoverable cell and detached worker
 only before multi-call scale. Slice B below is that provider-free boundary.
+
+### Slice B checkpoint (2026-08-12)
+
+The canary-safety boundary is implemented in PR #18, merge
+`1ac43ad685418e0a5230e935d11d890b7a6c6f0d`:
+
+- production Luna preflight requires the clean imported `llm_client` source at
+  exact accepted revision `286715784f1d535d6dfcd2c867ca678d666e27d5`
+  before reserving resources;
+- returned-but-rejected Luna results settle observed tokens/billing and retain
+  a `provider_settled_rejected` receipt instead of refunding the call;
+- exceptions after entering the shared-client boundary retain the conservative
+  reservation as `dispatch_ambiguous`, with no retry; and
+- Codex event custody accepts only `reasoning` and `agent_message`; missing,
+  active, malformed, and unclassified event types fail closed after settlement.
+
+All 101 repository tests pass; changed-module mypy and focused lint checks pass.
+No provider call was made. Slice C is now the next boundary and still requires
+the user's separate exact one-call authorization.
 
 ---
 
@@ -595,12 +614,12 @@ loops.
       existing canonical parser.
 - [x] Luna passes neither tools nor MCP servers, while the existing MCP path for
       other routes remains unchanged.
-- [ ] Production preflight binds Luna to the exact reviewed `llm_client`
+- [x] Production preflight binds Luna to the exact reviewed `llm_client`
       revision before resource reservation or provider dispatch.
-- [ ] Returned-but-rejected and dispatch-ambiguous Luna attempts retain
+- [x] Returned-but-rejected and dispatch-ambiguous Luna attempts retain
       truthful resources, counts, settlement state, and failure receipts with
       no automatic retry.
-- [ ] Only reviewed passive Codex event types are accepted; active, missing,
+- [x] Only reviewed passive Codex event types are accepted; active, missing,
       and unknown types fail closed after truthful settlement.
 - [ ] The canonical 16-attempt recovery fixture completes with exactly 16 fake
       dispatches after a post-settlement restart.
@@ -642,9 +661,11 @@ loops.
   an authentic capability, two consecutive non-outcome increments, or three
   failures at the same boundary. The outcome and gates do not silently shrink.
 
-The next action after this revision is accepted in the repository is Slice B's
-provider-free one-call settlement boundary. No provider call is part of plan
-authoring or ordinary implementation.
+The next action is the human-decision boundary for Slice C: separately
+authorize one authentic Luna Medium call through the frozen production path.
+Until that exact authorization is given, no provider call is permitted. A
+passing canary selects the conditional Slices D-E before any multi-call run; a
+failed canary remains a terminal blocked receipt with no retry or route switch.
 
 The listed files are the expected AE3 surfaces and may be narrowed during
 implementation. Plan 10 may not add a parallel LLM client or alter Evaluation
