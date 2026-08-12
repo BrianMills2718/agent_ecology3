@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
+from pathlib import Path
 from typing import Annotated, Any, Literal, TypeAlias, cast
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,6 +15,7 @@ from .actions import ActionIntent, parse_intent_from_json
 LUNA_MODEL = "codex/gpt-5.6-luna"
 LUNA_RESPONSE_MODEL = "LunaLoopDecisionV1"
 LUNA_SCHEMA_VERSION = "luna_loop_decision.v1"
+REVIEWED_LLM_CLIENT_REVISION = "286715784f1d535d6dfcd2c867ca678d666e27d5"
 LUNA_ACTION_TYPES = (
     "write_artifact",
     "read_artifact",
@@ -158,6 +161,55 @@ def shared_client_exposes_codex_events() -> bool:
     from llm_client.core.data_types import LLMCallResult
 
     return "codex_events" in LLMCallResult.__dataclass_fields__
+
+
+def shared_client_source_status() -> tuple[str | None, bool]:
+    """Return the imported shared-client Git revision and clean-tree status."""
+
+    try:
+        import llm_client
+    except Exception:  # noqa: BLE001 - any import failure makes the revision unprovable
+        return None, False
+
+    module_path = getattr(llm_client, "__file__", None)
+    if not isinstance(module_path, str) or not module_path:
+        return None, False
+    location = Path(module_path).resolve().parent
+    try:
+        root_result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=location,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None, False
+    if root_result.returncode != 0 or not root_result.stdout.strip():
+        return None, False
+    root = Path(root_result.stdout.strip())
+    try:
+        revision_result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        status_result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None, False
+    revision: str | None = revision_result.stdout.strip()
+    if revision_result.returncode != 0 or not revision:
+        revision = None
+    clean = status_result.returncode == 0 and not status_result.stdout.strip()
+    return revision, clean
 
 
 def validate_luna_action_for_principal(

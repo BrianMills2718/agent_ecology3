@@ -120,6 +120,14 @@ class _LLMSyscallContext:
     start: float
 
 
+class _LunaResultProfileError(RuntimeError):
+    """A settled Luna result violated the reviewed canary profile."""
+
+    def __init__(self, error_code: str, message: str) -> None:
+        super().__init__(message)
+        self.error_code = error_code
+
+
 class KernelStateRouter:
     """Read-only kernel view exposed to executable artifacts."""
 
@@ -2019,8 +2027,10 @@ async def run():
             return prepared
         if context is None:  # pragma: no cover - defensive invariant
             return {"success": False, "error": "missing syscall context", "error_code": "llm_error"}
+        luna_call = self._uses_luna_structured_output(model)
+        provider_boundary_entered = False
         try:
-            if self._uses_luna_structured_output(model):
+            if luna_call:
                 try:
                     from llm_client import call_llm_structured
                 except Exception as exc:  # pragma: no cover - optional dependency fallback
@@ -2031,24 +2041,42 @@ async def run():
                     validate_luna_action_for_principal,
                 )
 
-                self._require_luna_isolated_home()
+                structured_schema_sha256 = luna_provider_schema_sha256()
                 with tempfile.TemporaryDirectory(prefix="ae3_luna_decision_") as decision_dir:
+                    call_kwargs = self._luna_structured_call_kwargs(
+                        model=model,
+                        messages=messages,
+                        trace_id=context.trace_id,
+                        working_directory=decision_dir,
+                    )
+                    provider_boundary_entered = True
                     decision, llm_result = call_llm_structured(
                         response_model=LunaLoopDecisionV1,
-                        **self._luna_structured_call_kwargs(
-                            model=model,
-                            messages=messages,
-                            trace_id=context.trace_id,
-                            working_directory=decision_dir,
-                        ),
+                        **call_kwargs,
                     )
-                action, _intent = validate_luna_action_for_principal(decision, payer_id)
-                self._validate_luna_result_profile(llm_result, model=model)
+                try:
+                    self._validate_luna_result_profile(llm_result, model=model)
+                    action, _intent = validate_luna_action_for_principal(
+                        decision, payer_id
+                    )
+                except Exception as exc:  # noqa: BLE001 - profile/action validators expose several public exception types
+                    error_code = (
+                        exc.error_code
+                        if isinstance(exc, _LunaResultProfileError)
+                        else "luna_action_rejected"
+                    )
+                    return self._settle_llm_syscall(
+                        context,
+                        llm_result,
+                        structured_schema_sha256=structured_schema_sha256,
+                        settled_error=exc,
+                        settled_error_code=error_code,
+                    )
                 return self._settle_llm_syscall(
                     context,
                     llm_result,
                     structured_action=action,
-                    structured_schema_sha256=luna_provider_schema_sha256(),
+                    structured_schema_sha256=structured_schema_sha256,
                 )
             try:
                 from llm_client import call_llm
@@ -2063,7 +2091,9 @@ async def run():
                 )
             )
             return self._settle_llm_syscall(context, llm_result)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - the shared client boundary may raise provider-specific errors
+            if luna_call and provider_boundary_entered:
+                return self._record_luna_dispatch_ambiguous(context, exc)
             return self._fail_llm_syscall(context, exc)
 
     async def call_llm_as_syscall_async(
@@ -2085,8 +2115,10 @@ async def run():
             return prepared
         if context is None:  # pragma: no cover - defensive invariant
             return {"success": False, "error": "missing syscall context", "error_code": "llm_error"}
+        luna_call = self._uses_luna_structured_output(model)
+        provider_boundary_entered = False
         try:
-            if self._uses_luna_structured_output(model):
+            if luna_call:
                 try:
                     from llm_client import acall_llm_structured
                 except Exception as exc:  # pragma: no cover - optional dependency fallback
@@ -2097,24 +2129,42 @@ async def run():
                     validate_luna_action_for_principal,
                 )
 
-                self._require_luna_isolated_home()
+                structured_schema_sha256 = luna_provider_schema_sha256()
                 with tempfile.TemporaryDirectory(prefix="ae3_luna_decision_") as decision_dir:
+                    call_kwargs = self._luna_structured_call_kwargs(
+                        model=model,
+                        messages=messages,
+                        trace_id=context.trace_id,
+                        working_directory=decision_dir,
+                    )
+                    provider_boundary_entered = True
                     decision, llm_result = await acall_llm_structured(
                         response_model=LunaLoopDecisionV1,
-                        **self._luna_structured_call_kwargs(
-                            model=model,
-                            messages=messages,
-                            trace_id=context.trace_id,
-                            working_directory=decision_dir,
-                        ),
+                        **call_kwargs,
                     )
-                action, _intent = validate_luna_action_for_principal(decision, payer_id)
-                self._validate_luna_result_profile(llm_result, model=model)
+                try:
+                    self._validate_luna_result_profile(llm_result, model=model)
+                    action, _intent = validate_luna_action_for_principal(
+                        decision, payer_id
+                    )
+                except Exception as exc:  # noqa: BLE001 - profile/action validators expose several public exception types
+                    error_code = (
+                        exc.error_code
+                        if isinstance(exc, _LunaResultProfileError)
+                        else "luna_action_rejected"
+                    )
+                    return self._settle_llm_syscall(
+                        context,
+                        llm_result,
+                        structured_schema_sha256=structured_schema_sha256,
+                        settled_error=exc,
+                        settled_error_code=error_code,
+                    )
                 return self._settle_llm_syscall(
                     context,
                     llm_result,
                     structured_action=action,
-                    structured_schema_sha256=luna_provider_schema_sha256(),
+                    structured_schema_sha256=structured_schema_sha256,
                 )
             try:
                 from llm_client import acall_llm
@@ -2130,9 +2180,15 @@ async def run():
             )
             return self._settle_llm_syscall(context, llm_result)
         except asyncio.CancelledError:
-            self._fail_llm_syscall(context, RuntimeError("llm call cancelled"))
+            cancellation = RuntimeError("llm call cancelled")
+            if luna_call and provider_boundary_entered:
+                self._record_luna_dispatch_ambiguous(context, cancellation)
+            else:
+                self._fail_llm_syscall(context, cancellation)
             raise
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - the shared client boundary may raise provider-specific errors
+            if luna_call and provider_boundary_entered:
+                return self._record_luna_dispatch_ambiguous(context, exc)
             return self._fail_llm_syscall(context, exc)
 
     def _prepare_llm_syscall(
@@ -2160,7 +2216,11 @@ async def run():
                     ),
                     "error_code": "invalid_luna_profile",
                 }, None
-            from .luna_actions import shared_client_exposes_codex_events
+            from .luna_actions import (
+                REVIEWED_LLM_CLIENT_REVISION,
+                shared_client_exposes_codex_events,
+                shared_client_source_status,
+            )
 
             if not shared_client_exposes_codex_events():
                 return {
@@ -2170,6 +2230,30 @@ async def run():
                         "expose Codex intrinsic events"
                     ),
                     "error_code": "intrinsic_codex_events_not_public",
+                }, None
+            observed_revision, source_clean = shared_client_source_status()
+            if (
+                observed_revision != REVIEWED_LLM_CLIENT_REVISION
+                or not source_clean
+            ):
+                return {
+                    "success": False,
+                    "error": (
+                        "Luna dispatch is blocked: llm_client source does not match "
+                        "the exact reviewed clean revision"
+                    ),
+                    "error_code": "llm_client_revision_mismatch",
+                    "expected_revision": REVIEWED_LLM_CLIENT_REVISION,
+                    "observed_revision": observed_revision,
+                    "source_clean": source_clean,
+                }, None
+            try:
+                self._require_luna_isolated_home()
+            except RuntimeError as exc:
+                return {
+                    "success": False,
+                    "error": str(exc),
+                    "error_code": "invalid_luna_profile",
                 }, None
         if self.config.llm.allowed_models and model not in self.config.llm.allowed_models:
             return {
@@ -2336,42 +2420,70 @@ async def run():
         billing = getattr(llm_result, "billing_mode", None)
         expected_billing = self.config.llm.expected_billing_mode
         if requested != model or resolved != model:
-            raise RuntimeError(
+            raise _LunaResultProfileError(
+                "luna_route_identity_drift",
                 f"Luna route identity drifted: requested={requested!r}, resolved={resolved!r}"
             )
         if transport != "codex_cli":
-            raise RuntimeError(f"Luna transport drifted: {transport!r}")
+            raise _LunaResultProfileError(
+                "luna_transport_drift", f"Luna transport drifted: {transport!r}"
+            )
         if billing != expected_billing:
-            raise RuntimeError(
-                f"Luna billing drifted: {billing!r} (expected {expected_billing!r})"
+            raise _LunaResultProfileError(
+                "luna_billing_drift",
+                f"Luna billing drifted: {billing!r} (expected {expected_billing!r})",
             )
         if getattr(llm_result, "tool_calls", None):
-            raise RuntimeError("Luna structured result contained an MCP tool call")
+            raise _LunaResultProfileError(
+                "luna_mcp_tool_call",
+                "Luna structured result contained an MCP tool call",
+            )
         codex_events = getattr(llm_result, "codex_events", None)
-        if not isinstance(codex_events, list):
-            raise TypeError("Luna result lacks public Codex event custody")
-        forbidden_types = {
+        if not isinstance(codex_events, list) or not codex_events:
+            raise _LunaResultProfileError(
+                "luna_missing_codex_event_custody",
+                "Luna result lacks public Codex event custody",
+            )
+        passive_types = {"reasoning", "agent_message"}
+        active_types = {
             "command_execution",
             "file_change",
             "web_search",
-            "shell",
-            "workspace",
-            "network",
+            "mcp_tool_call",
         }
-        executed = [
-            event
-            for event in codex_events
-            if isinstance(event, dict)
-            and str(event.get("type") or "").strip().lower() in forbidden_types
-        ]
+        event_types = self._codex_event_types(llm_result)
+        executed = [event_type for event_type in event_types if event_type in active_types]
         if executed:
-            event_types = sorted(
-                {str(event.get("type") or "") for event in executed}
-            )
-            raise RuntimeError(
+            raise _LunaResultProfileError(
+                "luna_forbidden_codex_event",
                 "Luna executed a forbidden intrinsic Codex tool: "
-                + ", ".join(event_types)
+                + ", ".join(dict.fromkeys(executed)),
             )
+        unclassified = [
+            event_type for event_type in event_types if event_type not in passive_types
+        ]
+        if unclassified:
+            raise _LunaResultProfileError(
+                "luna_unclassified_codex_event",
+                "Luna result contained an unclassified Codex event: "
+                + ", ".join(dict.fromkeys(unclassified)),
+            )
+
+    @staticmethod
+    def _codex_event_types(llm_result: Any) -> list[str]:
+        """Return ordered, normalized event types for a Luna settlement receipt."""
+
+        codex_events = getattr(llm_result, "codex_events", None)
+        if not isinstance(codex_events, list):
+            return []
+        event_types: list[str] = []
+        for event in codex_events:
+            if not isinstance(event, dict):
+                event_types.append("<invalid>")
+                continue
+            event_type = str(event.get("type") or "").strip().lower()
+            event_types.append(event_type or "<missing>")
+        return event_types
 
     def _settle_llm_syscall(
         self,
@@ -2380,6 +2492,8 @@ async def run():
         *,
         structured_action: dict[str, Any] | None = None,
         structured_schema_sha256: str | None = None,
+        settled_error: Exception | None = None,
+        settled_error_code: str | None = None,
     ) -> dict[str, Any]:
         payer_id = context.payer_id
         model = context.model
@@ -2421,7 +2535,8 @@ async def run():
         if cache_hit:
             actual_tokens = 0
             actual_cost = 0.0
-            self.ledger.refund_resource_usage(payer_id, "llm_calls", 1.0)
+            if settled_error is None:
+                self.ledger.refund_resource_usage(payer_id, "llm_calls", 1.0)
 
         budget_settle_cost = actual_cost
         budget_charge_basis = "actual_cost"
@@ -2492,6 +2607,13 @@ async def run():
             "completion_tokens": completion_tokens,
             "total_tokens": actual_tokens,
         }
+        success = settled_error is None
+        settlement_status = (
+            "provider_settled_accepted"
+            if success
+            else "provider_settled_rejected"
+        )
+        codex_event_types = self._codex_event_types(llm_result)
         self.logger.log(
             "llm_syscall",
             {
@@ -2510,6 +2632,11 @@ async def run():
                 "duration_ms": duration_ms,
                 "tokens": usage,
                 "tool_calls_count": len(tool_calls),
+                "success": success,
+                "settlement_status": settlement_status,
+                "error": str(settled_error) if settled_error is not None else None,
+                "error_code": settled_error_code,
+                "codex_event_types": codex_event_types,
                 "structured_action_type": (
                     structured_action.get("action_type")
                     if structured_action is not None
@@ -2520,7 +2647,7 @@ async def run():
         )
         self._llm_syscall_count += 1
         result = {
-            "success": True,
+            "success": success,
             "trace_id": trace_id,
             "content": content,
             "model": model,
@@ -2535,11 +2662,57 @@ async def run():
             "usage": usage,
             "tool_calls": tool_calls,
             "duration_ms": duration_ms,
+            "settlement_status": settlement_status,
+            "codex_event_types": codex_event_types,
         }
+        if settled_error is not None:
+            result["error"] = (
+                "Luna result rejected after provider settlement: "
+                f"{settled_error}"
+            )
+            result["error_code"] = settled_error_code or "luna_result_rejected"
         if structured_action is not None:
             result["structured_action"] = structured_action
             result["structured_schema_sha256"] = structured_schema_sha256
         return result
+
+    def _record_luna_dispatch_ambiguous(
+        self,
+        context: _LLMSyscallContext,
+        exc: Exception,
+    ) -> dict[str, Any]:
+        """Retain reservations when Luna may have dispatched but returned no result."""
+
+        duration_ms = (time.perf_counter() - context.start) * 1000
+        self.logger.log(
+            "llm_syscall_error",
+            {
+                "event_number": self.event_number,
+                "trace_id": context.trace_id,
+                "payer_id": context.payer_id,
+                "model": context.model,
+                "error": str(exc),
+                "error_code": "luna_dispatch_ambiguous",
+                "settlement_status": "dispatch_ambiguous",
+                "reservation_retained": True,
+                "reserved_cost": context.estimated_cost,
+                "reserved_tokens": context.estimated_tokens,
+                "duration_ms": duration_ms,
+            },
+        )
+        self._llm_syscall_count += 1
+        return {
+            "success": False,
+            "trace_id": context.trace_id,
+            "model": context.model,
+            "error": f"Luna call outcome is ambiguous: {exc}",
+            "error_code": "luna_dispatch_ambiguous",
+            "settlement_status": "dispatch_ambiguous",
+            "reservation_retained": True,
+            "reserved_cost": context.estimated_cost,
+            "reserved_tokens": context.estimated_tokens,
+            "duration_ms": duration_ms,
+        }
 
     def _fail_llm_syscall(
         self,
