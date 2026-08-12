@@ -589,6 +589,7 @@ def test_syscall_logs_and_returns_trace_id_and_budget_controls(tmp_path, monkeyp
     expected_trace = "ae3/test_trace_budget/event_0/payer/alpha_1"
     assert result["trace_id"] == expected_trace
     assert captured["trace_id"] == expected_trace
+    assert captured["model_justification"] == cfg.llm.model_justification
     assert captured["num_retries"] == 0
     assert captured["max_tokens"] == 512
     assert captured["max_budget"] == pytest.approx(0.25)

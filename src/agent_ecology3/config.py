@@ -57,6 +57,7 @@ class ResourcesConfig(StrictModel):
 
 class LLMConfig(StrictModel):
     default_model: str = "minimax/minimax-m3"
+    model_justification: str = "AE3 uses the configured allowlisted model for bounded agent-economy simulation."
     timeout_seconds: int = 60
     num_retries: int = Field(default=2, ge=0)
     max_output_tokens: int | None = Field(default=None, ge=1)

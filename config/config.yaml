@@ -27,6 +27,7 @@ resources:
 
 llm:
   default_model: minimax/minimax-m3
+  model_justification: "AE3 uses the configured allowlisted model for bounded agent-economy simulation."
   timeout_seconds: 60
   num_retries: 2
   max_output_tokens: null

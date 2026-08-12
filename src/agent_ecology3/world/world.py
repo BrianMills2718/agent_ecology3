@@ -1987,6 +1987,7 @@ def run():
                 task="agent_ecology3_syscall",
                 trace_id=trace_id,
                 max_budget=provider_max_budget,
+                model_justification=self.config.llm.model_justification,
                 **call_kwargs,
                 **agent_kwargs,
             )

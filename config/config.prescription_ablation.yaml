@@ -27,6 +27,7 @@ resources:
 
 llm:
   default_model: minimax/minimax-m3
+  model_justification: "MiniMax-M3 is the accepted AE3 baseline for the preregistered cognition-ablation probe."
   timeout_seconds: 60
   num_retries: 0
   max_output_tokens: 512
