@@ -1,6 +1,6 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** In progress — Slices A-C passed; recovery/dashboard PoC selected
+**Status:** In progress — Slices A-E passed; WU-10-05 completion review
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None
@@ -54,6 +54,27 @@ The authentic run must start only from a clean pushed AE3 revision and the
 exact clean accepted shared client. It uses `codex/gpt-5.6-luna`, medium
 reasoning, CLI transport, read-only sandbox, isolated home,
 subscription-included billing, zero retries/fallbacks, and no MCP server.
+
+The bounded authentic run passed from pushed revision
+`3f175e71b08757fd5e298fb85f8d09048899a0d1`:
+
+- exactly two Luna Medium provider dispatches produced exactly two committed
+  attempts with no retry, fallback, MCP server, ambiguity, or terminal error;
+- both returned the strict `query_kernel`/`artifacts` action with
+  `readable_only=true`, both actions succeeded, and both retained only the
+  passive `agent_message` Codex event;
+- the attempts used 15,576 and 15,739 tokens and completed in 8.52 and 7.23
+  seconds; provider cost was USD 0.00 under subscription-included billing and
+  AE3 retained separate internal estimated charges of 0.003873 and 0.004149;
+- the fresh browser observed the paused `0/2` state and completed `2/2` state,
+  preserved Resume/Pause/Stop, showed both loop actions, and reported no
+  console errors or failed requests; and
+- the compact durable receipt is `dashboard_poc.json`. The external full
+  receipt and checkpoint are content-addressed there for local forensic use.
+
+This completes the PoC implementation and evidence boundary only. It does not
+qualify reliability, behavioral effect, scarcity parameters, Evaluation 08,
+or adoption of AE2's fuller dashboard.
 
 #### Existing dashboard continuity contract
 
