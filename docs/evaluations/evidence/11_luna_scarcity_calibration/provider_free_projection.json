@@ -1,0 +1,48 @@
+{
+  "candidate_settings": [
+    {
+      "label": "one_attempt_boundary",
+      "projected_attempt_capacity_per_principal": 1,
+      "starting_llm_budget": 0.004149,
+      "total_llm_budget_stock": 0.016596
+    },
+    {
+      "label": "mid_horizon_candidate",
+      "projected_attempt_capacity_per_principal": 8,
+      "starting_llm_budget": 0.033192,
+      "total_llm_budget_stock": 0.132768
+    },
+    {
+      "label": "full_horizon_control",
+      "projected_attempt_capacity_per_principal": 16,
+      "starting_llm_budget": 0.066384,
+      "total_llm_budget_stock": 0.265536
+    }
+  ],
+  "existing_setting": {
+    "projected_attempt_capacity_per_principal": 60,
+    "projected_to_bind_within_horizon": false,
+    "starting_llm_budget": 0.25,
+    "target_attempts_per_principal": 16
+  },
+  "next_authentic_probe": {
+    "candidate": "mid_horizon_candidate",
+    "disproof": "the run reaches its target horizon without an insufficient_budget receipt, or a non-budget gate prevents interpreting scarcity",
+    "readout": "retained insufficient_budget receipt before the target horizon, with concrete action and budget trajectory visible"
+  },
+  "non_claims": [
+    "Observed charges are references, not a bound on future prompt cost.",
+    "Projected capacity does not establish behavioral scarcity binding.",
+    "No provider call was made by this readout."
+  ],
+  "observed_attempt_count": 2,
+  "observed_internal_charges": [
+    0.003873,
+    0.004149
+  ],
+  "reference_charge": 0.004149,
+  "reference_rule": "maximum retained Plan 10 internal estimated charge",
+  "schema_version": "ae3_scarcity_calibration_readout.v1",
+  "source_run_id": "plan10_luna_dashboard_poc_v1",
+  "status": "provider_free_projection"
+}
