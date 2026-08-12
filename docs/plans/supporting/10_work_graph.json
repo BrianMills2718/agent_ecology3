@@ -44,7 +44,7 @@
       ],
       "outputs": [
         "Passing Agent Ecology 3 provider-free event-custody preflight",
-        "Exact accepted llm_client revision evidence",
+        "Exact accepted llm_client revision evidence at Agent Ecology 3 merge 7410b4821607a1b82959d9f515bbf335ca988627",
         "MCP-free consumer integration receipt",
         "Truthful Plan 10 transition to recovery-fixture work"
       ],
@@ -96,7 +96,7 @@
         "approvals": [],
         "failed_guards": []
       },
-      "status": "completion_review",
+      "status": "accepted",
       "record_version": 1
     }
   ]
