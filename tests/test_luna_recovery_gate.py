@@ -23,7 +23,11 @@ from agent_ecology3.world.luna_actions import (
     LUNA_MODEL,
     LunaLoopDecisionV1,
     luna_provider_schema,
+    shared_client_source_status,
     validate_luna_action_for_principal,
+)
+from agent_ecology3.world.luna_actions import (
+    REVIEWED_LLM_CLIENT_REVISION as RUNTIME_REVIEWED_LLM_CLIENT_REVISION,
 )
 from agent_ecology3.world.world import World
 
@@ -74,8 +78,25 @@ def _llm_result(content: str) -> object:
     result.model = LUNA_MODEL
     result.raw_response = {"transport": "codex_cli"}
     result.tool_calls = []
-    result.codex_events = []
+    result.codex_events = [
+        {"id": "message-1", "type": "agent_message", "status": "completed"}
+    ]
     return result
+
+
+def _accept_reviewed_shared_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "agent_ecology3.world.luna_actions.shared_client_exposes_codex_events",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        "agent_ecology3.world.luna_actions.shared_client_source_status",
+        lambda: (RUNTIME_REVIEWED_LLM_CLIENT_REVISION, True),
+    )
+    monkeypatch.setattr(
+        "agent_ecology3.world.luna_actions.luna_provider_schema_sha256",
+        lambda: "0" * 64,
+    )
 
 
 def test_luna_route_requires_exact_medium_cli_profile() -> None:
@@ -198,10 +219,7 @@ def test_luna_structured_kwargs_are_explicit_and_mcp_free(
         "agent_ecology3.world.luna_actions.luna_provider_schema_sha256",
         lambda: "0" * 64,
     )
-    monkeypatch.setattr(
-        "agent_ecology3.world.luna_actions.shared_client_exposes_codex_events",
-        lambda: True,
-    )
+    _accept_reviewed_shared_client(monkeypatch)
     monkeypatch.delenv("LLM_CLIENT_CODEX_ISOLATE_HOME", raising=False)
 
     result = asyncio.run(
@@ -228,12 +246,14 @@ def test_luna_structured_kwargs_are_explicit_and_mcp_free(
     assert not Path(captured["working_directory"]).exists()
 
 
-def test_luna_structured_result_rejects_observed_intrinsic_tool_event(
+def test_luna_returned_rejection_settles_accounting_and_receipt(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     world = _configured_world(tmp_path)
     before_budget = world.ledger.get_llm_budget("alpha_1")
+    before_calls = world.ledger.get_resource_remaining("alpha_1", "llm_calls")
+    before_tokens = world.ledger.get_resource_remaining("alpha_1", "llm_tokens")
 
     async def fake_acall_llm_structured(**_kwargs: Any) -> tuple[Any, object]:
         decision = LunaLoopDecisionV1.model_validate(
@@ -255,10 +275,7 @@ def test_luna_structured_result_rejects_observed_intrinsic_tool_event(
     fake_module = types.ModuleType("llm_client")
     fake_module.acall_llm_structured = fake_acall_llm_structured
     monkeypatch.setitem(sys.modules, "llm_client", fake_module)
-    monkeypatch.setattr(
-        "agent_ecology3.world.luna_actions.shared_client_exposes_codex_events",
-        lambda: True,
-    )
+    _accept_reviewed_shared_client(monkeypatch)
 
     result = asyncio.run(
         world.call_llm_as_syscall_async(
@@ -269,8 +286,175 @@ def test_luna_structured_result_rejects_observed_intrinsic_tool_event(
     )
 
     assert result["success"] is False
+    assert result["error_code"] == "luna_forbidden_codex_event"
+    assert result["settlement_status"] == "provider_settled_rejected"
     assert "forbidden intrinsic Codex tool: command_execution" in result["error"]
-    assert world.ledger.get_llm_budget("alpha_1") == before_budget
+    assert result["codex_event_types"] == ["command_execution"]
+    assert world.ledger.get_llm_budget("alpha_1") == pytest.approx(
+        before_budget - result["charged_cost"]
+    )
+    assert world.ledger.get_resource_remaining("alpha_1", "llm_calls") == pytest.approx(
+        before_calls - 1.0
+    )
+    assert world.ledger.get_resource_remaining("alpha_1", "llm_tokens") == pytest.approx(
+        before_tokens - 12.0
+    )
+    assert world.get_llm_syscall_count() == 1
+    events = [
+        event
+        for event in world.logger.read_recent(20)
+        if event.get("event_type") == "llm_syscall"
+    ]
+    assert events[-1]["success"] is False
+    assert events[-1]["settlement_status"] == "provider_settled_rejected"
+    assert events[-1]["codex_event_types"] == ["command_execution"]
+
+
+def test_luna_dispatch_ambiguity_retains_reservation_without_retry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _configured_world(tmp_path)
+    before_budget = world.ledger.get_llm_budget("alpha_1")
+    before_calls = world.ledger.get_resource_remaining("alpha_1", "llm_calls")
+    before_tokens = world.ledger.get_resource_remaining("alpha_1", "llm_tokens")
+    dispatch_count = 0
+
+    def fake_call_llm_structured(**_kwargs: Any) -> tuple[Any, object]:
+        nonlocal dispatch_count
+        dispatch_count += 1
+        raise TimeoutError("result unavailable after client boundary entry")
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.call_llm_structured = fake_call_llm_structured
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+    _accept_reviewed_shared_client(monkeypatch)
+
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model=LUNA_MODEL,
+        messages=[{"role": "user", "content": "choose"}],
+    )
+
+    assert dispatch_count == 1
+    assert result["success"] is False
+    assert result["error_code"] == "luna_dispatch_ambiguous"
+    assert result["settlement_status"] == "dispatch_ambiguous"
+    assert result["reserved_cost"] > 0.0
+    assert result["reserved_tokens"] > 0
+    assert world.ledger.get_llm_budget("alpha_1") == pytest.approx(
+        before_budget - result["reserved_cost"]
+    )
+    assert world.ledger.get_resource_remaining("alpha_1", "llm_calls") == pytest.approx(
+        before_calls - 1.0
+    )
+    assert world.ledger.get_resource_remaining("alpha_1", "llm_tokens") == pytest.approx(
+        before_tokens - result["reserved_tokens"]
+    )
+    assert world.get_llm_syscall_count() == 1
+    events = [
+        event
+        for event in world.logger.read_recent(20)
+        if event.get("event_type") == "llm_syscall_error"
+    ]
+    assert events[-1]["settlement_status"] == "dispatch_ambiguous"
+    assert events[-1]["reservation_retained"] is True
+
+
+def test_luna_async_dispatch_ambiguity_retains_reservation_without_retry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _configured_world(tmp_path)
+    before_calls = world.ledger.get_resource_remaining("alpha_1", "llm_calls")
+    dispatch_count = 0
+
+    async def fake_acall_llm_structured(**_kwargs: Any) -> tuple[Any, object]:
+        nonlocal dispatch_count
+        dispatch_count += 1
+        raise TimeoutError("async result unavailable after client boundary entry")
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.acall_llm_structured = fake_acall_llm_structured
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+    _accept_reviewed_shared_client(monkeypatch)
+
+    result = asyncio.run(
+        world.call_llm_as_syscall_async(
+            payer_id="alpha_1",
+            model=LUNA_MODEL,
+            messages=[{"role": "user", "content": "choose"}],
+        )
+    )
+
+    assert dispatch_count == 1
+    assert result["success"] is False
+    assert result["error_code"] == "luna_dispatch_ambiguous"
+    assert result["settlement_status"] == "dispatch_ambiguous"
+    assert world.ledger.get_resource_remaining("alpha_1", "llm_calls") == pytest.approx(
+        before_calls - 1.0
+    )
+    assert world.get_llm_syscall_count() == 1
+
+
+@pytest.mark.parametrize(
+    ("codex_events", "error_code", "event_types"),
+    (
+        ([], "luna_missing_codex_event_custody", []),
+        (
+            [
+                {
+                    "id": "future-1",
+                    "type": "future_active_item",
+                    "status": "completed",
+                }
+            ],
+            "luna_unclassified_codex_event",
+            ["future_active_item"],
+        ),
+    ),
+)
+def test_luna_unknown_codex_event_fails_closed_after_settlement(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    codex_events: list[dict[str, Any]],
+    error_code: str,
+    event_types: list[str],
+) -> None:
+    world = _configured_world(tmp_path)
+
+    def fake_call_llm_structured(**_kwargs: Any) -> tuple[Any, object]:
+        decision = LunaLoopDecisionV1.model_validate(
+            {
+                "schema_version": "luna_loop_decision.v1",
+                "action": {
+                    "action_type": "query_kernel",
+                    "query_type": "resources",
+                    "params": {"principal_id": "alpha_1"},
+                },
+            }
+        )
+        result = _llm_result(decision.model_dump_json())
+        result.codex_events = codex_events
+        return decision, result
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.call_llm_structured = fake_call_llm_structured
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+    _accept_reviewed_shared_client(monkeypatch)
+
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model=LUNA_MODEL,
+        messages=[{"role": "user", "content": "choose"}],
+    )
+
+    assert result["success"] is False
+    assert result["error_code"] == error_code
+    assert result["settlement_status"] == "provider_settled_rejected"
+    assert result["codex_event_types"] == event_types
+    assert "Codex event" in result["error"]
+    assert world.get_llm_syscall_count() == 1
 
 
 def test_production_loop_consumes_structured_action_without_json_or_tool_fallback(
@@ -331,10 +515,7 @@ def test_luna_dispatch_rejects_disabled_home_isolation(
 
     fake_module.acall_llm_structured = unexpected
     monkeypatch.setitem(sys.modules, "llm_client", fake_module)
-    monkeypatch.setattr(
-        "agent_ecology3.world.luna_actions.shared_client_exposes_codex_events",
-        lambda: True,
-    )
+    _accept_reviewed_shared_client(monkeypatch)
     result = asyncio.run(
         world.call_llm_as_syscall_async(
             payer_id="alpha_1",
@@ -368,6 +549,39 @@ def test_luna_dispatch_is_inaccessible_without_public_intrinsic_event_custody(
     assert world.ledger.get_llm_budget("alpha_1") == before_budget
 
 
+def test_luna_dependency_revision_mismatch_fails_before_reservation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _configured_world(tmp_path)
+    before_budget = world.ledger.get_llm_budget("alpha_1")
+    before_calls = world.ledger.get_resource_remaining("alpha_1", "llm_calls")
+    before_tokens = world.ledger.get_resource_remaining("alpha_1", "llm_tokens")
+    monkeypatch.setattr(
+        "agent_ecology3.world.luna_actions.shared_client_exposes_codex_events",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        "agent_ecology3.world.luna_actions.shared_client_source_status",
+        lambda: ("f" * 40, True),
+    )
+
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model=LUNA_MODEL,
+        messages=[{"role": "user", "content": "choose"}],
+    )
+
+    assert result["success"] is False
+    assert result["error_code"] == "llm_client_revision_mismatch"
+    assert result["expected_revision"] == RUNTIME_REVIEWED_LLM_CLIENT_REVISION
+    assert result["observed_revision"] == "f" * 40
+    assert world.ledger.get_llm_budget("alpha_1") == before_budget
+    assert world.ledger.get_resource_remaining("alpha_1", "llm_calls") == before_calls
+    assert world.ledger.get_resource_remaining("alpha_1", "llm_tokens") == before_tokens
+    assert world.get_llm_syscall_count() == 0
+
+
 def test_luna_dispatch_revalidates_mutated_profile_before_reservation(
     tmp_path: Path,
 ) -> None:
@@ -389,6 +603,8 @@ def test_luna_dispatch_revalidates_mutated_profile_before_reservation(
 def test_prompt_schema_profile_is_ambient_free_and_observes_tool_event_custody() -> None:
     report = build_provider_free_preflight(llm_client_repo=LLM_CLIENT_REPO)
 
+    assert RUNTIME_REVIEWED_LLM_CLIENT_REVISION == REVIEWED_LLM_CLIENT_REVISION
+    assert shared_client_source_status() == (REVIEWED_LLM_CLIENT_REVISION, True)
     assert report.shared_client_revision == REVIEWED_LLM_CLIENT_REVISION
     assert report.action_branch_count == 6
     assert report.provider_schema_has_open_object is False
