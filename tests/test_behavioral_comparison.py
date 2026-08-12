@@ -4,6 +4,7 @@ import json
 import shutil
 from copy import deepcopy
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,9 @@ from agent_ecology3.analysis.behavioral_comparison import (
     CASES_PATH,
     FROZEN_INPUT_SHA256,
     MAX_ACTUAL_COST_USD,
+    PREREGISTRATION_PATH,
+    PREREGISTRATION_RESULTS_MARKER,
+    _frozen_input_matches,
     _sha256,
     compute_readout,
     evaluate_run,
@@ -319,6 +323,24 @@ def test_frozen_inputs_schedule_and_budget_pass() -> None:
     assert observed["schedule"]["maximum_actual_cost_usd"] == MAX_ACTUAL_COST_USD
 
 
+def test_preregistration_prefix_stays_frozen_while_results_are_appendable(
+    tmp_path: Path,
+) -> None:
+    source = Path(PREREGISTRATION_PATH).read_text(encoding="utf-8")
+    expected = FROZEN_INPUT_SHA256[PREREGISTRATION_PATH]
+    allowed = tmp_path / "allowed.md"
+    allowed.write_text(source, encoding="utf-8")
+    assert _frozen_input_matches(PREREGISTRATION_PATH, allowed, expected) is True
+
+    prefix, marker, results = source.partition(PREREGISTRATION_RESULTS_MARKER)
+    tampered = tmp_path / "tampered.md"
+    tampered.write_text(
+        prefix.replace("Falsifiable claim", "Changed claim", 1) + marker + results,
+        encoding="utf-8",
+    )
+    assert _frozen_input_matches(PREREGISTRATION_PATH, tampered, expected) is False
+
+
 def test_preflight_controls_are_zero_provider_and_detect_metric_origins() -> None:
     result = run_preflight(Path.cwd(), now=datetime(2026, 8, 12, tzinfo=UTC))
 
@@ -476,3 +498,10 @@ def test_cli_refuses_live_dispatch_without_exact_cost_acknowledgement() -> None:
 
     with pytest.raises(RuntimeError, match="exact USD 1.68 acknowledgement"):
         run_live(Path.cwd(), Path("unused-eval07-output"))
+
+    with pytest.raises(RuntimeError, match="already has terminal evidence"):
+        run_live(
+            Path.cwd(),
+            Path("unused-eval07-output"),
+            acknowledged_max_cost_usd=Decimal("1.68"),
+        )

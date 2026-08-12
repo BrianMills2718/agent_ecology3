@@ -1,0 +1,437 @@
+{
+  "corruption": {
+    "corruptions": {
+      "decision_origin": {
+        "errors": [
+          "saved normalized action differs from runtime loop decision"
+        ],
+        "passed": false,
+        "terminal_class": "usable_tool_action"
+      },
+      "normalized_action": {
+        "errors": [
+          "saved normalized action differs from runtime loop decision"
+        ],
+        "passed": false,
+        "terminal_class": "usable_tool_action"
+      },
+      "raw_tool": {
+        "errors": [
+          "stored classification differs from recomputation"
+        ],
+        "passed": false,
+        "terminal_class": "usable_tool_action"
+      },
+      "trace": {
+        "errors": [
+          "receipt trace id differs",
+          "call record trace id differs",
+          "expected exactly one runtime loop decision",
+          "loop decision trace differs"
+        ],
+        "passed": false,
+        "terminal_class": "usable_tool_action"
+      }
+    },
+    "passed": true,
+    "positive": {
+      "errors": [],
+      "passed": true,
+      "terminal_class": "usable_tool_action"
+    },
+    "provider_calls": 0
+  },
+  "eval06_manifest": {
+    "files": 14,
+    "passed": true
+  },
+  "frozen_inputs": {
+    "checked_at": "2026-08-12T05:30:57.788774+00:00",
+    "execution_deadline": "2026-08-19T03:33:25+00:00",
+    "frozen_input_sha256": {
+      "config/config.behavioral_comparison_07.yaml": "285619a6b0e7c03dc284c68dc29a7527e616940aca6fc376b6b0d063e1f7ea38",
+      "config/evaluations/07_behavioral_cases.json": "f6b85149b7c37d38c64d266243776f3cc60a245ee76edbf665a18da440e67f09",
+      "config/prompts/loop_prompt_minimal.txt": "c1029d2fda78e6309de66d229c9a872bf17a23f11465f94106aed7a88792f96a",
+      "config/prompts/loop_prompt_variant.txt": "1c0219c4dc5dcf2aa0fb64b756546a4fa583c4e40a9f99108c7921a4b7fbc4b2",
+      "docs/evaluations/06_public_readback_qualification_signoff.md": "eabb724e732bfa2b946ccd538d9801241302a747f2861c9b4496b5be576c73b2",
+      "docs/evaluations/07_behavioral_comparison.md": "22b45f5aa776e13ce698c0270de04b992572f796cfec65ac27703393e2e4db61",
+      "docs/evaluations/evidence/06_public_readback_qualification/SHA256SUMS": "f1e3015781d8941fdfb9545b15d217811d32ad49ca70979fc3db26403d090e2b",
+      "src/agent_ecology3/analysis/emergence_report.py": "a29f7db96d31d7a65d94eae02aaa7c75df665d346666623ddcd05992797e2973",
+      "src/agent_ecology3/analysis/provider_qualification.py": "daaa900438d7f3cc10b6b286f397c2fb98159d4c09447ecb648fc300807a1da4",
+      "src/agent_ecology3/config.py": "4cae1f7e38aa74aa028dccf432ff1a5aa2e95f71e583a9a32eaa4fb732e415e3",
+      "src/agent_ecology3/world/action_executor.py": "685806400177df569b1e31d49cc3c8c855e2c1c7d73f7e056c4f986eedba2d39",
+      "src/agent_ecology3/world/actions.py": "05fea2088501b361060b1555b7bc8c60a1447406811ea138c0ab747ec2771fba",
+      "src/agent_ecology3/world/artifacts.py": "a45def77fe8a134d57f54a77ef573593e666de29b4b90818e05c4656ea46d794",
+      "src/agent_ecology3/world/contracts.py": "2162d62b6732d22e859654bf664355d739e0f56a076501cd4dcec4fa508790ca",
+      "src/agent_ecology3/world/executor.py": "ec07e396f91d8e69c1b7d8aede438427d0baf00556b987c6f64d6ac2ad5fe0a6",
+      "src/agent_ecology3/world/ledger.py": "3b5bf7dcc7075264842c52686bb2f56627f7ff93887488628b7ba11379f425a5",
+      "src/agent_ecology3/world/mint.py": "9627359a19fcec5ec3016988199b95999457e85a47dfad1b2dabd4ecbb1ac17f",
+      "src/agent_ecology3/world/queries.py": "fc12300543fa53820003bc941c1512de61547c7579e3dc4c89e3c4aa6231f17e",
+      "src/agent_ecology3/world/world.py": "a088fec29ee109c7458a1dfb1c9ef785611aab81f86fe24dbfec9f23a702ee97"
+    },
+    "passed": true,
+    "schedule": {
+      "balanced_first_condition": true,
+      "leakage": [],
+      "maximum_actual_cost_usd": 1.68,
+      "maximum_provider_attempts": 448,
+      "primary_pairs": 12,
+      "reserve_pairs": 2,
+      "unique_seeds": true
+    }
+  },
+  "llm_off": {
+    "passed": true,
+    "provider_calls": 0,
+    "records": [
+      {
+        "llm_valid_decisions": 0,
+        "llm_valid_downstream_value": 0.0,
+        "provider_calls": 0,
+        "seed": 13200
+      },
+      {
+        "llm_valid_decisions": 0,
+        "llm_valid_downstream_value": 0.0,
+        "provider_calls": 0,
+        "seed": 13201
+      },
+      {
+        "llm_valid_decisions": 0,
+        "llm_valid_downstream_value": 0.0,
+        "provider_calls": 0,
+        "seed": 13202
+      }
+    ],
+    "runs": 3
+  },
+  "metric_controls": {
+    "negative": {
+      "fallback_value": 0.0,
+      "passed": true,
+      "self_value": 0.0,
+      "unpaid_value": 0.0
+    },
+    "passed": true,
+    "positive": {
+      "llm_valid_downstream_value": 2.0,
+      "passed": true
+    },
+    "provider_calls": 0
+  },
+  "passed": true,
+  "provider_calls": 0,
+  "public_readback": {
+    "control_type": "synthetic_local_persistence_no_provider",
+    "database_sha256": "c8bf8a18056ac90eb6495e56f2c133736c9e73700b25cc85aee2c1ed9ba7cf06",
+    "expected_terminal_classes": {
+      "corruption": "custody_failure",
+      "positive": "usable_tool_action",
+      "redaction": "custody_failure"
+    },
+    "observed_terminal_classes": {
+      "corruption": "custody_failure",
+      "positive": "usable_tool_action",
+      "redaction": "custody_failure"
+    },
+    "passed": true,
+    "provider_calls": 0,
+    "public_positive_record_has_content_persistence": false,
+    "records": {
+      "corruption": {
+        "call_record": {
+          "call_fingerprint": null,
+          "call_snapshot": null,
+          "caller": "eval06_public_readback_control",
+          "error": null,
+          "finish_reason": "tool_calls",
+          "id": 1,
+          "latency_s": 0.001,
+          "messages": [
+            {
+              "content": "synthetic zero-spend custody control",
+              "role": "user"
+            }
+          ],
+          "model": "control/no-provider",
+          "n_tool_calls": 1,
+          "project": "agent_ecology3_eval06_public_readback_control",
+          "prompt_ref": null,
+          "response": "",
+          "response_tool_calls": [],
+          "task": "agent_ecology3_eval06_control",
+          "timestamp": "2026-08-12T05:31:12.709149+00:00",
+          "trace_id": "ae3/eval06/control/positive"
+        },
+        "classification": {
+          "action": null,
+          "reason": "caller-visible and retained response_tool_calls differ",
+          "terminal_class": "custody_failure",
+          "usable": false
+        },
+        "receipts": [
+          {
+            "attempt_ordinal": null,
+            "cache_creation_tokens": null,
+            "cache_hit": false,
+            "cached_tokens": null,
+            "completed_at": "2026-08-12T05:31:12.709149Z",
+            "completion_tokens": 1,
+            "cost_source": "zero_spend_control",
+            "cost_status": "observed",
+            "cost_usd": 0.0,
+            "deployment_revision": null,
+            "error_type": null,
+            "execution_path": null,
+            "finish_reason": "tool_calls",
+            "granularity": "provider_call",
+            "latency_s": 0.001,
+            "logical_call_id": null,
+            "parent_call_id": null,
+            "producer_revision": null,
+            "prompt_sha256": null,
+            "prompt_tokens": 1,
+            "provider": null,
+            "reasoning_tokens": null,
+            "receipt_id": "llm-client-call-1",
+            "request_fingerprint": null,
+            "requested_model": null,
+            "resolved_model": "control/no-provider",
+            "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "retry_count": 0,
+            "runtime": "llm_client",
+            "schema_sha256": null,
+            "schema_version": "llm_call_receipt_v1",
+            "started_at": "2026-08-12T05:31:12.708149Z",
+            "status": "succeeded",
+            "task": "agent_ecology3_eval06_control",
+            "total_tokens": 2,
+            "trace_id": "ae3/eval06/control/positive",
+            "unavailable_fields": {
+              "prompt_sha256": "The terminal call row does not contain a standalone prompt hash.",
+              "provider": "Provider identity is not inferred from the model string.",
+              "request_fingerprint": "No retained call fingerprint is available.",
+              "requested_model": "The terminal call row records the resolved model, not requested-model identity."
+            }
+          }
+        ],
+        "syscall_result": {
+          "content": "",
+          "success": true,
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"action_type\":\"query_kernel\",\"query_type\":\"resources\",\"params\":{}}",
+                "name": "ae3_action"
+              },
+              "id": "eval06-public-readback-control",
+              "type": "function"
+            }
+          ],
+          "trace_id": "ae3/eval06/control/positive"
+        }
+      },
+      "positive": {
+        "call_record": {
+          "call_fingerprint": null,
+          "call_snapshot": null,
+          "caller": "eval06_public_readback_control",
+          "error": null,
+          "finish_reason": "tool_calls",
+          "id": 1,
+          "latency_s": 0.001,
+          "messages": [
+            {
+              "content": "synthetic zero-spend custody control",
+              "role": "user"
+            }
+          ],
+          "model": "control/no-provider",
+          "n_tool_calls": 1,
+          "project": "agent_ecology3_eval06_public_readback_control",
+          "prompt_ref": null,
+          "response": "",
+          "response_tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"action_type\":\"query_kernel\",\"query_type\":\"resources\",\"params\":{}}",
+                "name": "ae3_action"
+              },
+              "id": "eval06-public-readback-control",
+              "type": "function"
+            }
+          ],
+          "task": "agent_ecology3_eval06_control",
+          "timestamp": "2026-08-12T05:31:12.709149+00:00",
+          "trace_id": "ae3/eval06/control/positive"
+        },
+        "classification": {
+          "action": {
+            "action_type": "query_kernel",
+            "params": {},
+            "query_type": "resources"
+          },
+          "reason": null,
+          "terminal_class": "usable_tool_action",
+          "usable": true
+        },
+        "receipts": [
+          {
+            "attempt_ordinal": null,
+            "cache_creation_tokens": null,
+            "cache_hit": false,
+            "cached_tokens": null,
+            "completed_at": "2026-08-12T05:31:12.709149Z",
+            "completion_tokens": 1,
+            "cost_source": "zero_spend_control",
+            "cost_status": "observed",
+            "cost_usd": 0.0,
+            "deployment_revision": null,
+            "error_type": null,
+            "execution_path": null,
+            "finish_reason": "tool_calls",
+            "granularity": "provider_call",
+            "latency_s": 0.001,
+            "logical_call_id": null,
+            "parent_call_id": null,
+            "producer_revision": null,
+            "prompt_sha256": null,
+            "prompt_tokens": 1,
+            "provider": null,
+            "reasoning_tokens": null,
+            "receipt_id": "llm-client-call-1",
+            "request_fingerprint": null,
+            "requested_model": null,
+            "resolved_model": "control/no-provider",
+            "response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "retry_count": 0,
+            "runtime": "llm_client",
+            "schema_sha256": null,
+            "schema_version": "llm_call_receipt_v1",
+            "started_at": "2026-08-12T05:31:12.708149Z",
+            "status": "succeeded",
+            "task": "agent_ecology3_eval06_control",
+            "total_tokens": 2,
+            "trace_id": "ae3/eval06/control/positive",
+            "unavailable_fields": {
+              "prompt_sha256": "The terminal call row does not contain a standalone prompt hash.",
+              "provider": "Provider identity is not inferred from the model string.",
+              "request_fingerprint": "No retained call fingerprint is available.",
+              "requested_model": "The terminal call row records the resolved model, not requested-model identity."
+            }
+          }
+        ],
+        "syscall_result": {
+          "content": "",
+          "success": true,
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"action_type\":\"query_kernel\",\"query_type\":\"resources\",\"params\":{}}",
+                "name": "ae3_action"
+              },
+              "id": "eval06-public-readback-control",
+              "type": "function"
+            }
+          ],
+          "trace_id": "ae3/eval06/control/positive"
+        }
+      },
+      "redaction": {
+        "call_record": {
+          "call_fingerprint": null,
+          "call_snapshot": null,
+          "caller": "eval06_public_readback_control",
+          "error": null,
+          "finish_reason": "tool_calls",
+          "id": 2,
+          "latency_s": 0.001,
+          "messages": null,
+          "model": "control/no-provider",
+          "n_tool_calls": 1,
+          "project": "agent_ecology3_eval06_public_readback_control",
+          "prompt_ref": null,
+          "response": null,
+          "response_tool_calls": null,
+          "task": "agent_ecology3_eval06_control",
+          "timestamp": "2026-08-12T05:31:12.773584+00:00",
+          "trace_id": "ae3/eval06/control/redaction"
+        },
+        "classification": {
+          "action": null,
+          "reason": "caller-visible and retained response content differ",
+          "terminal_class": "custody_failure",
+          "usable": false
+        },
+        "receipts": [
+          {
+            "attempt_ordinal": null,
+            "cache_creation_tokens": null,
+            "cache_hit": false,
+            "cached_tokens": null,
+            "completed_at": "2026-08-12T05:31:12.773584Z",
+            "completion_tokens": 1,
+            "cost_source": "zero_spend_control",
+            "cost_status": "observed",
+            "cost_usd": 0.0,
+            "deployment_revision": null,
+            "error_type": null,
+            "execution_path": null,
+            "finish_reason": "tool_calls",
+            "granularity": "provider_call",
+            "latency_s": 0.001,
+            "logical_call_id": null,
+            "parent_call_id": null,
+            "producer_revision": null,
+            "prompt_sha256": null,
+            "prompt_tokens": 1,
+            "provider": null,
+            "reasoning_tokens": null,
+            "receipt_id": "llm-client-call-2",
+            "request_fingerprint": null,
+            "requested_model": null,
+            "resolved_model": "control/no-provider",
+            "response_sha256": null,
+            "retry_count": 0,
+            "runtime": "llm_client",
+            "schema_sha256": null,
+            "schema_version": "llm_call_receipt_v1",
+            "started_at": "2026-08-12T05:31:12.772584Z",
+            "status": "succeeded",
+            "task": "agent_ecology3_eval06_control",
+            "total_tokens": 2,
+            "trace_id": "ae3/eval06/control/redaction",
+            "unavailable_fields": {
+              "prompt_sha256": "The terminal call row does not contain a standalone prompt hash.",
+              "provider": "Provider identity is not inferred from the model string.",
+              "request_fingerprint": "No retained call fingerprint is available.",
+              "requested_model": "The terminal call row records the resolved model, not requested-model identity."
+            }
+          }
+        ],
+        "syscall_result": {
+          "content": "",
+          "success": true,
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"action_type\":\"query_kernel\",\"query_type\":\"resources\",\"params\":{}}",
+                "name": "ae3_action"
+              },
+              "id": "eval06-public-readback-control",
+              "type": "function"
+            }
+          ],
+          "trace_id": "ae3/eval06/control/redaction"
+        }
+      }
+    },
+    "schema_version": "ae3_eval06_public_readback_control_v1",
+    "storage_policies": {
+      "ae3/eval06/control/positive": "full",
+      "ae3/eval06/control/redaction": "metadata_only"
+    },
+    "zero_cost": true
+  },
+  "schema_version": "ae3_eval07_preflight_v1"
+}

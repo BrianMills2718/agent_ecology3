@@ -1,10 +1,10 @@
 # Plan #9: Behavioral Comparison Execution
 
-**Status:** In Progress
+**Status:** Complete — terminal inconclusive/invalid
 **Type:** evaluation execution
 **Priority:** High
 **Blocked By:** Plan #8 complete and explicit human authorization
-**Blocks:** Independent Evaluation 07 decision signoff
+**Blocks:** None; any further comparison requires a new evaluation number
 
 ---
 
@@ -54,17 +54,40 @@ schedule, thresholds, attempt count, reserve policy, or rerunning any cell.
 
 ## Acceptance Criteria
 
-- [ ] Dispatch begins before the frozen deadline from a clean pushed revision.
-- [ ] Every preflight control passes with `provider_calls=0`.
-- [ ] No frozen input, threshold, schedule row, model, or budget changes.
-- [ ] The runner stops at 12 valid pairs or the end of the ordered 14-pair set.
-- [ ] Attempts and actual cost remain at or below 448 and USD 1.68.
-- [ ] Evidence manifest and saved-artifact reproduction pass.
-- [ ] The final result preserves invalid cells and unexpected behavior without
+- [x] Dispatch began before the frozen deadline from pushed revision `117ffb4`.
+- [x] Every preflight control passed with `provider_calls=0`.
+- [x] No frozen input, threshold, schedule row, model, or budget changed.
+- [ ] The runner did not reach 12 valid pairs or the end of the reserve schedule;
+      it ended during `pair_06/prescribed`, making the run terminal under the
+      frozen failure contract.
+- [x] Attempts and actual cost remained below 448 and USD 1.68: 189 settled
+      attempts and USD 0.23998692.
+- [ ] Complete saved-artifact reproduction is unavailable by design for this
+      terminal partial bundle. The SHA-256 manifest and 57 pre-finalization raw
+      hashes pass, and the reproducer fails closed rather than promoting it.
+- [x] The final result preserves invalid cells and unexpected behavior without
       retrospective repair or exclusion.
-- [ ] A fresh independent verifier signs off or rejects decision use.
-- [ ] Result status, repository advice, and any new restart/failure-mode lesson
-      are reconciled across canonical documentation.
+- [x] A fresh independent verifier rejected the behavioral evidence and passed
+      only the no-claim/no-rerun decision.
+- [x] Result status, repository advice, and the new process-lifetime and atomic
+      custody failure modes are reconciled across canonical documentation.
+
+## Completion Evidence
+
+- Terminal evidence:
+  `docs/evaluations/evidence/07_behavioral_comparison/`
+- Frozen decision: `inconclusive_invalid`; five completed pairs, one valid pair
+  and no scarcity-binding included run.
+- Integrity: 63 manifest entries pass; all 57 pre-finalization raw hashes match.
+- Independent review:
+  `docs/evaluations/07_behavioral_comparison_signoff.md` (`REJECTED` behavioral
+  evidence; no-claim/no-rerun disposition supported).
+- Focused recovery verification: nine behavioral-comparison tests pass, mypy
+  passes for the changed module, and Ruff passes for the changed source/tests.
+
+The two unmet success-path criteria above are terminal outcomes, not pending
+work. Failure Handling requires preservation and a new evaluation number rather
+than repair or rerun.
 
 ---
 

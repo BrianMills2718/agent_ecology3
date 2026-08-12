@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import math
 import shutil
@@ -39,6 +40,10 @@ PREREGISTRATION_PATH = "docs/evaluations/07_behavioral_comparison.md"
 DEFAULT_OUTPUT = "docs/evaluations/evidence/07_behavioral_comparison"
 EXECUTION_DEADLINE = datetime(2026, 8, 19, 3, 33, 25, tzinfo=UTC)
 MAX_ACTUAL_COST_USD = 1.68
+PREREGISTRATION_RESULTS_MARKER = "\n## Results\n"
+FROZEN_PREREGISTRATION_PREFIX_SHA256 = (
+    "5e8234c853d081a66821f56f2b46f8993eae1187de38fd4d342b1225e2fa81ce"
+)
 
 FROZEN_INPUT_SHA256: dict[str, str] = {
     CONFIG_PATH: "285619a6b0e7c03dc284c68dc29a7527e616940aca6fc376b6b0d063e1f7ea38",
@@ -102,6 +107,18 @@ def _read_json(path: Path) -> Any:
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _frozen_input_matches(relative: str, path: Path, expected: str) -> bool:
+    digest = _sha256(path)
+    if digest == expected:
+        return True
+    if relative != PREREGISTRATION_PATH:
+        return False
+    current = path.read_text(encoding="utf-8")
+    prefix, marker, _results = current.partition(PREREGISTRATION_RESULTS_MARKER)
+    prefix_digest = hashlib.sha256(prefix.encode("utf-8")).hexdigest()
+    return bool(marker) and prefix_digest == FROZEN_PREREGISTRATION_PREFIX_SHA256
 
 
 def _regular_files(root: Path) -> set[str]:
@@ -230,9 +247,10 @@ def verify_frozen_inputs(
     repo = repo.resolve()
     observed: dict[str, str] = {}
     for relative, expected in FROZEN_INPUT_SHA256.items():
-        digest = _sha256(repo / relative)
+        path = repo / relative
+        digest = _sha256(path)
         observed[relative] = digest
-        if digest != expected:
+        if not _frozen_input_matches(relative, path, expected):
             raise RuntimeError(
                 f"frozen Evaluation 07 input mismatch for {relative}: "
                 f"expected {expected}, observed {digest}"
@@ -874,7 +892,7 @@ def _verify_saved_contract(
             raise RuntimeError(f"bundled frozen input is missing: {relative}")
         observed = _sha256(bundled)
         input_hashes[relative] = observed
-        if observed != expected:
+        if not _frozen_input_matches(relative, bundled, expected):
             raise RuntimeError(f"bundled frozen input differs: {relative}")
 
     bundled_cases = _read_json(
@@ -1653,6 +1671,12 @@ def run_live(
         raise RuntimeError("Eval07 live execution requires exact USD 1.68 acknowledgement")
     repo = repo.resolve()
     output = output.resolve()
+    existing_inventory = repo / DEFAULT_OUTPUT / "run_inventory.json"
+    if existing_inventory.is_file():
+        raise RuntimeError(
+            "Evaluation 07 already has terminal evidence; a second live dispatch "
+            "is prohibited"
+        )
     if output.exists():
         raise RuntimeError(f"refusing to overwrite existing Eval07 evidence: {output}")
     frozen = verify_frozen_inputs(repo)
