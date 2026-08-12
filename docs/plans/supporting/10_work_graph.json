@@ -356,10 +356,178 @@
         "max_active_per_claimant": 1,
         "named_owner_id": null
       },
-      "status": "completion_review",
-      "record_version": 2,
+      "status": "accepted",
+      "record_version": 3,
       "created_at": "2026-08-12T20:57:12Z",
-      "updated_at": "2026-08-12T21:36:36Z"
+      "updated_at": "2026-08-12T21:46:10Z"
+    },
+    {
+      "schema_version": "1.0",
+      "record_type": "work_unit",
+      "id": "WU-10-05",
+      "initiative_id": "agent-ecology-luna-recovery",
+      "goal_id": "recoverable-detached-dashboard-poc",
+      "design_revision": "693da38118cbc5f9d12b4bff510345aa0cb45345",
+      "spec_revision": "wu-10-05-v1",
+      "title": "Run a recoverable detached Luna PoC through the existing dashboard",
+      "class": "integration",
+      "objective": "Extend the normal Agent Ecology loop with fail-closed attempt recovery and a detached lifecycle, expose that lifecycle through the existing dashboard, and retain one bounded authentic Luna Medium PoC receipt.",
+      "profile": "small",
+      "execution_class": "independently_executable",
+      "claimability": "ready_for_execution",
+      "authorization_mode": "registry_claim",
+      "scope": {
+        "included": [
+          "Typed append-safe attempt and checkpoint custody with stable run and attempt identities",
+          "Provider-free recovery after settlement and before local commit without a replacement dispatch",
+          "Fail-closed terminal handling for ambiguous dispatch, action application interruption, and corrupt custody",
+          "Detached start, status, pause, resume, stop, and restart around the normal Agent Ecology loop",
+          "Existing dashboard journey for live status, recent actions and events, budget state, and controls",
+          "One operator-authorized two-attempt codex/gpt-5.6-luna medium PoC with no retry, repair, fallback, or MCP server"
+        ],
+        "excluded": [
+          "Evaluation 07 or Evaluation 08 mutation or execution",
+          "Reliability, behavioral-effect, or scarcity-calibration claims",
+          "Dashboard redesign, WebSocket or SSE infrastructure, or a generic daemon",
+          "Multi-model routing, fallback transports, prompt tuning, or MCP bridge changes",
+          "Production deployment, release, publication, or generalized hardening"
+        ]
+      },
+      "inputs": [
+        {
+          "kind": "ImplementationPlan",
+          "id": "agent-ecology3-plan-10",
+          "revision": "693da38118cbc5f9d12b4bff510345aa0cb45345"
+        },
+        {
+          "kind": "AcceptedWorkUnit",
+          "id": "WU-10-04",
+          "revision": "d65b46e0884c98574cd9fd13355c6bd74377e276"
+        },
+        {
+          "kind": "AcceptedSharedContract",
+          "id": "llm-client-plan-355-wu-355-01",
+          "revision": "286715784f1d535d6dfcd2c867ca678d666e27d5"
+        }
+      ],
+      "outputs": [
+        "Recoverable Luna attempt and checkpoint implementation on the normal Agent Ecology execution path",
+        "Detached worker lifecycle observable and controllable through the existing dashboard",
+        "Provider-free recovery, corruption, ambiguity, launcher-exit, and dashboard-control evidence",
+        "Bounded authentic two-attempt Luna Medium PoC receipt and operator journey"
+      ],
+      "dependencies": [
+        {
+          "unit_id": "WU-10-04",
+          "type": "hard",
+          "gate": {
+            "type": "unit_status",
+            "required_status": "accepted"
+          },
+          "rationale": "The multi-attempt PoC may begin only after the exact one-call route and settlement receipt is accepted."
+        }
+      ],
+      "conflict_surfaces": [
+        {
+          "kind": "repository_path",
+          "target": "src/agent_ecology3/simulation",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-recoverable-poc"
+        },
+        {
+          "kind": "repository_path",
+          "target": "src/agent_ecology3/dashboard",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-recoverable-poc"
+        },
+        {
+          "kind": "repository_path",
+          "target": "scripts/run_recoverable_evaluation.py",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-recoverable-poc"
+        },
+        {
+          "kind": "repository_path",
+          "target": "tests",
+          "repository": "agent_ecology3",
+          "access": "write",
+          "coordination_key": "agent-ecology3-plan-10-recoverable-poc"
+        },
+        {
+          "kind": "repository_path",
+          "target": "docs/evaluations/evidence/plan10_luna_recovery_gate",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-recoverable-poc"
+        },
+        {
+          "kind": "external_system",
+          "target": "ChatGPT subscription route plan10/luna-medium/dashboard-poc/v1",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-recoverable-poc"
+        }
+      ],
+      "acceptance": [
+        {
+          "id": "AC-10-05-recovery",
+          "criterion": "A 16-attempt provider-free fixture terminated after attempt 8 settlement restarts to exactly 16 committed attempts and exactly 16 provider dispatches.",
+          "evidence_required": [
+            "Focused recovery test and durable checkpoint receipt",
+            "Stable run and attempt identities across restart",
+            "Dispatch and committed-attempt counts"
+          ],
+          "negative_control": "Ambiguous dispatch, interrupted action application, or corrupt custody terminates invalid and permits no replacement provider call."
+        },
+        {
+          "id": "AC-10-05-detached",
+          "criterion": "After launcher exit, a new operator process can identify the stable run, last committed attempt, current or terminal state, and exact available pause, resume, stop, or restart action.",
+          "evidence_required": [
+            "Detached lifecycle integration test",
+            "Durable launch, heartbeat, status, and exit receipts"
+          ],
+          "negative_control": "A missing or stale worker is reported explicitly rather than appearing healthy."
+        },
+        {
+          "id": "AC-10-05-dashboard",
+          "criterion": "The existing dashboard directly loads the PoC state, actions and events, budget, and stable run identity, and its pause, resume, and stop controls affect the detached run.",
+          "evidence_required": [
+            "Fresh-browser critical-path observation",
+            "Dashboard API and control integration tests",
+            "Console, failed-request, and backend-log inspection"
+          ],
+          "negative_control": "Direct refresh while paused or terminal preserves the run identity and reviewable evidence."
+        },
+        {
+          "id": "AC-10-05-authentic",
+          "criterion": "Exactly two operator-authorized Luna Medium attempts complete through the frozen route with durable receipts, no duplicate dispatch, and no retry, repair, fallback, or MCP server.",
+          "evidence_required": [
+            "Pushed pre-dispatch Agent Ecology 3 source revision",
+            "Exact shared-client revision and per-attempt stable traces",
+            "Route, timing, usage, billing, event, action, settlement, and custody evidence"
+          ],
+          "negative_control": "Any provider or custody uncertainty stops the run and suppresses all later attempts."
+        }
+      ],
+      "readiness": {
+        "status": "ready",
+        "required_approval_types": [],
+        "approvals": [],
+        "failed_guards": []
+      },
+      "claim_policy": {
+        "eligibility_rule": "Current user request plus Agent Ecology 3 repository authority, with one active canonical claim",
+        "lease_policy": "renewable",
+        "lease_duration_minutes": 1440,
+        "max_active_per_claimant": 1,
+        "named_owner_id": null
+      },
+      "status": "ready",
+      "record_version": 1,
+      "created_at": "2026-08-12T21:46:10Z",
+      "updated_at": "2026-08-12T21:46:10Z"
     }
   ]
 }
