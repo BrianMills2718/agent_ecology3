@@ -2,17 +2,25 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 import time
 from collections import deque
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from ..config import AppConfig
 from .action_executor import ActionExecutor
-from .actions import ActionIntent, ActionResult, InvokeArtifactIntent, QueryKernelIntent, parse_intent_from_json
+from .actions import (
+    ActionIntent,
+    ActionResult,
+    InvokeArtifactIntent,
+    QueryKernelIntent,
+    parse_intent_from_json,
+)
 from .artifacts import Artifact, ArtifactStore
 from .contracts import (
     KERNEL_CONTRACT_PRIVATE,
@@ -85,6 +93,21 @@ MINIMAL_LOOP_PROMPT_TEMPLATE = (
     "For submit_to_mint include artifact_id and bid. "
     "Return one action through ae3_action when available, otherwise return one JSON object."
 )
+
+LOOP_SYSTEM_INSTRUCTION = (
+    "Choose one AE3 action. Prefer tool call ae3_action when available; "
+    "else return exactly one JSON action object. No prose."
+)
+
+
+@dataclass(frozen=True)
+class _LLMSyscallContext:
+    payer_id: str
+    model: str
+    estimated_tokens: int
+    estimated_cost: float
+    trace_id: str
+    start: float
 
 
 class KernelStateRouter:
@@ -431,6 +454,63 @@ class World:
                 "- submit at least one mint candidate when affordable",
             ]
         )
+
+    @staticmethod
+    def build_loop_action_tools() -> list[dict[str, Any]]:
+        """Return the canonical provider tool contract for one loop decision."""
+
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "ae3_action",
+                    "description": "Submit one AE3 kernel action payload.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "action_type": {"type": "string"},
+                            "artifact_id": {"type": "string"},
+                            "artifact_type": {"type": "string"},
+                            "content": {"type": "string"},
+                            "read_price": {"type": "integer"},
+                            "invoke_price": {"type": "integer"},
+                            "access_contract_id": {"type": "string"},
+                            "recipient_id": {"type": "string"},
+                            "amount": {"type": "number"},
+                            "memo": {"type": "string"},
+                            "resource": {"type": "string"},
+                            "bid": {"type": "integer"},
+                            "query_type": {"type": "string"},
+                            "params": {"type": "object"},
+                        },
+                        "required": ["action_type"],
+                        "additionalProperties": True,
+                    },
+                },
+            }
+        ]
+
+    def build_loop_messages(
+        self,
+        *,
+        principal_id: str,
+        state_snapshot: dict[str, Any],
+        strategy_text: str,
+    ) -> list[dict[str, str]]:
+        """Render the exact production messages for one loop decision."""
+
+        prompt = self._render_loop_prompt_template(principal_id)
+        if strategy_text.strip():
+            prompt = f"Strategy:\n{strategy_text[:2400]}\n\n{prompt}"
+        if self.config.llm.loop_prompt_feedback_enabled:
+            prompt += " Use recent_feedback to avoid repeating actions with recent error codes."
+        return [
+            {"role": "system", "content": LOOP_SYSTEM_INSTRUCTION},
+            {
+                "role": "user",
+                "content": prompt + "\nState:\n" + json.dumps(state_snapshot),
+            },
+        ]
 
     def _default_state_payload(self, principal_id: str, slot: int) -> dict[str, Any]:
         if self.config.llm.loop_cognition_mode == "minimal":
@@ -811,36 +891,7 @@ class World:
         notebook_id = f"{principal_id}_notebook"
         principal_prefix = self.config.principals.id_prefix
         principal_count = max(1, self.config.principals.count)
-        loop_tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "ae3_action",
-                    "description": "Submit one AE3 kernel action payload.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "action_type": {"type": "string"},
-                            "artifact_id": {"type": "string"},
-                            "artifact_type": {"type": "string"},
-                            "content": {"type": "string"},
-                            "read_price": {"type": "integer"},
-                            "invoke_price": {"type": "integer"},
-                            "access_contract_id": {"type": "string"},
-                            "recipient_id": {"type": "string"},
-                            "amount": {"type": "number"},
-                            "memo": {"type": "string"},
-                            "resource": {"type": "string"},
-                            "bid": {"type": "integer"},
-                            "query_type": {"type": "string"},
-                            "params": {"type": "object"},
-                        },
-                        "required": ["action_type"],
-                        "additionalProperties": True,
-                    },
-                },
-            }
-        ]
+        loop_tools = self.build_loop_action_tools()
         loop_tools_json = json.dumps(loop_tools, ensure_ascii=True)
         loop_prompt_template = self._render_loop_prompt_template(principal_id)
         return f'''import json
@@ -1504,7 +1555,7 @@ def _should_force_explore(decision, state_snapshot):
     return False, None
 
 
-def run():
+async def run():
     feedback_enabled = {self.config.llm.loop_prompt_feedback_enabled}
     strategy_text = _read_text_artifact("{strategy_id}")
     state_memory = _read_json_artifact("{state_id}", {{}})
@@ -1530,11 +1581,18 @@ def run():
     if "memory" not in state_snapshot:
         state_snapshot["memory"] = memory_snapshot
 
-    prompt = {loop_prompt_template!r}
-    if isinstance(strategy_text, str) and strategy_text.strip():
-        prompt = "Strategy:\\n" + strategy_text[:2400] + "\\n\\n" + prompt
-    if feedback_enabled:
-        prompt += " Use recent_feedback to avoid repeating actions with recent error codes."
+    if "_build_loop_messages" in globals():
+        messages = _build_loop_messages(state_snapshot, strategy_text)
+    else:
+        prompt = {loop_prompt_template!r}
+        if isinstance(strategy_text, str) and strategy_text.strip():
+            prompt = "Strategy:\\n" + strategy_text[:2400] + "\\n\\n" + prompt
+        if feedback_enabled:
+            prompt += " Use recent_feedback to avoid repeating actions with recent error codes."
+        messages = [
+            {{"role": "system", "content": {LOOP_SYSTEM_INSTRUCTION!r}}},
+            {{"role": "user", "content": prompt + "\\nState:\\n" + json.dumps(state_snapshot)}},
+        ]
 
     raw_decision = None
     decision = None
@@ -1561,15 +1619,9 @@ def run():
         decision_meta["llm_cooldown_ready"] = bool(ready)
         if ready:
             decision_meta["llm_attempted"] = True
-            llm_result = _syscall_llm(
+            llm_result = await _syscall_llm(
                 model="{self.config.llm.default_model}",
-                messages=[
-                    {{
-                        "role": "system",
-                        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
-                    }},
-                    {{"role": "user", "content": prompt + "\\nState:\\n" + json.dumps(state_snapshot)}},
-                ],
+                messages=messages,
                 tools=_loop_action_tools(),
             )
             decision_meta["source"] = "llm"
@@ -1807,6 +1859,37 @@ def run():
             )
         return self.execute_intent(parsed, increment_event=increment_event)
 
+    async def execute_action_data_async(
+        self,
+        principal_id: str,
+        payload: dict[str, Any] | str,
+        *,
+        increment_event: bool = True,
+    ) -> ActionResult:
+        """Execute one autonomous-loop invocation without blocking the event loop."""
+
+        json_payload = payload if isinstance(payload, str) else json.dumps(payload, ensure_ascii=True)
+        parsed = parse_intent_from_json(principal_id, json_payload)
+        if isinstance(parsed, str):
+            return ActionResult(
+                success=False,
+                message=parsed,
+                error_code="invalid_action",
+                error_category="validation",
+                retriable=True,
+            )
+        if not isinstance(parsed, InvokeArtifactIntent):
+            return ActionResult(
+                success=False,
+                message="async action boundary accepts invoke_artifact only",
+                error_code="invalid_action",
+                error_category="validation",
+                retriable=False,
+            )
+        if increment_event:
+            self.event_number += 1
+        return await self.action_executor.execute_loop_async(parsed)
+
     def invoke_from_executor(
         self,
         *,
@@ -1892,12 +1975,84 @@ def run():
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
+        prepared, context = self._prepare_llm_syscall(
+            payer_id=payer_id,
+            model=model,
+            messages=messages,
+        )
+        if prepared is not None:
+            return prepared
+        if context is None:  # pragma: no cover - defensive invariant
+            return {"success": False, "error": "missing syscall context", "error_code": "llm_error"}
+        try:
+            try:
+                from llm_client import call_llm
+            except Exception as exc:  # pragma: no cover - optional dependency fallback
+                raise RuntimeError(f"llm_client import failed: {exc}") from exc
+            llm_result = call_llm(
+                **self._llm_call_kwargs(
+                    model=model,
+                    messages=messages,
+                    tools=tools,
+                    trace_id=context.trace_id,
+                )
+            )
+            return self._settle_llm_syscall(context, llm_result)
+        except Exception as exc:
+            return self._fail_llm_syscall(context, exc)
+
+    async def call_llm_as_syscall_async(
+        self,
+        *,
+        payer_id: str,
+        model: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Dispatch one syscall through llm_client's native async boundary."""
+
+        prepared, context = self._prepare_llm_syscall(
+            payer_id=payer_id,
+            model=model,
+            messages=messages,
+        )
+        if prepared is not None:
+            return prepared
+        if context is None:  # pragma: no cover - defensive invariant
+            return {"success": False, "error": "missing syscall context", "error_code": "llm_error"}
+        try:
+            try:
+                from llm_client import acall_llm
+            except Exception as exc:  # pragma: no cover - optional dependency fallback
+                raise RuntimeError(f"llm_client import failed: {exc}") from exc
+            llm_result = await acall_llm(
+                **self._llm_call_kwargs(
+                    model=model,
+                    messages=messages,
+                    tools=tools,
+                    trace_id=context.trace_id,
+                )
+            )
+            return self._settle_llm_syscall(context, llm_result)
+        except asyncio.CancelledError:
+            self._fail_llm_syscall(context, RuntimeError("llm call cancelled"))
+            raise
+        except Exception as exc:
+            return self._fail_llm_syscall(context, exc)
+
+    def _prepare_llm_syscall(
+        self,
+        *,
+        payer_id: str,
+        model: str,
+        messages: list[dict[str, Any]],
+    ) -> tuple[dict[str, Any] | None, _LLMSyscallContext | None]:
         if self.config.llm.allowed_models and model not in self.config.llm.allowed_models:
             return {
                 "success": False,
                 "error": f"model '{model}' is not allowed",
                 "error_code": "model_not_allowed",
-            }
+            }, None
 
         # Preflight reservation values; settled to actuals after call.
         estimated_tokens = self._estimate_tokens(messages)
@@ -1910,7 +2065,7 @@ def run():
                 "error_code": "insufficient_budget",
                 "estimated_cost": estimated_cost,
                 "budget": self.ledger.get_llm_budget(payer_id),
-            }
+            }, None
 
         # Reserve expected budget before calling provider; reconcile after response.
         if not self.ledger.spend_resource(payer_id, "llm_budget", estimated_cost):
@@ -1918,7 +2073,7 @@ def run():
                 "success": False,
                 "error": "failed to reserve llm_budget",
                 "error_code": "insufficient_budget",
-            }
+            }, None
 
         if not self.ledger.consume_resource(payer_id, "llm_calls", 1.0):
             self.ledger.credit_resource(payer_id, "llm_budget", estimated_cost)
@@ -1927,7 +2082,7 @@ def run():
                 "error": "llm_calls rate limit exceeded",
                 "error_code": "rate_limited",
                 "retry_after_seconds": self.rate_tracker.time_until_capacity(payer_id, "llm_calls", 1.0),
-            }
+            }, None
 
         if not self.ledger.consume_resource(payer_id, "llm_tokens", float(estimated_tokens)):
             self.ledger.refund_resource_usage(payer_id, "llm_calls", 1.0)
@@ -1939,179 +2094,189 @@ def run():
                 "retry_after_seconds": self.rate_tracker.time_until_capacity(
                     payer_id, "llm_tokens", float(estimated_tokens)
                 ),
-            }
+            }, None
 
         self.mark_llm_call_attempt(payer_id)
         trace_id = f"ae3/{self.run_id}/event_{self.event_number}/payer/{payer_id}"
-        start = time.perf_counter()
-        try:
-            try:
-                from llm_client import call_llm
-            except Exception as exc:  # pragma: no cover - optional dependency fallback
-                raise RuntimeError(f"llm_client import failed: {exc}") from exc
+        return None, _LLMSyscallContext(
+            payer_id=payer_id,
+            model=model,
+            estimated_tokens=estimated_tokens,
+            estimated_cost=estimated_cost,
+            trace_id=trace_id,
+            start=time.perf_counter(),
+        )
 
-            agent_kwargs: dict[str, Any] = {}
-            lowered_model = model.strip().lower()
-            is_agent_model = self._is_agent_model(lowered_model)
-            if is_agent_model:
-                # Agent SDK retries are disabled by default for side-effect safety in llm_client.
-                # Pass max_retries=0 explicitly to avoid repeated runtime warnings in long runs.
-                agent_kwargs["max_retries"] = 0
-                if self.config.llm.agent_cwd:
-                    agent_kwargs["cwd"] = self.config.llm.agent_cwd
-                if self.config.llm.agent_max_turns is not None:
-                    agent_kwargs["max_turns"] = int(self.config.llm.agent_max_turns)
-                if self.config.llm.agent_permission_mode:
-                    agent_kwargs["permission_mode"] = self.config.llm.agent_permission_mode
-                if self._is_claude_agent_model(lowered_model) and self._tools_include_ae3_action(tools):
-                    mcp_servers = self._build_loop_mcp_servers()
-                    if mcp_servers:
-                        agent_kwargs["mcp_servers"] = mcp_servers
+    def _llm_call_kwargs(
+        self,
+        *,
+        model: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        trace_id: str,
+    ) -> dict[str, Any]:
+        agent_kwargs: dict[str, Any] = {}
+        lowered_model = model.strip().lower()
+        if self._is_agent_model(lowered_model):
+            agent_kwargs["max_retries"] = 0
+            if self.config.llm.agent_cwd:
+                agent_kwargs["cwd"] = self.config.llm.agent_cwd
+            if self.config.llm.agent_max_turns is not None:
+                agent_kwargs["max_turns"] = int(self.config.llm.agent_max_turns)
+            if self.config.llm.agent_permission_mode:
+                agent_kwargs["permission_mode"] = self.config.llm.agent_permission_mode
+            if self._is_claude_agent_model(lowered_model) and self._tools_include_ae3_action(tools):
+                mcp_servers = self._build_loop_mcp_servers()
+                if mcp_servers:
+                    agent_kwargs["mcp_servers"] = mcp_servers
 
-            call_kwargs: dict[str, Any] = {"num_retries": int(self.config.llm.num_retries)}
-            if self.config.llm.max_output_tokens is not None:
-                call_kwargs["max_tokens"] = int(self.config.llm.max_output_tokens)
-            provider_max_budget = float(self.config.llm.provider_max_budget_usd)
-            if provider_max_budget > 0:
-                call_kwargs["budget_scope_trace_id"] = f"ae3/{self.run_id}"
-                call_kwargs["budget_reservation"] = min(
-                    provider_max_budget,
-                    float(self.config.llm.provider_budget_reservation_usd),
-                )
-
-            llm_result = call_llm(
-                model=model,
-                messages=messages,
-                tools=tools,
-                timeout=self.config.llm.timeout_seconds,
-                task="agent_ecology3_syscall",
-                trace_id=trace_id,
-                max_budget=provider_max_budget,
-                model_justification=self.config.llm.model_justification,
-                **call_kwargs,
-                **agent_kwargs,
+        provider_max_budget = float(self.config.llm.provider_max_budget_usd)
+        call_kwargs: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "tools": tools,
+            "timeout": self.config.llm.timeout_seconds,
+            "task": "agent_ecology3_syscall",
+            "trace_id": trace_id,
+            "max_budget": provider_max_budget,
+            "model_justification": self.config.llm.model_justification,
+            "num_retries": int(self.config.llm.num_retries),
+        }
+        if self.config.llm.max_output_tokens is not None:
+            call_kwargs["max_tokens"] = int(self.config.llm.max_output_tokens)
+        if provider_max_budget > 0:
+            call_kwargs["budget_scope_trace_id"] = f"ae3/{self.run_id}"
+            call_kwargs["budget_reservation"] = min(
+                provider_max_budget,
+                float(self.config.llm.provider_budget_reservation_usd),
             )
-            content = llm_result.content or ""
-            tool_calls: list[dict[str, Any]] = []
-            tool_calls_raw = getattr(llm_result, "tool_calls", None)
-            if isinstance(tool_calls_raw, list):
-                for entry in tool_calls_raw:
-                    if isinstance(entry, dict):
-                        tool_calls.append(entry)
-                    elif hasattr(entry, "model_dump"):
-                        try:
-                            dumped = entry.model_dump()
-                        except Exception:
-                            continue
-                        if isinstance(dumped, dict):
-                            tool_calls.append(dumped)
-            usage_raw = llm_result.usage if isinstance(llm_result.usage, dict) else {}
-            prompt_tokens = int(usage_raw.get("prompt_tokens", usage_raw.get("input_tokens", 0)) or 0)
-            completion_tokens = int(usage_raw.get("completion_tokens", usage_raw.get("output_tokens", 0)) or 0)
-            actual_tokens = int(usage_raw.get("total_tokens", prompt_tokens + completion_tokens) or 0)
+        call_kwargs.update(agent_kwargs)
+        return call_kwargs
 
-            cache_hit = bool(getattr(llm_result, "cache_hit", False))
-            actual_cost = float(getattr(llm_result, "marginal_cost", llm_result.cost) or 0.0)
-            cost_source = str(getattr(llm_result, "cost_source", "unknown"))
-            billing_mode = str(getattr(llm_result, "billing_mode", "unknown"))
+    def _settle_llm_syscall(
+        self,
+        context: _LLMSyscallContext,
+        llm_result: Any,
+    ) -> dict[str, Any]:
+        payer_id = context.payer_id
+        model = context.model
+        estimated_tokens = context.estimated_tokens
+        estimated_cost = context.estimated_cost
+        trace_id = context.trace_id
+        content = llm_result.content or ""
+        tool_calls: list[dict[str, Any]] = []
+        tool_calls_raw = getattr(llm_result, "tool_calls", None)
+        if isinstance(tool_calls_raw, list):
+            for entry in tool_calls_raw:
+                if isinstance(entry, dict):
+                    tool_calls.append(entry)
+                elif hasattr(entry, "model_dump"):
+                    try:
+                        dumped = entry.model_dump()
+                    except Exception:
+                        continue
+                    if isinstance(dumped, dict):
+                        tool_calls.append(dumped)
+        usage_raw = llm_result.usage if isinstance(llm_result.usage, dict) else {}
+        prompt_tokens = int(
+            usage_raw.get("prompt_tokens", usage_raw.get("input_tokens", 0)) or 0
+        )
+        completion_tokens = int(
+            usage_raw.get("completion_tokens", usage_raw.get("output_tokens", 0)) or 0
+        )
+        actual_tokens = int(
+            usage_raw.get("total_tokens", prompt_tokens + completion_tokens) or 0
+        )
 
-            if cache_hit:
-                actual_tokens = 0
-                actual_cost = 0.0
-                self.ledger.refund_resource_usage(payer_id, "llm_calls", 1.0)
+        cache_hit = bool(getattr(llm_result, "cache_hit", False))
+        actual_cost = float(
+            getattr(llm_result, "marginal_cost", llm_result.cost) or 0.0
+        )
+        cost_source = str(getattr(llm_result, "cost_source", "unknown"))
+        billing_mode = str(getattr(llm_result, "billing_mode", "unknown"))
 
-            budget_settle_cost = actual_cost
-            budget_charge_basis = "actual_cost"
-            billing_mode_normalized = billing_mode.strip().lower()
-            if cache_hit:
+        if cache_hit:
+            actual_tokens = 0
+            actual_cost = 0.0
+            self.ledger.refund_resource_usage(payer_id, "llm_calls", 1.0)
+
+        budget_settle_cost = actual_cost
+        budget_charge_basis = "actual_cost"
+        billing_mode_normalized = billing_mode.strip().lower()
+        if cache_hit:
+            budget_settle_cost = 0.0
+            budget_charge_basis = "cache_hit"
+        elif "subscription" in billing_mode_normalized:
+            mode = self.config.llm.subscription_budget_charge_mode
+            if mode == "none":
                 budget_settle_cost = 0.0
-                budget_charge_basis = "cache_hit"
-            elif "subscription" in billing_mode_normalized:
-                mode = self.config.llm.subscription_budget_charge_mode
-                if mode == "none":
-                    budget_settle_cost = 0.0
-                    budget_charge_basis = "subscription_none"
-                elif mode == "estimated":
-                    multiplier = max(0.0, float(self.config.llm.subscription_estimated_cost_multiplier))
-                    budget_settle_cost = max(0.0, estimated_cost * multiplier)
-                    budget_charge_basis = "subscription_estimated"
-                else:
-                    budget_settle_cost = actual_cost
-                    budget_charge_basis = "subscription_actual"
-
-            # Reconcile token reservation to measured tokens (or zero on cache hit).
-            if actual_tokens < estimated_tokens:
-                self.ledger.refund_resource_usage(
-                    payer_id,
-                    "llm_tokens",
-                    float(estimated_tokens - actual_tokens),
+                budget_charge_basis = "subscription_none"
+            elif mode == "estimated":
+                multiplier = max(
+                    0.0, float(self.config.llm.subscription_estimated_cost_multiplier)
                 )
-            elif actual_tokens > estimated_tokens:
-                extra_tokens = float(actual_tokens - estimated_tokens)
-                extra_ok = self.ledger.consume_resource(payer_id, "llm_tokens", extra_tokens)
-                if not extra_ok:
-                    self.logger.log(
-                        "llm_syscall_token_overage",
-                        {
-                            "event_number": self.event_number,
-                            "payer_id": payer_id,
-                            "model": model,
-                            "estimated_tokens": estimated_tokens,
-                            "actual_tokens": actual_tokens,
-                            "extra_tokens": extra_tokens,
-                        },
-                    )
-
-            # Reconcile budget reservation against chosen budget settlement cost.
-            charged_cost = 0.0
-            undercharged_cost = 0.0
-            if budget_settle_cost <= estimated_cost:
-                refund = estimated_cost - budget_settle_cost
-                if refund > 0:
-                    self.ledger.credit_resource(payer_id, "llm_budget", refund)
-                charged_cost = budget_settle_cost
+                budget_settle_cost = max(0.0, estimated_cost * multiplier)
+                budget_charge_basis = "subscription_estimated"
             else:
-                extra_cost = budget_settle_cost - estimated_cost
-                extra_available = max(0.0, self.ledger.get_llm_budget(payer_id))
-                charge_extra = min(extra_cost, extra_available)
-                if charge_extra > 0:
-                    self.ledger.spend_resource(payer_id, "llm_budget", charge_extra)
-                charged_cost = estimated_cost + charge_extra
-                undercharged_cost = max(0.0, extra_cost - charge_extra)
+                budget_settle_cost = actual_cost
+                budget_charge_basis = "subscription_actual"
 
-            duration_ms = (time.perf_counter() - start) * 1000
-            usage: dict[str, int] = {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": actual_tokens,
-            }
-            self.logger.log(
-                "llm_syscall",
-                {
-                    "event_number": self.event_number,
-                    "trace_id": trace_id,
-                    "payer_id": payer_id,
-                    "model": model,
-                    "actual_cost": actual_cost,
-                    "charged_cost": charged_cost,
-                    "cost_source": cost_source,
-                    "billing_mode": billing_mode,
-                    "budget_charge_basis": budget_charge_basis,
-                    "budget_settle_cost": budget_settle_cost,
-                    "cache_hit": cache_hit,
-                    "undercharged_cost": undercharged_cost,
-                    "duration_ms": duration_ms,
-                    "tokens": usage,
-                    "tool_calls_count": len(tool_calls),
-                },
+        # Reconcile token reservation to measured tokens (or zero on cache hit).
+        if actual_tokens < estimated_tokens:
+            self.ledger.refund_resource_usage(
+                payer_id,
+                "llm_tokens",
+                float(estimated_tokens - actual_tokens),
             )
-            self._llm_syscall_count += 1
-            return {
-                "success": True,
+        elif actual_tokens > estimated_tokens:
+            extra_tokens = float(actual_tokens - estimated_tokens)
+            extra_ok = self.ledger.consume_resource(
+                payer_id, "llm_tokens", extra_tokens
+            )
+            if not extra_ok:
+                self.logger.log(
+                    "llm_syscall_token_overage",
+                    {
+                        "event_number": self.event_number,
+                        "payer_id": payer_id,
+                        "model": model,
+                        "estimated_tokens": estimated_tokens,
+                        "actual_tokens": actual_tokens,
+                        "extra_tokens": extra_tokens,
+                    },
+                )
+
+        # Reconcile budget reservation against chosen budget settlement cost.
+        charged_cost = 0.0
+        undercharged_cost = 0.0
+        if budget_settle_cost <= estimated_cost:
+            refund = estimated_cost - budget_settle_cost
+            if refund > 0:
+                self.ledger.credit_resource(payer_id, "llm_budget", refund)
+            charged_cost = budget_settle_cost
+        else:
+            extra_cost = budget_settle_cost - estimated_cost
+            extra_available = max(0.0, self.ledger.get_llm_budget(payer_id))
+            charge_extra = min(extra_cost, extra_available)
+            if charge_extra > 0:
+                self.ledger.spend_resource(payer_id, "llm_budget", charge_extra)
+            charged_cost = estimated_cost + charge_extra
+            undercharged_cost = max(0.0, extra_cost - charge_extra)
+
+        duration_ms = (time.perf_counter() - context.start) * 1000
+        usage: dict[str, int] = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": actual_tokens,
+        }
+        self.logger.log(
+            "llm_syscall",
+            {
+                "event_number": self.event_number,
                 "trace_id": trace_id,
-                "content": content,
+                "payer_id": payer_id,
                 "model": model,
-                "cost": actual_cost,
+                "actual_cost": actual_cost,
                 "charged_cost": charged_cost,
                 "cost_source": cost_source,
                 "billing_mode": billing_mode,
@@ -2119,34 +2284,63 @@ def run():
                 "budget_settle_cost": budget_settle_cost,
                 "cache_hit": cache_hit,
                 "undercharged_cost": undercharged_cost,
-                "usage": usage,
-                "tool_calls": tool_calls,
                 "duration_ms": duration_ms,
-            }
-        except Exception as exc:
-            # Undo reservations if call failed.
-            self.ledger.refund_resource_usage(payer_id, "llm_calls", 1.0)
-            self.ledger.refund_resource_usage(payer_id, "llm_tokens", float(estimated_tokens))
-            self.ledger.credit_resource(payer_id, "llm_budget", estimated_cost)
-            duration_ms = (time.perf_counter() - start) * 1000
-            self.logger.log(
-                "llm_syscall_error",
-                {
-                    "event_number": self.event_number,
-                    "trace_id": trace_id,
-                    "payer_id": payer_id,
-                    "model": model,
-                    "error": str(exc),
-                    "duration_ms": duration_ms,
-                },
-            )
-            return {
-                "success": False,
-                "trace_id": trace_id,
-                "error": f"llm call failed: {exc}",
-                "error_code": "llm_error",
+                "tokens": usage,
+                "tool_calls_count": len(tool_calls),
+            },
+        )
+        self._llm_syscall_count += 1
+        return {
+            "success": True,
+            "trace_id": trace_id,
+            "content": content,
+            "model": model,
+            "cost": actual_cost,
+            "charged_cost": charged_cost,
+            "cost_source": cost_source,
+            "billing_mode": billing_mode,
+            "budget_charge_basis": budget_charge_basis,
+            "budget_settle_cost": budget_settle_cost,
+            "cache_hit": cache_hit,
+            "undercharged_cost": undercharged_cost,
+            "usage": usage,
+            "tool_calls": tool_calls,
+            "duration_ms": duration_ms,
+        }
+
+    def _fail_llm_syscall(
+        self,
+        context: _LLMSyscallContext,
+        exc: Exception,
+    ) -> dict[str, Any]:
+        self.ledger.refund_resource_usage(context.payer_id, "llm_calls", 1.0)
+        self.ledger.refund_resource_usage(
+            context.payer_id,
+            "llm_tokens",
+            float(context.estimated_tokens),
+        )
+        self.ledger.credit_resource(
+            context.payer_id, "llm_budget", context.estimated_cost
+        )
+        duration_ms = (time.perf_counter() - context.start) * 1000
+        self.logger.log(
+            "llm_syscall_error",
+            {
+                "event_number": self.event_number,
+                "trace_id": context.trace_id,
+                "payer_id": context.payer_id,
+                "model": context.model,
+                "error": str(exc),
                 "duration_ms": duration_ms,
-            }
+            },
+        )
+        return {
+            "success": False,
+            "trace_id": context.trace_id,
+            "error": f"llm call failed: {exc}",
+            "error_code": "llm_error",
+            "duration_ms": duration_ms,
+        }
 
     def tick(self) -> None:
         if self.mint_auction is not None:
@@ -2161,13 +2355,19 @@ def run():
             event_number=self.event_number,
             action_count=self._action_count,
             principal_count=len(self.principal_ids),
-            artifact_count=len([a for a in self.artifacts.artifacts.values() if not a.deleted]),
+            artifact_count=len(
+                [a for a in self.artifacts.artifacts.values() if not a.deleted]
+            ),
             total_scrip=sum(self.ledger.get_all_scrip().values()),
         )
         self.logger.log_summary(snapshot)
 
     def get_state_summary(self, event_limit: int = 100) -> dict[str, Any]:
-        artifacts = [a.to_dict(include_code=False) for a in self.artifacts.artifacts.values() if not a.deleted]
+        artifacts = [
+            a.to_dict(include_code=False)
+            for a in self.artifacts.artifacts.values()
+            if not a.deleted
+        ]
         balances = self.ledger.get_all_balances()
         quotas = {pid: self.get_principal_quotas(pid) for pid in self.principal_ids}
 
@@ -2183,7 +2383,9 @@ def run():
             "artifacts": artifacts,
             "mint": {
                 "enabled": self.mint_auction is not None,
-                "status": self.mint_auction.status() if self.mint_auction else {"phase": "disabled"},
+                "status": self.mint_auction.status()
+                if self.mint_auction
+                else {"phase": "disabled"},
             },
             "events": self.logger.read_recent(event_limit),
             "frozen": sorted(self.frozen_agents),

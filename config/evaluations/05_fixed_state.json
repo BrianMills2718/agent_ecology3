@@ -1,0 +1,36 @@
+{
+  "balance": 6,
+  "resources": {
+    "llm_budget": 0.25,
+    "llm_calls_remaining": 120,
+    "llm_tokens_remaining": 400000,
+    "disk_bytes_remaining": 240000
+  },
+  "artifacts": [
+    {
+      "id": "${principal_id}_scratch",
+      "type": "scratchpad",
+      "owner": "${principal_id}",
+      "read_price": 0,
+      "invoke_price": 0
+    },
+    {
+      "id": "alpha_2_market_note",
+      "type": "market_report",
+      "owner": "alpha_2",
+      "read_price": 1,
+      "invoke_price": 0
+    }
+  ],
+  "memory": {
+    "turn": 3,
+    "next_objective": "produce",
+    "objectives": ["produce", "trade", "adapt"],
+    "stagnation_count": 1
+  },
+  "recent_feedback": {
+    "recent_action_types": ["query_kernel", "query_kernel", "write_artifact"],
+    "recent_error_codes": []
+  }
+}
+

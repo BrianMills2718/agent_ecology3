@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 import builtins
+import inspect
 import json
 import signal
+import threading
 import time
 from contextlib import contextmanager
 from types import FrameType, ModuleType
-from typing import Any, Generator
+from typing import Any, Generator, cast
 
 
 def parse_json_args(args: list[Any]) -> list[Any]:
@@ -88,6 +91,110 @@ class SafeExecutor:
         entry_point: str = "run",
         method_name: str | None = None,
     ) -> dict[str, Any]:
+        """Execute an artifact from synchronous code.
+
+        Async callers should use ``execute_with_invoke_async`` so a provider
+        await cannot block their loop. Nested legacy sync invocations are
+        isolated in a helper thread when their caller already owns an event
+        loop.
+        """
+
+        coroutine = self._execute_with_invoke_impl(
+            code=code,
+            args=args,
+            caller_id=caller_id,
+            artifact_id=artifact_id,
+            world=world,
+            current_depth=current_depth,
+            max_depth=max_depth,
+            entry_point=entry_point,
+            method_name=method_name,
+            use_async_provider=False,
+        )
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coroutine)
+
+        result: list[dict[str, Any]] = []
+        errors: list[BaseException] = []
+
+        def _run_nested() -> None:
+            try:
+                result.append(asyncio.run(coroutine))
+            except BaseException as exc:  # noqa: BLE001 - re-raised on the caller thread
+                errors.append(exc)
+
+        thread = threading.Thread(target=_run_nested, daemon=True)
+        thread.start()
+        thread.join()
+        if errors:
+            raise errors[0]
+        if not result:  # pragma: no cover - defensive invariant
+            raise RuntimeError("nested synchronous artifact execution produced no result")
+        return result[0]
+
+    async def execute_with_invoke_async(
+        self,
+        *,
+        code: str,
+        args: list[Any] | None = None,
+        caller_id: str | None = None,
+        artifact_id: str | None = None,
+        world: Any | None,
+        current_depth: int = 0,
+        max_depth: int = 5,
+        entry_point: str = "run",
+        method_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Execute an artifact without blocking the caller's event loop.
+
+        Production bootstrap loops use the native async provider route. Legacy
+        synchronous loop artifacts run to completion in a worker thread while
+        the runner holds its serial world-execution lock.
+        """
+
+        async_declaration = f"async def {entry_point}("
+        if async_declaration not in code:
+            return await asyncio.to_thread(
+                self.execute_with_invoke,
+                code=code,
+                args=args,
+                caller_id=caller_id,
+                artifact_id=artifact_id,
+                world=world,
+                current_depth=current_depth,
+                max_depth=max_depth,
+                entry_point=entry_point,
+                method_name=method_name,
+            )
+        return await self._execute_with_invoke_impl(
+            code=code,
+            args=args,
+            caller_id=caller_id,
+            artifact_id=artifact_id,
+            world=world,
+            current_depth=current_depth,
+            max_depth=max_depth,
+            entry_point=entry_point,
+            method_name=method_name,
+            use_async_provider=True,
+        )
+
+    async def _execute_with_invoke_impl(
+        self,
+        *,
+        code: str,
+        args: list[Any] | None,
+        caller_id: str | None,
+        artifact_id: str | None,
+        world: Any | None,
+        current_depth: int,
+        max_depth: int,
+        entry_point: str,
+        method_name: str | None,
+        use_async_provider: bool,
+    ) -> dict[str, Any]:
         args = parse_json_args(args or [])
         valid, message = self.validate_code(code)
         if not valid:
@@ -120,7 +227,7 @@ class SafeExecutor:
             if world is None:
                 return 0
             principal = artifact_id or caller_id or ""
-            return world.ledger.get_scrip(principal)
+            return int(world.ledger.get_scrip(principal))
 
         def invoke(target_id: str, *invoke_args: Any) -> dict[str, Any]:
             if world is None:
@@ -129,13 +236,16 @@ class SafeExecutor:
                 return {"success": False, "error": "caller_id missing"}
             if current_depth >= max_depth:
                 return {"success": False, "error": f"max invoke depth {max_depth} exceeded"}
-            return world.invoke_from_executor(
-                caller_id=caller_id,
-                target_id=target_id,
-                method="run",
-                args=list(invoke_args),
-                current_depth=current_depth + 1,
-                max_depth=max_depth,
+            return cast(
+                dict[str, Any],
+                world.invoke_from_executor(
+                    caller_id=caller_id,
+                    target_id=target_id,
+                    method="run",
+                    args=list(invoke_args),
+                    current_depth=current_depth + 1,
+                    max_depth=max_depth,
+                ),
             )
 
         globals_dict["pay"] = pay
@@ -154,25 +264,79 @@ class SafeExecutor:
                 globals_dict["kernel_actions"] = world.kernel_actions.for_principal(caller_id)
             else:
                 globals_dict["kernel_actions"] = world.kernel_actions
+            if caller_id is not None:
+
+                def _build_loop_messages(
+                    state_snapshot: dict[str, Any],
+                    strategy_text: str,
+                ) -> list[dict[str, str]]:
+                    return cast(
+                        list[dict[str, str]],
+                        world.build_loop_messages(
+                            principal_id=caller_id,
+                            state_snapshot=state_snapshot,
+                            strategy_text=strategy_text,
+                        ),
+                    )
+
+                globals_dict["_build_loop_messages"] = _build_loop_messages
 
         if world is not None and artifact_id is not None:
             artifact = world.artifacts.get(artifact_id)
             if artifact is not None and "can_call_llm" in artifact.capabilities:
+                async_entry = f"async def {entry_point}(" in code
+                if async_entry:
 
-                def _syscall_llm(model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-                    payer = caller_id or artifact_id
-                    return world.call_llm_as_syscall(
-                        payer_id=payer,
-                        model=model,
-                        messages=messages,
-                        tools=tools,
-                    )
+                    async def _async_syscall_llm(
+                        model: str,
+                        messages: list[dict[str, Any]],
+                        tools: list[dict[str, Any]] | None = None,
+                    ) -> dict[str, Any]:
+                        payer = caller_id or artifact_id
+                        if use_async_provider:
+                            return cast(
+                                dict[str, Any],
+                                await world.call_llm_as_syscall_async(
+                                    payer_id=payer,
+                                    model=model,
+                                    messages=messages,
+                                    tools=tools,
+                                ),
+                            )
+                        return cast(
+                            dict[str, Any],
+                            world.call_llm_as_syscall(
+                                payer_id=payer,
+                                model=model,
+                                messages=messages,
+                                tools=tools,
+                            ),
+                        )
 
-                globals_dict["_syscall_llm"] = _syscall_llm
+                    globals_dict["_syscall_llm"] = _async_syscall_llm
+                else:
+
+                    def _sync_syscall_llm(
+                        model: str,
+                        messages: list[dict[str, Any]],
+                        tools: list[dict[str, Any]] | None = None,
+                    ) -> dict[str, Any]:
+                        payer = caller_id or artifact_id
+                        return cast(
+                            dict[str, Any],
+                            world.call_llm_as_syscall(
+                                payer_id=payer,
+                                model=model,
+                                messages=messages,
+                                tools=tools,
+                            ),
+                        )
+
+                    globals_dict["_syscall_llm"] = _sync_syscall_llm
 
         class Action:
             def invoke_artifact(self, target_id: str, method: str = "run", args: list[Any] | None = None) -> dict[str, Any]:
-                result = invoke(target_id, *((args or [])))
+                result = invoke(target_id, *(args or []))
                 return result
 
             def pay(self, target: str, amount: int) -> dict[str, Any]:
@@ -216,6 +380,9 @@ class SafeExecutor:
                     result = entry(caller_id, method_name or "run", args)
                 else:
                     result = entry(*args)
+            if inspect.isawaitable(result):
+                timeout = self.timeout_seconds + 5 if use_async_provider else self.timeout_seconds
+                result = await asyncio.wait_for(result, timeout=timeout)
         except TimeoutError:
             return {
                 "success": False,

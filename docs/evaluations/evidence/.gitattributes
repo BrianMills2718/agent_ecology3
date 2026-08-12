@@ -1,0 +1,2 @@
+# Frozen byte-for-byte input snapshots are evidence, not editable text diffs.
+**/inputs/** -diff

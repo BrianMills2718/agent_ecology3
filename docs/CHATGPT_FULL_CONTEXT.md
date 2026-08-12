@@ -1,6 +1,7 @@
 # Agent Ecology 3: Full Context Handoff for ChatGPT
 
 Date: 2026-02-22
+Last verified: 2026-08-11
 Primary repo: `/home/brian/projects/agent_ecology3`
 Previous repo: `/home/brian/projects/agent_ecology2`
 Historical reference: `/home/brian/projects/archive/agent_ecology`
@@ -118,6 +119,12 @@ Current loop policy includes:
 - in-memory recent-feedback summary (no hot-path event-log scans)
 - optional cooldown (currently default `0.0`)
 
+Runtime scheduling note (2026-08-11): production bootstrap loops now await the
+native async shared-client call. World-mutating loop invocations remain serial,
+the duration monitor is responsive during provider waits, and shutdown drains
+the in-flight invocation before returning. Legacy synchronous artifacts are
+offloaded from the event-loop thread.
+
 ## 6. Scarcity and accounting model
 
 ### 6.1 Resources in play
@@ -129,10 +136,11 @@ Current loop policy includes:
 
 ### 6.2 LLM syscall accounting path
 
-LLM path in `World.call_llm_as_syscall`:
+Shared sync/async LLM path in `World.call_llm_as_syscall` and
+`World.call_llm_as_syscall_async`:
 1. Estimate tokens/cost for preflight reservation.
 2. Reserve `llm_budget` and consume rate units (`llm_calls`, `llm_tokens`).
-3. Call `llm_client.call_llm`.
+3. Call `llm_client.call_llm` or native `llm_client.acall_llm`.
 4. Reconcile reserved units against measured usage/cost.
 5. Log `llm_syscall` event with accounting fields.
 
@@ -170,6 +178,20 @@ This addresses the operator requirement: subscription agents must still face bud
 - `scarcity_matrix`: repeated runs + aggregate + KPI lock.
 - `emergence_report`: per-run metrics and experiment logging.
 - Integration with `llm_client` experiments (`start_run`, `log_item`, `finish_run`, compare/list/detail).
+- One-shot provider/tool qualification with frozen prompts, state, tool schema,
+  exact shared-client readback, terminal failure classes, and a SHA-256 evidence
+  manifest (`analysis.provider_qualification`).
+
+Evaluation status as of 2026-08-11:
+
+- Evaluation 04 remains inconclusive because scheduler blocking and
+  provider/tool failures dominated its behavioral-validity denominator.
+- Evaluation 05 made 32 serial MiniMax-M3 calls and retained exact messages,
+  response content, and tool-call payloads. Its frozen classifier nevertheless
+  returned `not_qualified` because it required a persistence-policy key that
+  the public readback record omitted. A non-decision diagnostic was 16/16 usable
+  prescribed and 15/16 usable minimal (one empty provider response), but neither
+  a rerun nor behavioral evaluation is authorized from that audit.
 
 ### 7.2 Entropy metric definition
 

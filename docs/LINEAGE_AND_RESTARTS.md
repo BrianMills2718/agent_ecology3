@@ -164,6 +164,7 @@ Meta keeping both lines active.
 | Wall-clock control assumes a responsive event loop | AE3 Evaluation 04 called a synchronous provider client from its async loop; serial latency and timeouts delayed the monitor beyond its original horizon. | Use an async-safe provider boundary and prove that cancellation/timeout monitoring remains responsive before behavioral runs. |
 | Provider formatting failure is counted as behavior | MiniMax truncation and timeout errors lowered AE3's LLM-valid-decision rate enough to invalidate the first ablation before treatment. | Qualify model/prompt/tool-schema reliability separately, then freeze the behavioral evaluation without changing its thresholds midstream. |
 | Trace IDs mistaken for complete custody | Evaluation 04 linked every AE3 attempt to a shared-client receipt, but successful tool-call rows generally omitted the raw tool-call envelope. | Preserve rendered input, raw provider output/tool envelope, normalized decision, and receipt together; verify the chain before interpretation. |
+| Auxiliary metadata mistaken for the custody fact | Evaluation 05's public call records contained byte-for-byte matching response/tool payloads, but its classifier rejected all attempts because that API did not expose the SQLite `content_persistence` column. | Test the exact public readback shape before spend and establish custody from exact caller/readback equality. Treat missing optional metadata as an assay defect, not as proof that retained payloads differ. |
 | Process grows around the experiment | AE2 accumulated extensive plan, governance, dashboard, and documentation surfaces; AE3 later re-added meta-process tooling outside runtime. | Keep process outside runtime and require each new control to protect a reproduced failure or current shared-state boundary. |
 
 ## Current AE3 Watch Items
@@ -181,8 +182,11 @@ These are observed risks, not reasons to restart AE3 now.
    can create the behavior being measured. Forced exploration now defaults to
    `off`, and AE3 records decision-origin metrics, which are good safeguards.
    Evaluation 04 added a minimal-cognition switch, but its first frozen assay
-   stopped before treatment after a second invalid paid run; the required
-   intervention-off comparison therefore remains outstanding.
+   stopped before treatment after a second invalid paid run. Evaluation 05's
+   provider/tool qualification descriptively produced usable actions in 16/16
+   prescribed and 15/16 minimal calls, but its frozen classifier returned
+   `not_qualified` because of the readback-metadata defect. The required
+   intervention-off behavioral comparison therefore remains outstanding.
 3. **Historical empirical claims are not self-contained in Git.** The README
    and `CHATGPT_FULL_CONTEXT.md` name run IDs and summary files, but a clean
    clone contains no tracked logs or summary JSON. Treat those claims as a
@@ -214,6 +218,11 @@ The review intentionally separates code health from thesis evidence:
   preregistered assay that terminated **inconclusive**. Its tracked evidence
   bundle preserves the raw AE3 events, matrices, inputs, hashes, and trace
   audit; the minimal treatment was not run.
+- Plan #5 then passed 71 repository tests and repaired AE3's async scheduling
+  boundary. Evaluation 05 spent USD 0.0359061 on 32 serial calls with exact
+  trace/tool custody, but its immutable runner verdict is **not qualified** due
+  to the classifier/readback metadata mismatch documented above. It was not
+  rerun and no behavioral evaluation followed.
 
 ## Advice and Next Decision
 
@@ -239,6 +248,12 @@ fresh evaluation: an async-safe provider boundary and full raw tool-call
 custody. Treat those as repairs to the experimental instrument, not as a reason
 for another repository rewrite.
 
+Plan #5 implemented both repairs. Evaluation 05 then showed that exact payload
+custody alone is not enough if the decision classifier assumes fields outside
+the public readback contract. The preserved data is encouraging but does not
+replace its frozen verdict. Any further qualification needs a new
+preregistration; do not recycle Evaluation 05 as a passing assay.
+
 If AE3 produces that evidence while retaining the essential contract/resource
 semantics needed for subsequent experiments, decide explicitly whether to mark
 AE2 superseded or keep it as a separately active reference runtime. Until then,
@@ -253,6 +268,7 @@ rewrite.
 - Implemented AE3 scope: [IMPLEMENTATION_BASELINE.md](IMPLEMENTATION_BASELINE.md)
 - Historical AE3 experiments and caveats: [CHATGPT_FULL_CONTEXT.md](CHATGPT_FULL_CONTEXT.md)
 - Inconclusive prescription-ablation result and evidence: [Evaluation 04](evaluations/04_prescription_ablation.md)
+- One-shot provider/tool qualification and classifier failure: [Evaluation 05](evaluations/05_provider_tool_qualification.md)
 - AE2 behavioral observations: [`SIMULATION_LEARNINGS.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/SIMULATION_LEARNINGS.md)
 - AE2 V1 gate: [`V1_ACCEPTANCE.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/V1_ACCEPTANCE.md)
 - AE1 mechanism code: [`agent_ecology` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology/tree/720920732373292d1353be9a1f8066016b6f5aa8)
