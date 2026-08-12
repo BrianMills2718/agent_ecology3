@@ -1,6 +1,6 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** In progress — Slice A provider-free gate passed; Slice B next
+**Status:** In progress — Slice A passed; canary-safety Slice B next
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None; live canary dispatch remains separately authorized
@@ -41,8 +41,15 @@ ready in merge `286715784f1d535d6dfcd2c867ca678d666e27d5`.
 AE3 reran the retained preflight against that exact accepted revision through
 repo-local unit `WU-10-02`. The unit is implemented and its evidence is under
 `docs/evaluations/evidence/plan10_luna_recovery_gate/`. This completes Slice A
-only; it does not authorize a Luna call. Slice B's provider-free recoverable
-cell remains the next implementation boundary.
+only; it does not authorize a Luna call.
+
+The subsequent general audit found that the runtime refunded a returned Luna
+call when its action/profile was rejected, accepted unclassified Codex event
+types, and checked only for the presence of the shared `codex_events` field
+rather than the exact reviewed dependency revision. The user approved the
+recommended PoC correction on 2026-08-12: close those one-call safety gaps
+before the canary, then require the full recoverable cell and detached worker
+only before multi-call scale. Slice B below is that provider-free boundary.
 
 ---
 
@@ -65,9 +72,8 @@ one model turn.
 
 **Planning route:** durable solo. Work remains sequential. The shared-client
 blocker introduced one real cross-project seam, so Plan #355 used a two-unit
-work graph and AE3 mirrors the now-ready consumer unit in its repo-local graph
-for enforceable claim binding. This does not introduce a parallel execution
-lane.
+work graph and AE3 uses its repo-local graph as the claim-registry binding. The
+graph does not introduce a parallel execution lane.
 
 **Delivery profile:** prototype instrument with runtime-state, LLM, exploratory,
 and repository-governance overlays. This plan proves a route and a recoverable
@@ -103,9 +109,12 @@ AE3 turn invokes exactly `codex/gpt-5.6-luna` at medium reasoning through the
 ChatGPT subscription route, sees only the accepted Codex base envelope plus the
 AE3 prompt and strict action schema, returns exactly one Pydantic-validated
 legal action without MCP, and retains exact call/action custody. Before that
-canary, a provider-free 16-attempt fixture must prove that a worker or process
-failure cannot repeat a dispatched provider attempt and cannot promote
-ambiguous state as valid.
+canary, provider-free checks must prove that the runtime is bound to the exact
+reviewed shared-client revision, rejects unclassified Codex events, and never
+refunds or erases a returned-but-invalid or dispatch-ambiguous Luna attempt.
+Before any later multi-call qualification, a provider-free 16-attempt fixture
+and detached worker must additionally prove that process failure cannot repeat
+a dispatched provider attempt or promote ambiguous state as valid.
 
 **Why:** Evaluation 08 cannot inherit MiniMax qualification, and another paid
 batch would be indefensible until both the Luna action boundary and Evaluation
@@ -134,18 +143,28 @@ without inference:
 
 ### Canonical example
 
-Run one 16-attempt provider-free cell with stable identity
-`plan10/recovery-fixture/cell-01`. Inject termination immediately after attempt
-8's shared-client settlement but before AE3 action classification. On restart,
-attempt 8 is reconstructed from the retained receipt, the cell reaches exactly
-16 committed attempts, and the fake provider dispatch count remains 16. A
-second injection while an action is being applied must instead produce a
-terminal invalid cell receipt and no replacement call.
+Run one provider-free Luna syscall with a fake returned shared-client result
+whose route and billing are correct but whose ordered Codex event stream
+contains an unclassified completed-item type. The action is rejected, while
+the inspectable syscall receipt remains `provider_settled_rejected`, charges
+the observed tokens/cost, consumes the reserved call, records the event types,
+and permits no automatic retry. A second fixture raises after the client call
+boundary is entered; it ends `dispatch_ambiguous`, retains the conservative
+reservation, and likewise permits no retry. A dependency-revision mismatch
+fails before reservation or dispatch.
 
-After that example passes, separately authorize one authentic Luna Medium
-turn using the prescribed production prompt and a representative state. The
-inspectable output is one legal `LunaLoopDecisionV1` action plus exact route,
-prompt, schema, Codex event trace, timing, token, billing, and custody evidence.
+After that example passes, separately authorize one authentic Luna Medium turn
+using the prescribed production prompt and a representative state. The output
+is one legal `LunaLoopDecisionV1` action plus exact route, prompt, schema, Codex
+event trace, timing, token, billing, settlement, and custody evidence.
+
+Before any later multi-call qualification, run one 16-attempt provider-free
+cell with stable identity `plan10/recovery-fixture/cell-01`. Inject termination
+immediately after attempt 8's shared-client settlement but before AE3 action
+classification. On restart, attempt 8 is reconstructed from the retained
+receipt, the cell reaches exactly 16 committed attempts, and the fake provider
+dispatch count remains 16. An injection while an action is being applied
+instead produces a terminal invalid cell receipt and no replacement call.
 
 ### Non-goals
 
@@ -260,7 +279,41 @@ semantic repair, multiple actions, unknown fields, schema-version mismatch, or
 any Codex tool execution fails the Plan 10 canary. AE3 alone executes the action
 after validation.
 
-### 3. Recoverable attempt state
+### 3. Canary-safe settlement and dependency boundary
+
+Plan 10 distinguishes the external-attempt state instead of representing every
+rejected result as if no call occurred:
+
+- A Luna configuration, schema-custody, or exact dependency-revision failure
+  occurs before resource reservation and provider dispatch. The accepted
+  `llm_client` execution revision is
+  `286715784f1d535d6dfcd2c867ca678d666e27d5`; field-shape compatibility alone
+  is insufficient.
+- Once the shared-client call boundary is entered, an exception with no public
+  result is `dispatch_ambiguous`. The runtime retains the call, token, and
+  subscription-budget reservation, increments the syscall-attempt count,
+  emits a failure receipt, and does not retry. It does not claim that the
+  provider settled or charge invented actual usage.
+- Once a public result returns, accounting always settles from its actual
+  usage/billing even when the route profile, event policy, or action is later
+  rejected. The receipt is `provider_settled_rejected`, includes the rejection
+  code/message and ordered Codex event types, and remains unsuccessful for
+  action execution.
+- An accepted result remains `provider_settled_accepted` and follows the
+  existing legal-action path.
+
+The Plan 10 event policy is an allowlist, not only a tool denylist. Known
+passive completed-item types are `reasoning` and `agent_message`. Known active
+types (`command_execution`, `file_change`, `web_search`, and `mcp_tool_call`)
+are forbidden, and any missing or unclassified type fails closed after truthful
+settlement. Extending the passive allowlist requires a reviewed shared-client
+fixture and a new exact AE3 revision; a live result does not silently teach the
+policy.
+
+This is deliberately one-call containment, not a generic recovery framework.
+It is the smallest boundary that makes the authentic canary's receipt truthful.
+
+### 4. Recoverable attempt state
 
 Create a versioned, Pydantic-validated recovery contract. At minimum it binds:
 
@@ -283,7 +336,7 @@ runner. Downtime does not silently replenish a rate window or advance an
 auction. There is no stateful policy RNG today; the checkpoint records the
 policy seed and rejects future unregistered RNG state.
 
-### 4. Attempt transition and recovery rules
+### 5. Attempt transition and recovery rules
 
 The allowed state progression is:
 
@@ -313,7 +366,7 @@ Atomic writes use a same-directory temporary file, file flush/sync, rename,
 and directory sync. The prior committed checkpoint remains the recovery base;
 temporary partials are evidence, not authority.
 
-### 5. Detached supervisor
+### 6. Detached supervisor
 
 Add one operator entry point that starts, inspects, and resumes a named detached
 worker. Use the available detached `tmux` process boundary for this development
@@ -363,7 +416,43 @@ remaining Plan 10 slices. Failure returns `blocked` with the observed surface
 and exact shared dependency; OpenRouter remains a user decision, not an
 automatic branch.
 
-#### Slice B - recoverable cell and custody (`fully_specifiable_now`)
+#### Slice B - truthful one-call settlement (`fully_specifiable_now`)
+
+1. Bind production Luna preflight to the exact accepted `llm_client` revision,
+   while retaining the existing public-field shape check as a separate
+   diagnostic.
+2. Classify post-boundary exceptions as `dispatch_ambiguous`; retain reserved
+   resources and record one unsuccessful attempt without retry.
+3. Settle every returned result from actual usage/billing before rejecting an
+   invalid route profile, Codex event stream, or action.
+4. Replace the intrinsic-event denylist with the reviewed passive allowlist and
+   fail closed on missing or unknown completed-item types.
+5. Cover the synchronous and asynchronous production consumers with focused
+   provider-free fixtures, including the canonical example above.
+
+**Acceptance:** a returned-but-rejected result and an ambiguous dispatch both
+remain visible unsuccessful attempts and cannot replenish resources or trigger
+a replacement call; an exact dependency mismatch fails before reservation;
+known passive events pass and active/unknown events fail closed.
+
+#### Slice C - one authentic Luna canary (`human_decision_required`)
+
+This slice begins only after Slice B passes and the user separately authorizes
+the external call. It runs exactly once through the frozen production
+prompt/action/settlement path. Any route, auth, quota, timeout, ambient-surface,
+schema, intrinsic-tool execution, custody, action, accounting, or billing
+failure retains a `blocked` evidence bundle and ends the canary without retry
+or route switch.
+
+The canary is allowed before the detached worker because it is one reversible,
+serial call with no retry and a retained terminal receipt. It does not
+establish a reliability rate, behavioral effect, valid scarcity treatment, or
+permission for a paid batch.
+
+#### Slice D - recoverable cell and custody (`conditional`)
+
+**Selecting condition:** the canary passes and the operator proposes any
+multi-call Luna qualification or evaluation.
 
 1. Introduce the typed attempt/checkpoint contract and append-safe logger mode.
 2. Add logical clock/stable identity injection and World export/restore for the
@@ -381,7 +470,10 @@ automatic branch.
 attempts with 16 dispatches or produces a named terminal invalid receipt with
 no additional dispatch. No fixture may silently restart from an empty World.
 
-#### Slice C - detached worker (`fully_specifiable_now`)
+#### Slice E - detached worker (`conditional`)
+
+**Selecting condition:** Slice D passes and a multi-call Luna run is the next
+authorized action.
 
 1. Add `start`, `status`, and `resume` behavior around the recoverable cell.
 2. Retain launch/heartbeat/exit receipts outside automatic prompt discovery.
@@ -390,18 +482,8 @@ no additional dispatch. No fixture may silently restart from an empty World.
 
 **Acceptance:** a new operator process can inspect the stable run identity,
 last committed attempt, current/terminal state, and exact resume action without
-access to the original chat or PTY.
-
-#### Slice D - one authentic Luna canary (`human_decision_required`)
-
-This slice begins only after A-C pass and the user separately authorizes the
-external call. It runs once through the detached worker with the exact frozen
-prompt/action/recovery path. Any route, auth, quota, timeout, ambient-surface,
-schema, intrinsic-tool execution, custody, action, or billing failure retains a
-`blocked` evidence bundle and ends Plan 10 without retry or route switch.
-
-Plan 11 is selected only if the canary passes. The canary does not establish a
-reliability rate, behavioral effect, or valid scarcity treatment.
+access to the original chat or PTY. Plan 11 remains blocked until the canary
+passes and cannot execute a multi-call run until Slices D-E pass.
 
 ---
 
@@ -475,6 +557,10 @@ one-call acknowledgement must remain unavailable until separate authorization.
 | tests/test_luna_recovery_gate.py | test_luna_action_schema_projects_six_permitted_variants | One Pydantic union covers the production loop-action set with six branches and no open object node |
 | tests/test_luna_recovery_gate.py | test_luna_structured_kwargs_are_explicit_and_mcp_free | The production consumer adopts the exact shared structured route without tools or MCP servers |
 | tests/test_luna_recovery_gate.py | test_prompt_schema_profile_is_ambient_free_and_observes_tool_event_custody | The profile has only accepted context, an empty workspace, no MCP, and ordered public intrinsic-event custody |
+| tests/test_luna_recovery_gate.py | test_luna_dependency_revision_mismatch_fails_before_reservation | Field-compatible but unreviewed shared-client source cannot enter the call boundary |
+| tests/test_luna_recovery_gate.py | test_luna_returned_rejection_settles_accounting_and_receipt | Returned invalid results consume the call and settle actual usage instead of being refunded |
+| tests/test_luna_recovery_gate.py | test_luna_dispatch_ambiguity_retains_reservation_without_retry | An exception after entering the client boundary is a visible conservative attempt, not a free retry |
+| tests/test_luna_recovery_gate.py | test_luna_unknown_codex_event_fails_closed_after_settlement | Missing or unclassified Codex item types cannot be promoted as passive |
 | tests/test_luna_recovery_gate.py | test_attempt_state_machine_rejects_invalid_transitions | Unknown versions and illegal transitions fail closed |
 | tests/test_luna_recovery_gate.py | test_post_settlement_restart_does_not_duplicate_dispatch | The canonical 8-of-16 restart finishes with exactly 16 fake dispatches |
 | tests/test_luna_recovery_gate.py | test_action_application_crash_is_terminal | Ambiguous mutation cannot trigger a replacement dispatch |
@@ -509,6 +595,13 @@ loops.
       existing canonical parser.
 - [x] Luna passes neither tools nor MCP servers, while the existing MCP path for
       other routes remains unchanged.
+- [ ] Production preflight binds Luna to the exact reviewed `llm_client`
+      revision before resource reservation or provider dispatch.
+- [ ] Returned-but-rejected and dispatch-ambiguous Luna attempts retain
+      truthful resources, counts, settlement state, and failure receipts with
+      no automatic retry.
+- [ ] Only reviewed passive Codex event types are accepted; active, missing,
+      and unknown types fail closed after truthful settlement.
 - [ ] The canonical 16-attempt recovery fixture completes with exactly 16 fake
       dispatches after a post-settlement restart.
 - [ ] Every ambiguous in-flight/action/corrupt-checkpoint case is terminally
@@ -531,6 +624,10 @@ loops.
 
 - A pre-dispatch failure makes zero external calls and leaves an inspectable
   provider-free preflight result.
+- A dispatch-ambiguous Luna failure retains its conservative reservation and
+  attempt receipt because the runtime cannot prove the provider was untouched.
+- A returned-but-rejected Luna result settles actual usage and remains
+  inspectable; action failure cannot retroactively turn the call into a refund.
 - A settled canary failure is final for the executed Plan 10 revision. Preserve
   it; do not tune the prompt, repair semantically, retry, or switch route under
   the same gate.
@@ -545,8 +642,8 @@ loops.
   an authentic capability, two consecutive non-outcome increments, or three
   failures at the same boundary. The outcome and gates do not silently shrink.
 
-The next action after this plan is accepted in the repository is Slice A's
-provider-free action/profile preflight. No provider call is part of plan
+The next action after this revision is accepted in the repository is Slice B's
+provider-free one-call settlement boundary. No provider call is part of plan
 authoring or ordinary implementation.
 
 The listed files are the expected AE3 surfaces and may be narrowed during
