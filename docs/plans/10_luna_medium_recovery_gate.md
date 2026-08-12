@@ -1,6 +1,6 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** Blocked after Slice A checkpoint
+**Status:** In progress — shared dependency accepted; Slice A adoption ready
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None; live canary dispatch remains separately authorized
@@ -32,6 +32,21 @@ Codex tools executed zero times. This is the named shared dependency
 or weaken the zero-tool gate until a governed `llm_client` change exposes and
 tests that evidence.
 
+### Shared dependency resolution (2026-08-12)
+
+`llm_client` Plan #355 implemented the additive public
+`LLMCallResult.codex_events` contract in merge
+`63f471347f2f1e18b37cf82d50b5546336b6a5e1`. Its machine-readable work graph
+accepts the shared unit and advances the downstream Agent Ecology unit to
+ready in merge `286715784f1d535d6dfcd2c867ca678d666e27d5`.
+
+The retained AE3 preflight remains the truthful blocked receipt until the
+repo-local adoption unit reruns it against that exact accepted revision. The
+claimable downstream unit is `WU-10-02` in
+`docs/plans/supporting/10_work_graph.json`. It authorizes only provider-free
+adoption and evidence refresh; it does not authorize a Luna call or begin the
+recovery-worker slices.
+
 ---
 
 ## Adopted Direction
@@ -51,9 +66,11 @@ tool-call parser without adding an MVP capability. Reconsider MCP for Luna only
 if a later outcome requires interactive observation or multiple actions inside
 one model turn.
 
-**Planning route:** durable solo. Work is sequential, but the experimental
-instrument and recovery contract are durable consumers. No work-unit graph or
-parallel lane is justified yet.
+**Planning route:** durable solo. Work remains sequential. The shared-client
+blocker introduced one real cross-project seam, so Plan #355 used a two-unit
+work graph and AE3 mirrors the now-ready consumer unit in its repo-local graph
+for enforceable claim binding. This does not introduce a parallel execution
+lane.
 
 **Delivery profile:** prototype instrument with runtime-state, LLM, exploratory,
 and repository-governance overlays. This plan proves a route and a recoverable

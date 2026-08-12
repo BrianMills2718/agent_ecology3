@@ -1,0 +1,103 @@
+{
+  "units": [
+    {
+      "schema_version": "1.0",
+      "record_type": "work_unit",
+      "id": "WU-10-02",
+      "initiative_id": "agent-ecology-luna-recovery",
+      "goal_id": "public-codex-intrinsic-event-custody",
+      "design_revision": "6bd99d743c948fa5da528375c7de7faba1399a77",
+      "spec_revision": "wu-10-02-v1",
+      "title": "Adopt the accepted Codex event receipt in Agent Ecology 3",
+      "class": "integration",
+      "objective": "Bind Agent Ecology 3 to the accepted shared-client revision and prove its MCP-free provider-free Luna gate can observe intrinsic Codex events.",
+      "profile": "small",
+      "execution_class": "independently_executable",
+      "claimability": "ready_for_execution",
+      "authorization_mode": "registry_claim",
+      "scope": {
+        "included": [
+          "Exact accepted llm_client revision binding",
+          "Provider-free public codex_events custody probe",
+          "Focused Luna preflight and fail-closed boundary tests",
+          "Regenerated provider-free evidence and Plan 10 status"
+        ],
+        "excluded": [
+          "Live Luna call",
+          "Recoverable worker or checkpoint implementation",
+          "MCP server changes",
+          "Evaluation 07 or Evaluation 08 mutation",
+          "Package publication"
+        ]
+      },
+      "inputs": [
+        {
+          "kind": "ImplementationPlan",
+          "id": "agent-ecology3-plan-10",
+          "revision": "6bd99d743c948fa5da528375c7de7faba1399a77"
+        },
+        {
+          "kind": "AcceptedSharedContract",
+          "id": "llm-client-plan-355-wu-355-01",
+          "revision": "63f471347f2f1e18b37cf82d50b5546336b6a5e1"
+        }
+      ],
+      "outputs": [
+        "Passing Agent Ecology 3 provider-free event-custody preflight",
+        "Exact accepted llm_client revision evidence",
+        "MCP-free consumer integration receipt",
+        "Truthful Plan 10 transition to recovery-fixture work"
+      ],
+      "dependencies": [],
+      "conflict_surfaces": [
+        {
+          "kind": "repository_path",
+          "target": "src/agent_ecology3/analysis/luna_recovery_gate.py",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-luna-gate"
+        },
+        {
+          "kind": "repository_path",
+          "target": "tests/test_luna_recovery_gate.py",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-luna-gate"
+        },
+        {
+          "kind": "repository_path",
+          "target": "docs/evaluations/evidence/plan10_luna_recovery_gate",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-evidence"
+        },
+        {
+          "kind": "contract",
+          "target": "LLMCallResult.codex_events",
+          "access": "read",
+          "coordination_key": "llm-client-codex-events-v1"
+        }
+      ],
+      "acceptance": [
+        {
+          "id": "AC-10-02-consumer",
+          "criterion": "The provider-free preflight observes command_execution, file_change, and web_search fixture items through result.codex_events at the accepted shared revision and passes.",
+          "evidence_required": [
+            "Exact shared-client merge revision",
+            "Provider-free preflight JSON and manifest",
+            "Focused public-consumer test"
+          ],
+          "negative_control": "A result type without public codex_events still fails before budget reservation or provider dispatch."
+        }
+      ],
+      "readiness": {
+        "status": "ready",
+        "required_approval_types": [],
+        "approvals": [],
+        "failed_guards": []
+      },
+      "status": "ready",
+      "record_version": 1
+    }
+  ]
+}
