@@ -231,7 +231,7 @@
       "objective": "Add the explicit live acknowledgement boundary, dispatch exactly one representative Luna Medium production-path call, and retain a terminal passing or blocked receipt without retry or fallback.",
       "profile": "small",
       "execution_class": "independently_executable",
-      "claimability": "ready_for_execution",
+      "claimability": "not_applicable",
       "authorization_mode": "registry_claim",
       "scope": {
         "included": [
@@ -263,9 +263,9 @@
         }
       ],
       "outputs": [
-        "Frozen, pushed Agent Ecology 3 canary source revision",
-        "One terminal Luna Medium canary receipt under docs/evaluations/evidence/plan10_luna_recovery_gate",
-        "Plan 10 status that selects conditional recovery work only after a passing canary"
+        "Frozen, pushed Agent Ecology 3 canary source revision d65b46e0884c98574cd9fd13355c6bd74377e276",
+        "Passing one-dispatch Luna Medium receipt at docs/evaluations/evidence/plan10_luna_recovery_gate/live_canary.json",
+        "Plan 10 status selecting conditional recovery and detached dashboard-visible PoC work"
       ],
       "dependencies": [
         {
@@ -356,10 +356,10 @@
         "max_active_per_claimant": 1,
         "named_owner_id": null
       },
-      "status": "ready",
-      "record_version": 1,
+      "status": "completion_review",
+      "record_version": 2,
       "created_at": "2026-08-12T20:57:12Z",
-      "updated_at": "2026-08-12T20:57:12Z"
+      "updated_at": "2026-08-12T21:36:36Z"
     }
   ]
 }

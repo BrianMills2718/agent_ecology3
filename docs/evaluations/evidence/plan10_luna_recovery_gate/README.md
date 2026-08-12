@@ -1,8 +1,8 @@
 # Plan 10 Luna Recovery Gate Evidence
 
-This directory retains the provider-free Slice A route inventory. It contains
-no provider response, credential, live Luna call, Evaluation 07 mutation, or
-Evaluation 08 evidence.
+This directory retains the provider-free Slice A route inventory and the one
+authorized Slice C Luna canary. It contains no credential, Evaluation 07
+mutation, Evaluation 08 evidence, reliability claim, or multi-call run.
 
 ## Current result
 
@@ -29,6 +29,19 @@ items of types `command_execution`, `file_change`, `web_search`, and
 `result.tool_calls` compatibility projection still contains only the MCP item.
 AE3 can therefore inspect the intrinsic event stream without installing or
 invoking an MCP server.
+
+`live_canary.json` is the terminal passing receipt for the only authorized
+Slice C dispatch. It binds pushed AE3 revision
+`d65b46e0884c98574cd9fd13355c6bd74377e276`, accepted `llm_client` revision
+`286715784f1d535d6dfcd2c867ca678d666e27d5`, the exact prompt/schema digests,
+one provider dispatch, one terminal shared-client receipt, subscription billing,
+ordered Codex events, the validated action, accounting, timing, usage, and
+caller/readback equality. Its SHA-256 is
+`698faab71cad8f96f1d37231e41703439fe0500c402ec5d96413bc5321518ba0`.
+
+Observed result: `pass`, 7.7 seconds, 15,568 total tokens, passive
+`agent_message` only, and `query_kernel` for readable artifacts. This is route
+compatibility evidence, not reliability or behavioral evidence.
 
 ## Reproduce without a provider call
 

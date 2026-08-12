@@ -1,0 +1,120 @@
+{
+  "schema_version": "luna_live_canary.v1",
+  "canary_id": "plan10/luna-medium/canary/v1",
+  "status": "pass",
+  "started_at": "2026-08-12T21:36:27.965589+00:00",
+  "ended_at": "2026-08-12T21:36:35.681969+00:00",
+  "provider_boundary_entered": true,
+  "provider_dispatch_budget": 1,
+  "provider_dispatch_count": 1,
+  "retry_count": 0,
+  "fallback_models": [],
+  "acknowledgement": "plan10/luna-medium/canary/v1",
+  "agent_ecology3_revision": "d65b46e0884c98574cd9fd13355c6bd74377e276",
+  "agent_ecology3_source_clean": true,
+  "agent_ecology3_source_pushed": true,
+  "shared_client_revision": "286715784f1d535d6dfcd2c867ca678d666e27d5",
+  "shared_client_source_clean": true,
+  "config_sha256": "ad5f777f205e3b23c34d1664520bbff0ecc27bc722c0f3c0eab03921a409bae9",
+  "prompt_sha256": "d62981c827e19b11055bc0f0d05418717507c1ff8d77a89cf6b20e48d88400a0",
+  "provider_schema_sha256": "4f8344df4e01d3f7adf1287ffe794edeb2552f94e8d8268558d3cc102be5d2d2",
+  "model": "codex/gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "transport": "cli",
+  "sandbox_mode": "read-only",
+  "approval_policy": "never",
+  "expected_billing_mode": "subscription_included",
+  "prompt_messages": [
+    {
+      "role": "system",
+      "content": "Choose one AE3 action and return only a LunaLoopDecisionV1 JSON envelope: schema_version must be 'luna_loop_decision.v1' and action must contain exactly one legal action matching the supplied schema. Do not use tools. No prose."
+    },
+    {
+      "role": "user",
+      "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nSpecialization: market_maker (resource pricing and bilateral trade clearing).\nPrimary focus: broker transfers and keep markets liquid.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Prioritize bilateral deals and move scrip where expected utility is higher.\n- Use transfer or transfer_resource to clear small trades instead of waiting.\n- Track counterparties that repeatedly reciprocate and trade with them first.\n- Actively buy external artifacts (validators, audits, opportunity reports) and broker resale.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_1 in an economy simulation. Act strategically to maximize long-run survival and economic power under scarcity. Choose exactly one action and never use noop. Valid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel. Do not invoke artifacts directly. For query_kernel you must include query_type and params object. When querying artifacts, prefer query_type='artifacts' with params.readable_only=true. For submit_to_mint include artifact_id and bid. When useful, monetize artifacts by setting read_price/invoke_price on write_artifact. If writing a reusable artifact (not heartbeat/scratch), set read_price >= 1 to test demand. For transfer_resource include recipient_id, resource, and amount. Do not modify *_loop artifacts. When writing artifacts, use ids prefixed with alpha_1_. Use memory.next_objective and memory.objectives to choose the next economically useful move. Once discovery is complete, avoid repeating query_kernel unless you need new counterparties. Prefer cross-agent interaction and production actions over status checks. If memory.stagnation_count >= 3, choose a different action_type than your most recent action. Return the action in the LunaLoopDecisionV1 envelope required by the supplied schema. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 100, \"resources\": {\"llm_budget\": 2.0, \"disk_quota\": 250000, \"disk_used\": 32963, \"disk_available\": 217037, \"llm_calls_remaining\": 120.0, \"llm_tokens_remaining\": 200000.0, \"cpu_seconds_remaining\": 12.0}, \"artifacts\": [{\"id\": \"alpha_1\", \"type\": \"agent_profile\", \"owner\": \"alpha_1\", \"created_by\": \"alpha_1\", \"executable\": false, \"content_size\": 52, \"code_preview\": \"\", \"readable\": true, \"read_reason\": \"self access\", \"access_contract_id\": \"kernel_contract_self_owned\"}, {\"id\": \"alpha_1_strategy\", \"type\": \"strategy\", \"owner\": \"alpha_1\", \"created_by\": \"alpha_1\", \"executable\": false, \"content_size\": 1067, \"code_preview\": \"\", \"readable\": true, \"read_reason\": \"principal access\", \"access_contract_id\": \"kernel_contract_self_owned\"}, {\"id\": \"alpha_1_state\", \"type\": \"state\", \"owner\": \"alpha_1\", \"created_by\": \"alpha_1\", \"executable\": false, \"content_size\": 475, \"code_preview\": \"\", \"readable\": true, \"read_reason\": \"principal access\", \"access_contract_id\": \"kernel_contract_self_owned\"}, {\"id\": \"alpha_1_notebook\", \"type\": \"notebook\", \"owner\": \"alpha_1\", \"created_by\": \"alpha_1\", \"executable\": false, \"content_size\": 196, \"code_preview\": \"\", \"readable\": true, \"read_reason\": \"principal access\", \"access_contract_id\": \"kernel_contract_self_owned\"}, {\"id\": \"alpha_1_loop\", \"type\": \"agent_loop\", \"owner\": \"alpha_1\", \"created_by\": \"SYSTEM_KERNEL\", \"executable\": true, \"content_size\": 36, \"code_preview\": \"import json\\nimport time\\n\\n\\ndef _extract_json(text):\\n    if not isinstance(text, str):\\n        return None\\n    start = text.find(\\\"{\\\")\\n    end = text.rfind(\\\"}\\\")\\n    if start < 0 or end < start:\\n        return None\\n    try:\\n\", \"readable\": true, \"read_reason\": \"private principal access\", \"access_contract_id\": \"kernel_contract_private\"}], \"memory\": {\"role\": \"market_maker\", \"specialization\": \"resource pricing and bilateral trade clearing\", \"current_focus\": \"broker transfers and keep markets liquid\", \"objectives\": {\"discover\": false, \"cross_agent_read\": false, \"produce\": false, \"trade\": false, \"mint\": false}, \"next_objective\": \"discover\", \"recent_actions\": [], \"stagnation_count\": 0, \"key_facts\": {\"principal_id\": \"alpha_1\", \"role\": \"market_maker\", \"specialization\": \"resource pricing and bilateral trade clearing\"}, \"journal_tail\": [\"bootstrap: alpha_1 initialized as market_maker\"]}, \"recent_feedback\": {\"actions_attempted\": 0, \"action_failures\": 0, \"recent_action_types\": [], \"recent_error_codes\": []}}"
+    }
+  ],
+  "syscall_result": {
+    "success": true,
+    "trace_id": "ae3/plan10_luna_medium_canary_v1/event_0/payer/alpha_1",
+    "content": "{\"schema_version\":\"luna_loop_decision.v1\",\"action\":{\"action_type\":\"query_kernel\",\"query_type\":\"artifacts\",\"params\":{\"owner\":null,\"type\":null,\"artifact_type\":null,\"artifact_id\":null,\"executable\":null,\"limit\":null,\"offset\":null,\"principal_id\":null,\"readable_only\":true,\"include_permissions\":null,\"resource\":null,\"agent_id\":null}}}",
+    "model": "codex/gpt-5.6-luna",
+    "cost": 0.0,
+    "charged_cost": 0.0038369999999999997,
+    "cost_source": "subscription_included",
+    "billing_mode": "subscription_included",
+    "budget_charge_basis": "subscription_estimated",
+    "budget_settle_cost": 0.0038369999999999997,
+    "cache_hit": false,
+    "undercharged_cost": 0.0,
+    "usage": {
+      "prompt_tokens": 15422,
+      "completion_tokens": 146,
+      "total_tokens": 15568
+    },
+    "tool_calls": [],
+    "duration_ms": 7709.415804998571,
+    "settlement_status": "provider_settled_accepted",
+    "codex_event_types": [
+      "agent_message"
+    ],
+    "structured_action": {
+      "action_type": "query_kernel",
+      "query_type": "artifacts",
+      "params": {
+        "readable_only": true
+      }
+    },
+    "structured_schema_sha256": "4f8344df4e01d3f7adf1287ffe794edeb2552f94e8d8268558d3cc102be5d2d2"
+  },
+  "llm_syscall_count": 1,
+  "llm_client_receipt": {
+    "schema_version": "llm_call_receipt_v1",
+    "receipt_id": "llm-client-call-30690",
+    "runtime": "llm_client",
+    "granularity": "provider_call",
+    "trace_id": "ae3/plan10_luna_medium_canary_v1/event_0/payer/alpha_1",
+    "logical_call_id": "llmcall_b179d76c476a4887a6980f8c8ec9deed",
+    "parent_call_id": null,
+    "attempt_ordinal": null,
+    "task": "agent_ecology3_syscall",
+    "requested_model": null,
+    "resolved_model": "codex/gpt-5.6-luna",
+    "provider": null,
+    "execution_path": "agent_sdk",
+    "started_at": "2026-08-12T21:36:27.997511Z",
+    "completed_at": "2026-08-12T21:36:35.677511Z",
+    "latency_s": 7.68,
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "reasoning_tokens": null,
+    "cached_tokens": null,
+    "cache_creation_tokens": null,
+    "total_tokens": 15568,
+    "cost_usd": 0.0,
+    "cost_status": "observed",
+    "cost_source": "subscription_included",
+    "status": "succeeded",
+    "finish_reason": "stop",
+    "error_type": null,
+    "retry_count": 0,
+    "cache_hit": false,
+    "request_fingerprint": "1d77b5c10ab07fccf721f9549fd5a83c68e8e8b252c1c1b64c3d89730dcfed4c",
+    "prompt_sha256": null,
+    "schema_sha256": null,
+    "response_sha256": "ca9cebd7c126fbb463b3489031edfdf842275f55a21eba5b8178019f883b866d",
+    "producer_revision": null,
+    "deployment_revision": null,
+    "unavailable_fields": {
+      "prompt_sha256": "The terminal call row does not contain a standalone prompt hash.",
+      "requested_model": "The terminal call row records the resolved model, not requested-model identity.",
+      "provider": "Provider identity is not inferred from the model string."
+    }
+  },
+  "llm_client_receipt_error": null,
+  "caller_content_sha256": "ca9cebd7c126fbb463b3489031edfdf842275f55a21eba5b8178019f883b866d",
+  "readback_content_sha256": "ca9cebd7c126fbb463b3489031edfdf842275f55a21eba5b8178019f883b866d",
+  "caller_readback_equal": true,
+  "blocker_code": null,
+  "blocker_reason": null
+}
