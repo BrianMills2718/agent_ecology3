@@ -263,10 +263,11 @@ preregistration; do not recycle Evaluation 05 as a passing assay.
 
 Evaluation 06 supplied that new preregistration and passed its independently
 verified instrument gate. Evaluation 07 now supplies the fresh behavioral
-design/preregistration using that qualified boundary. The next legitimate step
-is bounded runner/evidence implementation and a separately authorized run—not
-another repository rewrite and not retrospective promotion of Evaluation 04
-or 05. Evaluation 07 is not yet implemented or executed.
+design/preregistration using that qualified boundary. Its bounded runner,
+zero-provider controls, custody checks, and saved-evidence reproducer are now
+implemented without executing the evaluation. The next legitimate step is a
+separately authorized run—not another repository rewrite and not retrospective
+promotion of Evaluation 04 or 05.
 
 If AE3 produces that evidence while retaining the essential contract/resource
 semantics needed for subsequent experiments, decide explicitly whether to mark

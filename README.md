@@ -57,7 +57,13 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --runs 3 --duratio
 PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --conditions reduced,off --runs 10 --duration 420 --target-llm-calls 16 --loop-prompt-template config/prompts/loop_prompt_variant.txt --experiment-scenario-id phase1_confirmatory_demo --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.matrix_progress --jsonl logs/phase1_suite_<scenario>_<condition>_<stamp>.jsonl --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite logs/phase1_suite_phase1_opus_default_med_20260223_suite.json --candidate-suite logs/phase1_suite_phase1_opus_prompt_variant_med_20260223_suite.json --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.behavioral_comparison --preflight
+PYTHONPATH=src python -m agent_ecology3.analysis.behavioral_comparison --reproduce docs/evaluations/evidence/07_behavioral_comparison
 ```
+
+Evaluation 07's paid `--run-live` mode is intentionally omitted from the quick
+examples. It requires separate human authorization, a clean revision retained
+by `origin`, and exact acknowledgement of the frozen USD 1.68 maximum.
 
 ## Autonomous Loop Behavior
 
@@ -115,8 +121,10 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
   establish emergence or a prescription effect.
 - Evaluation 07 now preregisters that behavioral comparison as a 12-pair
   exploratory pilot with two ordered reserve pairs, attempt-based stopping,
-  observed scarcity checks, and a USD 1.68 hard ceiling. It is not implemented
-  or run, and this preregistration does not authorize provider spend.
+  observed scarcity checks, and a USD 1.68 hard ceiling. Its one-shot runner,
+  zero-provider preflight, full-custody verifier, and saved-evidence reproducer
+  are implemented. The evaluation has not been run, and implementation does
+  not authorize provider spend.
 - `phase1_suite` runs baseline/reduced/off matrix conditions in sequence and writes a scenario-level cohort comparison from `llm_client.compare_cohorts`.
 - `phase1_suite` launches matrix children with unbuffered Python (`-u`) so condition driver logs stream progress in real time.
 - `matrix_progress` summarizes in-flight matrix JSONL files (completed replicate count, rolling aggregate metrics, last-run key signals) during long-running suites.
@@ -177,6 +185,8 @@ agent_ecology3/
   evidence bundle.
 - `docs/evaluations/06_public_readback_qualification.md` - held-out provider
   qualification with a real zero-spend public-readback gate.
+- `docs/evaluations/07_behavioral_comparison.md` - frozen paired behavioral
+  design, execution controls, validity rules, readout, and authority boundary.
 - `docs/REWRITE_SCOPE.md` - keep/add/remove scope for the rebuild.
 - `docs/REMOVAL_SEQUENCE.md` - ordered removal plan for review one item at a time.
 - `docs/REMOVAL_01_RUNTIME_GOVERNANCE.md` - detailed review doc for removal #1.
