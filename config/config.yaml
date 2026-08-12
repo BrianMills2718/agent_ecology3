@@ -27,7 +27,13 @@ resources:
 
 llm:
   default_model: minimax/minimax-m3
+  model_justification: "AE3 uses the configured allowlisted model for bounded agent-economy simulation."
   timeout_seconds: 60
+  num_retries: 2
+  max_output_tokens: null
+  # Shared provider-cost cap per simulation root trace; 0 disables the cap.
+  provider_max_budget_usd: 0.0
+  provider_budget_reservation_usd: 0.0
   allowed_models:
     - minimax/minimax-m3
     - openrouter/deepseek/deepseek-chat
@@ -53,6 +59,8 @@ llm:
   loop_forced_explore_mode: "off"
   # Deterministic loop-policy seed for matched-condition runs.
   loop_policy_seed: 0
+  # prescribed keeps the current roles/objective cycle; minimal removes them.
+  loop_cognition_mode: prescribed
   # Optional path to a custom loop prompt template text file.
   # Use "{principal_id}" placeholder for per-agent substitution.
   loop_prompt_template_path: null

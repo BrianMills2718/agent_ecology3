@@ -51,6 +51,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --dura
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 3 --duration 600 --agents 4 --llm-loop on --target-llm-calls 60 --loop-prompt-template config/prompts/loop_prompt_variant.txt --experiment-condition-id prompt_v1 --log-experiment --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --loop-forced-explore reduced --target-llm-calls 80 --subscription-estimated-cost-multiplier 2.0 --seed-base 100 --seed-step 1 --min-llm-calls 1 --min-llm-valid-decisions 5 --invalid-run-policy drop --llm-preflight auto --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --target-llm-calls 80 --loop-forced-explore reduced --experiment-condition-id forced_reduced --experiment-scenario-id phase1_falsification --experiment-phase phase1 --log-experiment --pretty
+PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --config config/config.prescription_ablation.yaml --runs 3 --duration 900 --agents 4 --llm-loop on --loop-cognition-mode minimal --loop-prompt-template config/prompts/loop_prompt_minimal.txt --target-llm-calls 16 --seed-base 12100 --seed-step 1 --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.scarcity_matrix --runs 5 --duration 900 --agents 4 --llm-loop on --target-llm-calls 80 --loop-forced-explore reduced --gate-policy '{"pass_if":{"loop_action_entropy_bits_mean_gte":2.1}}' --gate-fail-exit-code --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --runs 3 --duration 600 --target-llm-calls 60 --experiment-scenario-id phase1_suite_demo --pretty
 PYTHONPATH=src python -m agent_ecology3.analysis.phase1_suite --conditions reduced,off --runs 10 --duration 420 --target-llm-calls 16 --loop-prompt-template config/prompts/loop_prompt_variant.txt --experiment-scenario-id phase1_confirmatory_demo --pretty
@@ -66,7 +67,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - Loop prompt state includes principal-scoped `recent_feedback` (recent action attempts/failures and error codes) from in-memory runtime state to reduce repeated failed moves.
 - Each loop invocation emits a `loop_decision` event trace with chosen action, fallback usage, and result status.
 - Loop action output is hard-gated to `write_artifact`, `read_artifact`, `transfer`, `transfer_resource`, `submit_to_mint`, and `query_kernel` (invalid actions are rewritten to deterministic fallback).
-- Loop normalization auto-prices non-scratch `write_artifact` outputs (`read_price=1` when omitted) to make paid consumption observable in emergence runs.
+- In the default `prescribed` cognition mode, loop normalization auto-prices non-scratch `write_artifact` outputs (`read_price=1` when omitted) to make paid consumption observable in emergence runs. The `minimal` ablation mode does not.
 - Loop read-target selection now prioritizes affordable priced cross-principal artifacts before free artifacts.
 - Scarce LLM rights can be contracted via `transfer_resource` (`resource=llm_budget`) between principals.
 - Gate and feedback behavior can be toggled with `llm.loop_action_gate_enabled` and `llm.loop_prompt_feedback_enabled`.
@@ -77,8 +78,8 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - Subscription-billed agent models can still deplete `llm_budget` via `llm.subscription_budget_charge_mode` (`estimated` by default) so budget scarcity stays binding even when provider-reported USD marginal cost is zero.
 - For `claude-code/*` loop calls, AE3 now injects an MCP stdio `ae3_action` tool bridge so agent-mode tool calls are captured and parsed symmetrically with non-agent tool calls.
 - Agent-SDK syscalls now pass `max_retries=0` explicitly for `claude-code/*`, `codex/*`, and `openai-agents/*` models, matching side-effect-safe no-retry semantics while avoiding repeated retry-disabled warning spam.
-- Each principal now boots with cognitive artifacts (`*_strategy`, `*_state`, `*_notebook`) carrying role specialization, objective progress, and a persistent journal.
-- Loop prompts consume this memory snapshot (`memory.next_objective`, `memory.objectives`, `memory.stagnation_count`) to reduce one-action collapse and encourage discover->read->produce->trade->mint cycles.
+- Each principal boots with persistent cognitive artifacts (`*_strategy`, `*_state`, `*_notebook`). `llm.loop_cognition_mode=prescribed` retains assigned roles and the discover->read->produce->trade->mint objective cycle; `minimal` removes those prescriptions while retaining outcome history and resource state.
+- LLM syscall and loop-decision events retain the deterministic `llm_client` trace ID. `llm.provider_max_budget_usd`, `llm.provider_budget_reservation_usd`, `llm.num_retries`, and `llm.max_output_tokens` provide bounded evaluation controls without changing the default unlimited provider budget.
 
 ## Experiment Integration
 
@@ -86,7 +87,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - `emergence_report` can also query that registry via `--list-experiments`, `--detail-experiment`, and `--compare-experiments`.
 - `emergence_report` now includes loop-decision metrics from `loop_decision` events: `fallback_rate`, `decision_success_rate`, `repeat_error_rate`, per-principal `loop_decision_trends`, and `loop_action_entropy_bits`.
 - `loop_decision` events now carry MECE decision-origin tags (`llm_valid`, `llm_invalid_fallback`, `forced_explore`, `recovery`, `fallback_without_llm`) plus `forced_explore_reason`.
-- `emergence_report` now includes policy-distortion, LLM-engagement, and value-weighted metrics: `forced_explore_rate`, `gate_fallback_rate`, `recovery_fallback_rate`, `decision_origin_share`, `llm_call_errors`, `llm_attempt_rate`, `llm_valid_decision_rate`, `cross_paid_consumption_amount`, `reuse_weighted_artifact_value_total`, `specialization_hhi_mean`, and mint downstream value proxies.
+- `emergence_report` now includes policy-distortion, LLM-engagement, and value-weighted metrics: `forced_explore_rate`, `gate_fallback_rate`, `recovery_fallback_rate`, `decision_origin_share`, `llm_call_errors`, `llm_attempt_rate`, `llm_valid_decision_rate`, `cross_paid_consumption_amount`, `llm_valid_downstream_value`, `reuse_weighted_artifact_value_total`, `specialization_hhi_mean`, and mint downstream value proxies.
 - `emergence_report` also reports scarce-resource transfer metrics: `resource_transfers_total`, `llm_budget_transfer_amount`, and `cross_llm_budget_transfer_amount`.
 - `scarcity_matrix` runs repeated fixed-config baselines, logs each run to `llm_client`, aggregates mean/std/min/max metrics, and evaluates KPI lock checks in one command.
 - `scarcity_matrix` supports matched-condition seeds via `--seed-base` and `--seed-step`, and can gate LLM-engagement validity with `--min-llm-calls`, `--min-llm-valid-decisions`, `--min-llm-attempt-rate`, `--min-llm-valid-decision-rate`, and `--invalid-run-policy`.
@@ -95,6 +96,7 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
 - `scarcity_matrix` can tag each logged run with cohort metadata (`--experiment-condition-id`, `--experiment-scenario-id`, `--experiment-phase`) while auto-recording per-run `seed` and `replicate`.
 - `scarcity_matrix` can evaluate a matrix-level gate policy (`--gate-policy`) over aggregate signals and optionally fail with exit code `2` (`--gate-fail-exit-code`).
 - `scarcity_matrix` now flushes per-run JSONL and `run_ids.txt` writes immediately and emits compact per-run completion lines, so long runs can be monitored live.
+- Evaluation 04 stopped as preregistered and is **inconclusive**: two paid runs failed the frozen validity rule, the minimal condition was not started, and the trace audit found that shared-client tool-call records omitted raw tool-call envelopes. Do not cite its prescribed-condition activity as evidence that behavior survives the minimal ablation.
 - `phase1_suite` runs baseline/reduced/off matrix conditions in sequence and writes a scenario-level cohort comparison from `llm_client.compare_cohorts`.
 - `phase1_suite` launches matrix children with unbuffered Python (`-u`) so condition driver logs stream progress in real time.
 - `matrix_progress` summarizes in-flight matrix JSONL files (completed replicate count, rolling aggregate metrics, last-run key signals) during long-running suites.
@@ -149,6 +151,7 @@ agent_ecology3/
 ## Docs
 
 - `docs/LINEAGE_AND_RESTARTS.md` - canonical comparison of AE1, AE2, and AE3; restart evidence, recurring failure modes, and the unresolved lifecycle decision.
+- `docs/evaluations/04_prescription_ablation.md` - preregistered matched-control test and its inconclusive result, provider/runtime failure analysis, evidence bundle, and rerun prerequisites.
 - `docs/REWRITE_SCOPE.md` - keep/add/remove scope for the rebuild.
 - `docs/REMOVAL_SEQUENCE.md` - ordered removal plan for review one item at a time.
 - `docs/REMOVAL_01_RUNTIME_GOVERNANCE.md` - detailed review doc for removal #1.

@@ -72,6 +72,20 @@ DEFAULT_LOOP_PROMPT_TEMPLATE = (
     "If tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object."
 )
 
+MINIMAL_LOOP_PROMPT_TEMPLATE = (
+    "You are agent {principal_id} in an economy simulation. "
+    "Choose exactly one legal action based on the visible state, resource constraints, "
+    "your own prior outcomes, and any strategy you develop. "
+    "Valid action_type values are write_artifact, read_artifact, transfer, "
+    "transfer_resource, submit_to_mint, and query_kernel. "
+    "Do not invoke artifacts directly or modify *_loop artifacts. "
+    "For query_kernel include query_type and params. "
+    "For write_artifact use an id prefixed with {principal_id}_. "
+    "For transfer_resource include recipient_id, resource, and amount. "
+    "For submit_to_mint include artifact_id and bid. "
+    "Return one action through ae3_action when available, otherwise return one JSON object."
+)
+
 
 class KernelStateRouter:
     """Read-only kernel view exposed to executable artifacts."""
@@ -328,7 +342,11 @@ class World:
         cached = self._loop_prompt_template_cache
         if isinstance(cached, str) and cached.strip():
             return cached
-        template = DEFAULT_LOOP_PROMPT_TEMPLATE
+        template = (
+            MINIMAL_LOOP_PROMPT_TEMPLATE
+            if self.config.llm.loop_cognition_mode == "minimal"
+            else DEFAULT_LOOP_PROMPT_TEMPLATE
+        )
         raw_path = self.config.llm.loop_prompt_template_path
         if isinstance(raw_path, str) and raw_path.strip():
             candidate = Path(raw_path.strip()).expanduser()
@@ -350,6 +368,14 @@ class World:
         return template.replace("{principal_id}", principal_id)
 
     def _default_strategy_text(self, principal_id: str, slot: int) -> str:
+        if self.config.llm.loop_cognition_mode == "minimal":
+            return "\n".join(
+                [
+                    f"You are {principal_id}, a self-interested economic agent.",
+                    "No role, specialization, action sequence, or trading policy is assigned.",
+                    "Develop and revise your own strategy from visible constraints and observed outcomes.",
+                ]
+            )
         profile = self._role_profile(slot)
         role_name = profile.get("name", "generalist")
         role_playbook: list[str] = []
@@ -407,6 +433,16 @@ class World:
         )
 
     def _default_state_payload(self, principal_id: str, slot: int) -> dict[str, Any]:
+        if self.config.llm.loop_cognition_mode == "minimal":
+            return {
+                "principal_id": principal_id,
+                "iteration": 0,
+                "recent_actions": [],
+                "action_counts": {},
+                "stagnation_count": 0,
+                "last_result_success": None,
+                "last_result_error_code": None,
+            }
         profile = self._role_profile(slot)
         return {
             "principal_id": principal_id,
@@ -431,6 +467,11 @@ class World:
         }
 
     def _default_notebook_payload(self, principal_id: str, slot: int) -> dict[str, Any]:
+        if self.config.llm.loop_cognition_mode == "minimal":
+            return {
+                "key_facts": {"principal_id": principal_id},
+                "journal": [f"bootstrap: {principal_id} initialized without an assigned role"],
+            }
         profile = self._role_profile(slot)
         return {
             "key_facts": {
@@ -584,46 +625,48 @@ class World:
         state["last_result_success"] = action_success
         state["last_result_error_code"] = result_error_code
 
-        objectives_raw = state.get("objectives")
-        objectives = dict(objectives_raw) if isinstance(objectives_raw, dict) else {}
-        objectives.setdefault("discover", False)
-        objectives.setdefault("cross_agent_read", False)
-        objectives.setdefault("produce", False)
-        objectives.setdefault("trade", False)
-        objectives.setdefault("mint", False)
-        objectives = self._update_objectives_from_action(
-            principal_id,
-            objectives,
-            normalized_action,
-            decision,
-            success=action_success,
-        )
-        if all(bool(objectives.get(key, False)) for key in ("discover", "cross_agent_read", "produce", "trade", "mint")):
-            state["cycle"] = int(state.get("cycle", 1)) + 1
-            objectives = {
-                "discover": False,
-                "cross_agent_read": False,
-                "produce": False,
-                "trade": False,
-                "mint": False,
-            }
-        state["objectives"] = objectives
-        state["next_objective"] = self._next_incomplete_objective(objectives)
-
         key_facts_raw = notebook.get("key_facts")
         key_facts = dict(key_facts_raw) if isinstance(key_facts_raw, dict) else {}
         key_facts["last_action_type"] = normalized_action
-        key_facts["next_objective"] = state["next_objective"]
         key_facts["stagnation_count"] = state["stagnation_count"]
-        key_facts["cycle"] = state.get("cycle", 1)
+        journal_suffix = f"source={decision_source or 'unknown'}"
+        if self.config.llm.loop_cognition_mode == "prescribed":
+            objectives_raw = state.get("objectives")
+            objectives = dict(objectives_raw) if isinstance(objectives_raw, dict) else {}
+            objectives.setdefault("discover", False)
+            objectives.setdefault("cross_agent_read", False)
+            objectives.setdefault("produce", False)
+            objectives.setdefault("trade", False)
+            objectives.setdefault("mint", False)
+            objectives = self._update_objectives_from_action(
+                principal_id,
+                objectives,
+                normalized_action,
+                decision,
+                success=action_success,
+            )
+            if all(
+                bool(objectives.get(key, False))
+                for key in ("discover", "cross_agent_read", "produce", "trade", "mint")
+            ):
+                state["cycle"] = int(state.get("cycle", 1)) + 1
+                objectives = {
+                    "discover": False,
+                    "cross_agent_read": False,
+                    "produce": False,
+                    "trade": False,
+                    "mint": False,
+                }
+            state["objectives"] = objectives
+            state["next_objective"] = self._next_incomplete_objective(objectives)
+            key_facts["next_objective"] = state["next_objective"]
+            key_facts["cycle"] = state.get("cycle", 1)
+            journal_suffix = f"objective={state['next_objective']} {journal_suffix}"
         notebook["key_facts"] = key_facts
 
         journal_raw = notebook.get("journal")
         journal = list(journal_raw) if isinstance(journal_raw, list) else []
-        journal.append(
-            f"i{iteration} {normalized_action} success={action_success} "
-            f"objective={state['next_objective']} source={decision_source or 'unknown'}"
-        )
+        journal.append(f"i{iteration} {normalized_action} success={action_success} {journal_suffix}")
         notebook["journal"] = [str(item) for item in journal][-80:]
 
         self.artifacts.write(
@@ -902,11 +945,6 @@ def _read_json_artifact(artifact_id, default_value):
 
 def _build_memory_snapshot(state_memory, notebook_memory):
     snapshot = {{
-        "role": "",
-        "specialization": "",
-        "current_focus": "",
-        "next_objective": "discover",
-        "objectives": {{}},
         "stagnation_count": 0,
         "recent_actions": [],
         "key_facts": {{}},
@@ -1183,7 +1221,11 @@ def _normalize_loop_decision(decision, state_snapshot):
         normalized["artifact_id"] = artifact_id
         normalized["artifact_type"] = artifact_type.strip().lower()
         normalized["content"] = content
-        if "read_price" not in normalized and not artifact_id.endswith("_scratch"):
+        if (
+            {self.config.llm.loop_cognition_mode == "prescribed"}
+            and "read_price" not in normalized
+            and not artifact_id.endswith("_scratch")
+        ):
             normalized["read_price"] = 1
         for price_key in ("read_price", "invoke_price"):
             if price_key not in normalized:
@@ -1272,6 +1314,12 @@ def _normalize_loop_decision(decision, state_snapshot):
 
 
 def _fallback_action(state_snapshot):
+    if {self.config.llm.loop_cognition_mode == "minimal"}:
+        return {{
+            "action_type": "query_kernel",
+            "query_type": "resources",
+            "params": {{"principal_id": "{principal_id}"}},
+        }}
     existing = _artifact_ids(state_snapshot)
     own_scratch_exists = "{scratch_id}" in existing or _artifact_exists("{scratch_id}")
     read_target = _pick_read_target(state_snapshot)
@@ -1505,6 +1553,7 @@ def run():
         "recovery_fallback_used": False,
         "action_gate_enabled": {self.config.llm.loop_action_gate_enabled},
         "feedback_enabled": feedback_enabled,
+        "llm_trace_id": None,
     }}
     if "_syscall_llm" in globals():
         decision_meta["llm_cooldown_age_seconds"] = _recent_llm_call_age_seconds()
@@ -1524,6 +1573,7 @@ def run():
                 tools=_loop_action_tools(),
             )
             decision_meta["source"] = "llm"
+            decision_meta["llm_trace_id"] = llm_result.get("trace_id")
             if llm_result.get("success"):
                 decision_meta["llm_success"] = True
                 raw_decision = _extract_json(llm_result.get("content", ""))
@@ -1892,6 +1942,7 @@ def run():
             }
 
         self.mark_llm_call_attempt(payer_id)
+        trace_id = f"ae3/{self.run_id}/event_{self.event_number}/payer/{payer_id}"
         start = time.perf_counter()
         try:
             try:
@@ -1899,7 +1950,6 @@ def run():
             except Exception as exc:  # pragma: no cover - optional dependency fallback
                 raise RuntimeError(f"llm_client import failed: {exc}") from exc
 
-            trace_id = f"ae3/{self.run_id}/event_{self.event_number}/payer/{payer_id}"
             agent_kwargs: dict[str, Any] = {}
             lowered_model = model.strip().lower()
             is_agent_model = self._is_agent_model(lowered_model)
@@ -1918,6 +1968,17 @@ def run():
                     if mcp_servers:
                         agent_kwargs["mcp_servers"] = mcp_servers
 
+            call_kwargs: dict[str, Any] = {"num_retries": int(self.config.llm.num_retries)}
+            if self.config.llm.max_output_tokens is not None:
+                call_kwargs["max_tokens"] = int(self.config.llm.max_output_tokens)
+            provider_max_budget = float(self.config.llm.provider_max_budget_usd)
+            if provider_max_budget > 0:
+                call_kwargs["budget_scope_trace_id"] = f"ae3/{self.run_id}"
+                call_kwargs["budget_reservation"] = min(
+                    provider_max_budget,
+                    float(self.config.llm.provider_budget_reservation_usd),
+                )
+
             llm_result = call_llm(
                 model=model,
                 messages=messages,
@@ -1925,7 +1986,9 @@ def run():
                 timeout=self.config.llm.timeout_seconds,
                 task="agent_ecology3_syscall",
                 trace_id=trace_id,
-                max_budget=0.0,
+                max_budget=provider_max_budget,
+                model_justification=self.config.llm.model_justification,
+                **call_kwargs,
                 **agent_kwargs,
             )
             content = llm_result.content or ""
@@ -2026,6 +2089,7 @@ def run():
                 "llm_syscall",
                 {
                     "event_number": self.event_number,
+                    "trace_id": trace_id,
                     "payer_id": payer_id,
                     "model": model,
                     "actual_cost": actual_cost,
@@ -2044,6 +2108,7 @@ def run():
             self._llm_syscall_count += 1
             return {
                 "success": True,
+                "trace_id": trace_id,
                 "content": content,
                 "model": model,
                 "cost": actual_cost,
@@ -2068,6 +2133,7 @@ def run():
                 "llm_syscall_error",
                 {
                     "event_number": self.event_number,
+                    "trace_id": trace_id,
                     "payer_id": payer_id,
                     "model": model,
                     "error": str(exc),
@@ -2076,6 +2142,7 @@ def run():
             )
             return {
                 "success": False,
+                "trace_id": trace_id,
                 "error": f"llm call failed: {exc}",
                 "error_code": "llm_error",
                 "duration_ms": duration_ms,

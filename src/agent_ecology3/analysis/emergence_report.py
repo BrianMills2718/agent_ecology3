@@ -154,9 +154,6 @@ def summarize_events(path: Path) -> dict[str, Any]:
                         owner_map.setdefault(artifact_id, writer)
                     if isinstance(writer, str):
                         artifact_creator.setdefault(artifact_id, writer)
-                        creation_origin = latest_loop_origin_by_principal.get(writer)
-                        if isinstance(creation_origin, str) and creation_origin:
-                            artifact_creation_origin.setdefault(artifact_id, creation_origin)
                     if isinstance(artifact_type, str) and artifact_type:
                         artifact_type_map[artifact_id] = artifact_type
                 continue
@@ -253,6 +250,14 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 decision_origin_counts[decision_origin] += 1
                 if decision_origin == "llm_valid":
                     llm_valid_decision_total += 1
+                if event.get("decision_action") == "write_artifact" and event.get("result_success") is True:
+                    decision = event.get("decision")
+                    if isinstance(decision, dict):
+                        artifact_id = decision.get("artifact_id")
+                        if isinstance(artifact_id, str) and artifact_id:
+                            artifact_creation_origin[artifact_id] = decision_origin
+                            if isinstance(principal, str):
+                                artifact_creator[artifact_id] = principal
                 if isinstance(principal, str):
                     per_principal_decision_origin_counts[principal][decision_origin] += 1
                     latest_loop_origin_by_principal[principal] = decision_origin
@@ -382,6 +387,7 @@ def summarize_events(path: Path) -> dict[str, Any]:
     )
 
     forced_explore_value = float(value_by_decision_origin.get("forced_explore", 0.0))
+    llm_valid_downstream_value = float(value_by_decision_origin.get("llm_valid", 0.0))
     forced_explore_value_share = round((forced_explore_value / paid_consumption_total), 4) if paid_consumption_total > 0 else 0.0
 
     cross_read_events = sum(v for (src, dst), v in read_edges.items() if src != dst)
@@ -493,6 +499,7 @@ def summarize_events(path: Path) -> dict[str, Any]:
         "cross_transfer_amount": cross_transfer_amount,
         "cross_paid_consumption_amount": round(paid_consumption_total, 6),
         "cross_paid_consumption_events": paid_consumption_events_total,
+        "llm_valid_downstream_value": round(llm_valid_downstream_value, 6),
         "paid_consumption_edges": {
             f"{buyer}->{seller}": round(amount, 6) for (buyer, seller), amount in sorted(paid_consumption_edges.items())
         },

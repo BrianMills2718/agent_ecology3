@@ -503,6 +503,7 @@ class ActionExecutor:
                         "llm_attempted": bool(meta_dict.get("llm_attempted", False)),
                         "llm_success": bool(meta_dict.get("llm_success", False)),
                         "llm_action_source": meta_dict.get("llm_action_source"),
+                        "llm_trace_id": meta_dict.get("llm_trace_id"),
                         "llm_cooldown_ready": bool(meta_dict.get("llm_cooldown_ready", True)),
                         "llm_cooldown_seconds": float(meta_dict.get("llm_cooldown_seconds", 0.0) or 0.0),
                         "fallback": fallback if isinstance(fallback, dict) else None,

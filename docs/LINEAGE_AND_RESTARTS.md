@@ -161,6 +161,9 @@ Meta keeping both lines active.
 | Compatibility and dormant-path accumulation | AE2 retained old config keys, dispatch variants, checkpoints, dashboards, and disabled subsystems. | Reject compatibility by default in AE3; add an adapter or extension only for a named current caller or experiment. |
 | Stale context drives runtime failure | AE2 agents acted on obsolete handbook concepts; later documentation repeatedly repaired renamed or removed primitives. | Version agent-visible guidance with the runtime contract and exercise it in the same vertical check. |
 | Evidence is not reopenable | AE1 saved no run receipts; AE3's README/handoff cites logs and suite summaries that are not tracked in a clean clone. | Preserve a compact, immutable evidence bundle or a durable experiment-registry reference for every decision-driving run. |
+| Wall-clock control assumes a responsive event loop | AE3 Evaluation 04 called a synchronous provider client from its async loop; serial latency and timeouts delayed the monitor beyond its original horizon. | Use an async-safe provider boundary and prove that cancellation/timeout monitoring remains responsive before behavioral runs. |
+| Provider formatting failure is counted as behavior | MiniMax truncation and timeout errors lowered AE3's LLM-valid-decision rate enough to invalidate the first ablation before treatment. | Qualify model/prompt/tool-schema reliability separately, then freeze the behavioral evaluation without changing its thresholds midstream. |
+| Trace IDs mistaken for complete custody | Evaluation 04 linked every AE3 attempt to a shared-client receipt, but successful tool-call rows generally omitted the raw tool-call envelope. | Preserve rendered input, raw provider output/tool envelope, normalized decision, and receipt together; verify the chain before interpretation. |
 | Process grows around the experiment | AE2 accumulated extensive plan, governance, dashboard, and documentation surfaces; AE3 later re-added meta-process tooling outside runtime. | Keep process outside runtime and require each new control to protect a reproduced failure or current shared-state boundary. |
 
 ## Current AE3 Watch Items
@@ -176,8 +179,10 @@ These are observed risks, not reasons to restart AE3 now.
 2. **The emergence confound is explicit but still present.** Hard-coded role
    profiles, objective cycles, action gating, auto-pricing, and fallback actions
    can create the behavior being measured. Forced exploration now defaults to
-   `off`, and AE3 records decision-origin metrics, which are good safeguards;
-   they do not replace an intervention-off comparison.
+   `off`, and AE3 records decision-origin metrics, which are good safeguards.
+   Evaluation 04 added a minimal-cognition switch, but its first frozen assay
+   stopped before treatment after a second invalid paid run; the required
+   intervention-off comparison therefore remains outstanding.
 3. **Historical empirical claims are not self-contained in Git.** The README
    and `CHATGPT_FULL_CONTEXT.md` name run IDs and summary files, but a clean
    clone contains no tracked logs or summary JSON. Treat those claims as a
@@ -204,8 +209,11 @@ The review intentionally separates code health from thesis evidence:
   workspace `llm_client` revision `bc2cce248655`; without that undeclared
   dependency, collection failed in seven modules.
 - AE3: `51 passed` in 1.79 seconds in an isolated environment.
-- No new paid LLM run was made during this review. Existing experimental
-  results were inspected as historical documentation, not re-certified.
+- No paid LLM run was made during the original repository review. The later
+  Evaluation 04 implementation passed `57` tests and spent USD 0.0744073 on a
+  preregistered assay that terminated **inconclusive**. Its tracked evidence
+  bundle preserves the raw AE3 events, matrices, inputs, hashes, and trace
+  audit; the minimal treatment was not run.
 
 ## Advice and Next Decision
 
@@ -225,6 +233,12 @@ reopenable, fully traced experiment that:
 5. preserves the configuration, prompt, model, raw events, summary, and code
    revision behind the readout.
 
+Evaluation 04 was the first attempt to meet this bar. It stopped correctly
+rather than relaxing its validity rule, and it exposed two prerequisites for a
+fresh evaluation: an async-safe provider boundary and full raw tool-call
+custody. Treat those as repairs to the experimental instrument, not as a reason
+for another repository rewrite.
+
 If AE3 produces that evidence while retaining the essential contract/resource
 semantics needed for subsequent experiments, decide explicitly whether to mark
 AE2 superseded or keep it as a separately active reference runtime. Until then,
@@ -238,6 +252,7 @@ rewrite.
 - Duplicated AE2 boundaries: [REMOVAL_03_BOUNDARY_MERGE.md](REMOVAL_03_BOUNDARY_MERGE.md)
 - Implemented AE3 scope: [IMPLEMENTATION_BASELINE.md](IMPLEMENTATION_BASELINE.md)
 - Historical AE3 experiments and caveats: [CHATGPT_FULL_CONTEXT.md](CHATGPT_FULL_CONTEXT.md)
+- Inconclusive prescription-ablation result and evidence: [Evaluation 04](evaluations/04_prescription_ablation.md)
 - AE2 behavioral observations: [`SIMULATION_LEARNINGS.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/SIMULATION_LEARNINGS.md)
 - AE2 V1 gate: [`V1_ACCEPTANCE.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/V1_ACCEPTANCE.md)
 - AE1 mechanism code: [`agent_ecology` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology/tree/720920732373292d1353be9a1f8066016b6f5aa8)

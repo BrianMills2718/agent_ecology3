@@ -395,3 +395,27 @@ llm:
     loaded = load_config(cfg)
     assert loaded.llm.subscription_budget_charge_mode == "none"
     assert loaded.llm.subscription_estimated_cost_multiplier == pytest.approx(0.75)
+
+
+def test_cognition_and_provider_budget_config_fields_load(tmp_path) -> None:
+    cfg = tmp_path / "ablation.yaml"
+    cfg.write_text(
+        """
+llm:
+  loop_cognition_mode: minimal
+  model_justification: bounded ablation probe
+  num_retries: 0
+  max_output_tokens: 512
+  provider_max_budget_usd: 0.25
+  provider_budget_reservation_usd: 0.01
+""",
+        encoding="utf-8",
+    )
+
+    loaded = load_config(cfg)
+    assert loaded.llm.loop_cognition_mode == "minimal"
+    assert loaded.llm.model_justification == "bounded ablation probe"
+    assert loaded.llm.num_retries == 0
+    assert loaded.llm.max_output_tokens == 512
+    assert loaded.llm.provider_max_budget_usd == pytest.approx(0.25)
+    assert loaded.llm.provider_budget_reservation_usd == pytest.approx(0.01)

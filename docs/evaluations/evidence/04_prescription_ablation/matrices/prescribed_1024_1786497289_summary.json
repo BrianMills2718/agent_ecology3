@@ -1,0 +1,504 @@
+{
+  "matrix_type": "scarcity_first_baseline",
+  "runs": 3,
+  "runs_included_in_aggregate": 2,
+  "runs_excluded_from_aggregate": 1,
+  "settings": {
+    "duration": 900.0,
+    "agents": 4,
+    "model": "minimax/minimax-m3",
+    "num_retries": 0,
+    "max_output_tokens": 1024,
+    "provider_max_budget_usd": 0.25,
+    "provider_budget_reservation_usd": 0.01,
+    "llm_loop": true,
+    "loop_llm_cooldown": 0.0,
+    "loop_forced_explore_mode": "off",
+    "loop_cognition_mode": "prescribed",
+    "loop_prompt_template_path": "config/prompts/loop_prompt_variant.txt",
+    "target_llm_calls": 16,
+    "seed_base": 12100,
+    "seed_step": 1,
+    "subscription_estimated_cost_multiplier": 1.0,
+    "llm_preflight": "off",
+    "llm_validity_thresholds": {
+      "min_llm_calls": 16,
+      "min_llm_valid_decisions": 12,
+      "min_llm_attempt_rate": 0.0,
+      "min_llm_valid_decision_rate": 0.75
+    },
+    "invalid_run_policy": "drop",
+    "log_experiment": true,
+    "experiment_condition_id": "prescribed_1024",
+    "experiment_scenario_id": "plan4_prescription_ablation_valid",
+    "experiment_phase": "exploratory"
+  },
+  "preflight": {
+    "mode": "off",
+    "enabled": false
+  },
+  "run_records": [
+    {
+      "ae3_run_id": "run_20260812_011449",
+      "events_path": "logs/run_20260812_011449/events.jsonl",
+      "experiment_run_id": "cc0c0c48d393",
+      "condition_id": "prescribed_1024",
+      "seed": 12100,
+      "replicate": 1,
+      "scenario_id": "plan4_prescription_ablation_valid",
+      "phase": "exploratory",
+      "run_meta": {
+        "elapsed_seconds": 319.333124,
+        "stop_reason": "llm_call_target_reached",
+        "target_llm_calls": 16,
+        "llm_calls_observed": 16,
+        "llm_calls_target_reached": true,
+        "loop_policy_seed": 12100
+      },
+      "metrics": {
+        "actions_total": 95.0,
+        "action_entropy_bits": 1.554,
+        "loop_action_entropy_bits": 2.037,
+        "cross_read_events": 4.0,
+        "cross_transfer_amount": 2.0,
+        "resource_transfers_total": 1.0,
+        "llm_budget_transfer_amount": 0.1,
+        "cross_llm_budget_transfer_amount": 0.1,
+        "mint_submissions": 0.0,
+        "llm_calls": 16.0,
+        "llm_call_errors": 3.0,
+        "llm_attempted_total": 19.0,
+        "llm_success_total": 16.0,
+        "llm_valid_decision_total": 16.0,
+        "llm_attempt_rate": 1.0,
+        "llm_valid_decision_rate": 0.8421,
+        "llm_attempt_success_rate": 0.8421,
+        "llm_error_rate": 0.1579,
+        "llm_cost": 0.017003,
+        "fallback_rate": 0.1579,
+        "gate_fallback_rate": 0.1579,
+        "recovery_fallback_rate": 0.0,
+        "forced_explore_rate": 0.0,
+        "decision_success_rate": 1.0,
+        "repeat_error_rate": 0.0,
+        "cross_paid_consumption_amount": 2.0,
+        "cross_paid_consumption_events": 1.0,
+        "llm_valid_downstream_value": 2.0,
+        "reuse_weighted_artifact_value_total": 3.386294,
+        "specialization_hhi_mean": 1.0,
+        "forced_explore_value_share": 0.0,
+        "minted_artifact_count": 0.0,
+        "minted_with_downstream_value_count": 0.0,
+        "mint_downstream_value": 0.0,
+        "mint_downstream_value_ratio": 0.0
+      },
+      "llm_validity": {
+        "valid": true,
+        "failed_checks": [],
+        "checks": {
+          "min_llm_calls": {
+            "threshold": 16,
+            "observed": 16,
+            "passed": true
+          },
+          "min_llm_valid_decisions": {
+            "threshold": 12,
+            "observed": 16,
+            "passed": true
+          },
+          "min_llm_attempt_rate": {
+            "threshold": 0.0,
+            "observed": 1.0,
+            "passed": true
+          },
+          "min_llm_valid_decision_rate": {
+            "threshold": 0.75,
+            "observed": 0.8421,
+            "passed": true
+          }
+        }
+      },
+      "included_in_aggregate": true
+    },
+    {
+      "ae3_run_id": "run_20260812_012034",
+      "events_path": "logs/run_20260812_012034/events.jsonl",
+      "experiment_run_id": "05d55ed7f656",
+      "condition_id": "prescribed_1024",
+      "seed": 12101,
+      "replicate": 2,
+      "scenario_id": "plan4_prescription_ablation_valid",
+      "phase": "exploratory",
+      "run_meta": {
+        "elapsed_seconds": 188.624393,
+        "stop_reason": "llm_call_target_reached",
+        "target_llm_calls": 16,
+        "llm_calls_observed": 16,
+        "llm_calls_target_reached": true,
+        "loop_policy_seed": 12101
+      },
+      "metrics": {
+        "actions_total": 95.0,
+        "action_entropy_bits": 1.566,
+        "loop_action_entropy_bits": 2.294,
+        "cross_read_events": 5.0,
+        "cross_transfer_amount": 1.0,
+        "resource_transfers_total": 2.0,
+        "llm_budget_transfer_amount": 0.2,
+        "cross_llm_budget_transfer_amount": 0.2,
+        "mint_submissions": 1.0,
+        "llm_calls": 16.0,
+        "llm_call_errors": 3.0,
+        "llm_attempted_total": 19.0,
+        "llm_success_total": 16.0,
+        "llm_valid_decision_total": 15.0,
+        "llm_attempt_rate": 1.0,
+        "llm_valid_decision_rate": 0.7895,
+        "llm_attempt_success_rate": 0.8421,
+        "llm_error_rate": 0.1579,
+        "llm_cost": 0.016336,
+        "fallback_rate": 0.2105,
+        "gate_fallback_rate": 0.2105,
+        "recovery_fallback_rate": 0.0,
+        "forced_explore_rate": 0.0,
+        "decision_success_rate": 1.0,
+        "repeat_error_rate": 0.0,
+        "cross_paid_consumption_amount": 2.0,
+        "cross_paid_consumption_events": 2.0,
+        "llm_valid_downstream_value": 2.0,
+        "reuse_weighted_artifact_value_total": 4.197225,
+        "specialization_hhi_mean": 1.0,
+        "forced_explore_value_share": 0.0,
+        "minted_artifact_count": 0.0,
+        "minted_with_downstream_value_count": 0.0,
+        "mint_downstream_value": 0.0,
+        "mint_downstream_value_ratio": 0.0
+      },
+      "llm_validity": {
+        "valid": true,
+        "failed_checks": [],
+        "checks": {
+          "min_llm_calls": {
+            "threshold": 16,
+            "observed": 16,
+            "passed": true
+          },
+          "min_llm_valid_decisions": {
+            "threshold": 12,
+            "observed": 15,
+            "passed": true
+          },
+          "min_llm_attempt_rate": {
+            "threshold": 0.0,
+            "observed": 1.0,
+            "passed": true
+          },
+          "min_llm_valid_decision_rate": {
+            "threshold": 0.75,
+            "observed": 0.7895,
+            "passed": true
+          }
+        }
+      },
+      "included_in_aggregate": true
+    },
+    {
+      "ae3_run_id": "run_20260812_012401",
+      "events_path": "logs/run_20260812_012401/events.jsonl",
+      "experiment_run_id": "8ed7ff701a2d",
+      "condition_id": "prescribed_1024",
+      "seed": 12102,
+      "replicate": 3,
+      "scenario_id": "plan4_prescription_ablation_valid",
+      "phase": "exploratory",
+      "run_meta": {
+        "elapsed_seconds": 163.975232,
+        "stop_reason": "llm_call_target_reached",
+        "target_llm_calls": 16,
+        "llm_calls_observed": 17,
+        "llm_calls_target_reached": true,
+        "loop_policy_seed": 12102
+      },
+      "metrics": {
+        "actions_total": 114.0,
+        "action_entropy_bits": 1.552,
+        "loop_action_entropy_bits": 2.261,
+        "cross_read_events": 9.0,
+        "cross_transfer_amount": 3.0,
+        "resource_transfers_total": 1.0,
+        "llm_budget_transfer_amount": 0.1,
+        "cross_llm_budget_transfer_amount": 0.1,
+        "mint_submissions": 1.0,
+        "llm_calls": 17.0,
+        "llm_call_errors": 5.0,
+        "llm_attempted_total": 22.0,
+        "llm_success_total": 17.0,
+        "llm_valid_decision_total": 16.0,
+        "llm_attempt_rate": 1.0,
+        "llm_valid_decision_rate": 0.7273,
+        "llm_attempt_success_rate": 0.7727,
+        "llm_error_rate": 0.2273,
+        "llm_cost": 0.017202,
+        "fallback_rate": 0.2727,
+        "gate_fallback_rate": 0.2727,
+        "recovery_fallback_rate": 0.0,
+        "forced_explore_rate": 0.0,
+        "decision_success_rate": 1.0,
+        "repeat_error_rate": 0.0,
+        "cross_paid_consumption_amount": 6.0,
+        "cross_paid_consumption_events": 6.0,
+        "llm_valid_downstream_value": 2.0,
+        "reuse_weighted_artifact_value_total": 11.780744,
+        "specialization_hhi_mean": 1.0,
+        "forced_explore_value_share": 0.0,
+        "minted_artifact_count": 0.0,
+        "minted_with_downstream_value_count": 0.0,
+        "mint_downstream_value": 0.0,
+        "mint_downstream_value_ratio": 0.0
+      },
+      "llm_validity": {
+        "valid": false,
+        "failed_checks": [
+          "min_llm_valid_decision_rate"
+        ],
+        "checks": {
+          "min_llm_calls": {
+            "threshold": 16,
+            "observed": 17,
+            "passed": true
+          },
+          "min_llm_valid_decisions": {
+            "threshold": 12,
+            "observed": 16,
+            "passed": true
+          },
+          "min_llm_attempt_rate": {
+            "threshold": 0.0,
+            "observed": 1.0,
+            "passed": true
+          },
+          "min_llm_valid_decision_rate": {
+            "threshold": 0.75,
+            "observed": 0.7273,
+            "passed": false
+          }
+        }
+      },
+      "included_in_aggregate": false
+    }
+  ],
+  "aggregate": {
+    "actions_total": {
+      "mean": 95.0,
+      "stdev": 0.0,
+      "min": 95.0,
+      "max": 95.0
+    },
+    "action_entropy_bits": {
+      "mean": 1.56,
+      "stdev": 0.006,
+      "min": 1.554,
+      "max": 1.566
+    },
+    "loop_action_entropy_bits": {
+      "mean": 2.1655,
+      "stdev": 0.1285,
+      "min": 2.037,
+      "max": 2.294
+    },
+    "cross_read_events": {
+      "mean": 4.5,
+      "stdev": 0.5,
+      "min": 4.0,
+      "max": 5.0
+    },
+    "cross_transfer_amount": {
+      "mean": 1.5,
+      "stdev": 0.5,
+      "min": 1.0,
+      "max": 2.0
+    },
+    "resource_transfers_total": {
+      "mean": 1.5,
+      "stdev": 0.5,
+      "min": 1.0,
+      "max": 2.0
+    },
+    "llm_budget_transfer_amount": {
+      "mean": 0.15,
+      "stdev": 0.05,
+      "min": 0.1,
+      "max": 0.2
+    },
+    "cross_llm_budget_transfer_amount": {
+      "mean": 0.15,
+      "stdev": 0.05,
+      "min": 0.1,
+      "max": 0.2
+    },
+    "mint_submissions": {
+      "mean": 0.5,
+      "stdev": 0.5,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "llm_calls": {
+      "mean": 16.0,
+      "stdev": 0.0,
+      "min": 16.0,
+      "max": 16.0
+    },
+    "llm_call_errors": {
+      "mean": 3.0,
+      "stdev": 0.0,
+      "min": 3.0,
+      "max": 3.0
+    },
+    "llm_attempted_total": {
+      "mean": 19.0,
+      "stdev": 0.0,
+      "min": 19.0,
+      "max": 19.0
+    },
+    "llm_success_total": {
+      "mean": 16.0,
+      "stdev": 0.0,
+      "min": 16.0,
+      "max": 16.0
+    },
+    "llm_valid_decision_total": {
+      "mean": 15.5,
+      "stdev": 0.5,
+      "min": 15.0,
+      "max": 16.0
+    },
+    "llm_attempt_rate": {
+      "mean": 1.0,
+      "stdev": 0.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "llm_valid_decision_rate": {
+      "mean": 0.8158,
+      "stdev": 0.0263,
+      "min": 0.7895,
+      "max": 0.8421
+    },
+    "llm_attempt_success_rate": {
+      "mean": 0.8421,
+      "stdev": 0.0,
+      "min": 0.8421,
+      "max": 0.8421
+    },
+    "llm_error_rate": {
+      "mean": 0.1579,
+      "stdev": 0.0,
+      "min": 0.1579,
+      "max": 0.1579
+    },
+    "llm_cost": {
+      "mean": 0.01667,
+      "stdev": 0.000334,
+      "min": 0.016336,
+      "max": 0.017003
+    },
+    "fallback_rate": {
+      "mean": 0.1842,
+      "stdev": 0.0263,
+      "min": 0.1579,
+      "max": 0.2105
+    },
+    "gate_fallback_rate": {
+      "mean": 0.1842,
+      "stdev": 0.0263,
+      "min": 0.1579,
+      "max": 0.2105
+    },
+    "recovery_fallback_rate": {
+      "mean": 0.0,
+      "stdev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "forced_explore_rate": {
+      "mean": 0.0,
+      "stdev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "decision_success_rate": {
+      "mean": 1.0,
+      "stdev": 0.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "repeat_error_rate": {
+      "mean": 0.0,
+      "stdev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "cross_paid_consumption_amount": {
+      "mean": 2.0,
+      "stdev": 0.0,
+      "min": 2.0,
+      "max": 2.0
+    },
+    "cross_paid_consumption_events": {
+      "mean": 1.5,
+      "stdev": 0.5,
+      "min": 1.0,
+      "max": 2.0
+    },
+    "llm_valid_downstream_value": {
+      "mean": 2.0,
+      "stdev": 0.0,
+      "min": 2.0,
+      "max": 2.0
+    },
+    "reuse_weighted_artifact_value_total": {
+      "mean": 3.79176,
+      "stdev": 0.405466,
+      "min": 3.386294,
+      "max": 4.197225
+    },
+    "specialization_hhi_mean": {
+      "mean": 1.0,
+      "stdev": 0.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "forced_explore_value_share": {
+      "mean": 0.0,
+      "stdev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "minted_artifact_count": {
+      "mean": 0.0,
+      "stdev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "minted_with_downstream_value_count": {
+      "mean": 0.0,
+      "stdev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "mint_downstream_value": {
+      "mean": 0.0,
+      "stdev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "mint_downstream_value_ratio": {
+      "mean": 0.0,
+      "stdev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "source_jsonl": "/home/brian/code/agent_ecology3/worktrees/plan-4-prescription-ablation/logs/plan4_prescription_ablation/prescribed_1024_1786497289.jsonl",
+  "run_ids_file": "/home/brian/code/agent_ecology3/worktrees/plan-4-prescription-ablation/logs/plan4_prescription_ablation/prescribed_1024_1786497289_run_ids.txt"
+}

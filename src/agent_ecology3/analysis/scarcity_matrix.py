@@ -46,6 +46,7 @@ NUMERIC_METRICS: tuple[str, ...] = (
     "repeat_error_rate",
     "cross_paid_consumption_amount",
     "cross_paid_consumption_events",
+    "llm_valid_downstream_value",
     "reuse_weighted_artifact_value_total",
     "specialization_hhi_mean",
     "forced_explore_value_share",
@@ -313,9 +314,28 @@ def _evaluate_llm_engagement_validity(
     }
 
 
+def _resolve_invalid_run_policy(
+    *,
+    run_id: str,
+    llm_validity: dict[str, Any],
+    policy: str,
+) -> tuple[bool, bool, str | None]:
+    """Return aggregate inclusion, fail-after-record, and diagnostic message."""
+    if llm_validity.get("valid") is True:
+        return True, False, None
+    failed_checks = llm_validity.get("failed_checks")
+    failed = ",".join(str(item) for item in failed_checks) if isinstance(failed_checks, list) else "unknown"
+    invalid_msg = f"[scarcity-matrix] invalid llm engagement run={run_id} failed={failed or 'unknown'}"
+    if policy == "fail":
+        return False, True, invalid_msg
+    if policy == "drop":
+        return False, False, f"{invalid_msg} (dropped)"
+    return True, False, f"{invalid_msg} (included)"
+
+
 def _run_llm_preflight(cfg: AppConfig) -> dict[str, Any]:
     preflight_cfg = cfg.model_copy(deep=True)
-    preflight_world = World(preflight_cfg)
+    preflight_world = World(preflight_cfg, run_id=f"preflight_{time.time_ns()}")
     payer_id = preflight_world.principal_ids[0]
     result = preflight_world.call_llm_as_syscall(
         payer_id=payer_id,
@@ -336,6 +356,7 @@ def _run_llm_preflight(cfg: AppConfig) -> dict[str, Any]:
     if success:
         payload["cost"] = float(result.get("cost", 0.0) or 0.0)
         payload["charged_cost"] = float(result.get("charged_cost", 0.0) or 0.0)
+        payload["trace_id"] = result.get("trace_id")
     else:
         payload["error"] = str(result.get("error", "llm preflight failed"))
         error_code = result.get("error_code")
@@ -355,6 +376,7 @@ def _build_config(
     loop_prompt_template_path: str | None,
     model_override: str | None,
     subscription_estimated_cost_multiplier: float | None,
+    loop_cognition_mode: str | None = None,
 ) -> AppConfig:
     cfg = load_config(config_path)
     if agents <= 0:
@@ -387,6 +409,11 @@ def _build_config(
         if multiplier < 0:
             raise ValueError("--subscription-estimated-cost-multiplier must be >= 0")
         cfg.llm.subscription_estimated_cost_multiplier = multiplier
+    if loop_cognition_mode is not None:
+        cognition_mode = str(loop_cognition_mode).strip().lower()
+        if cognition_mode not in {"prescribed", "minimal"}:
+            raise ValueError("--loop-cognition-mode must be one of: prescribed, minimal")
+        cfg.llm.loop_cognition_mode = cast(Literal["prescribed", "minimal"], cognition_mode)
     return cfg
 
 
@@ -468,6 +495,12 @@ def _parse_args() -> argparse.Namespace:
         choices=("baseline", "reduced", "off"),
         default=None,
         help="Loop forced-explore mode override",
+    )
+    parser.add_argument(
+        "--loop-cognition-mode",
+        choices=("prescribed", "minimal"),
+        default=None,
+        help="Override llm.loop_cognition_mode for matrix runs",
     )
     parser.add_argument(
         "--loop-prompt-template",
@@ -562,6 +595,7 @@ def main() -> int:
         loop_prompt_template_path=args.loop_prompt_template,
         model_override=args.model,
         subscription_estimated_cost_multiplier=args.subscription_estimated_cost_multiplier,
+        loop_cognition_mode=args.loop_cognition_mode,
     )
     target_llm_calls = int(args.target_llm_calls)
     if target_llm_calls < 0:
@@ -647,19 +681,13 @@ def main() -> int:
                 run_meta,
                 thresholds=validity_thresholds,
             )
-            include_in_aggregate = True
-            if llm_validity["valid"] is not True:
-                invalid_msg = (
-                    f"[scarcity-matrix] invalid llm engagement run={run_id} "
-                    f"failed={','.join(llm_validity['failed_checks']) or 'unknown'}"
-                )
-                if args.invalid_run_policy == "fail":
-                    raise RuntimeError(invalid_msg)
-                if args.invalid_run_policy == "drop":
-                    include_in_aggregate = False
-                    print(f"{invalid_msg} (dropped)", flush=True)
-                else:
-                    print(f"{invalid_msg} (included)", flush=True)
+            include_in_aggregate, fail_after_record, invalid_msg = _resolve_invalid_run_policy(
+                run_id=run_id,
+                llm_validity=llm_validity,
+                policy=str(args.invalid_run_policy),
+            )
+            if invalid_msg is not None and not fail_after_record:
+                print(invalid_msg, flush=True)
 
             record = {
                 "ae3_run_id": run_id,
@@ -691,6 +719,8 @@ def main() -> int:
             )
             matrix_stream.flush()
             print(_format_run_completion(index=idx, runs=runs, run_id=run_id, summary=summary), flush=True)
+            if fail_after_record:
+                raise RuntimeError(invalid_msg)
 
     aggregate = aggregate_metrics(aggregate_rows)
     payload: dict[str, Any] = {
@@ -702,9 +732,14 @@ def main() -> int:
             "duration": float(args.duration),
             "agents": int(args.agents),
             "model": str(cfg.llm.default_model),
+            "num_retries": int(cfg.llm.num_retries),
+            "max_output_tokens": cfg.llm.max_output_tokens,
+            "provider_max_budget_usd": float(cfg.llm.provider_max_budget_usd),
+            "provider_budget_reservation_usd": float(cfg.llm.provider_budget_reservation_usd),
             "llm_loop": llm_loop_enabled,
             "loop_llm_cooldown": float(args.loop_llm_cooldown),
             "loop_forced_explore_mode": str(cfg.llm.loop_forced_explore_mode),
+            "loop_cognition_mode": str(cfg.llm.loop_cognition_mode),
             "loop_prompt_template_path": cfg.llm.loop_prompt_template_path,
             "target_llm_calls": target_llm_calls,
             "seed_base": int(args.seed_base),

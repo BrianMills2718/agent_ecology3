@@ -23,23 +23,27 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
             "error": "boom",
         },
         {
+            "timestamp": "2026-02-21T00:00:00.500000+00:00",
+            "event_type": "artifact_written",
+            "principal_id": "alpha_1",
+            "artifact_id": "alpha_1_tool_a",
+            "artifact_type": "tool",
+        },
+        {
             "timestamp": "2026-02-21T00:00:01+00:00",
             "event_type": "loop_decision",
             "principal_id": "alpha_1",
-            "decision_action": "query_kernel",
+            "decision_action": "write_artifact",
+            "decision": {
+                "action_type": "write_artifact",
+                "artifact_id": "alpha_1_tool_a",
+            },
             "decision_origin": "llm_valid",
             "llm_attempted": True,
             "llm_success": True,
             "fallback_used": False,
             "result_success": True,
             "result_error_code": None,
-        },
-        {
-            "timestamp": "2026-02-21T00:00:01+00:00",
-            "event_type": "artifact_written",
-            "principal_id": "alpha_1",
-            "artifact_id": "alpha_1_tool_a",
-            "artifact_type": "tool",
         },
         {
             "timestamp": "2026-02-21T00:00:02+00:00",
@@ -127,6 +131,7 @@ def test_loop_decision_metrics_and_trends(tmp_path) -> None:
     assert summary["decision_origin_counts"]["forced_explore"] == 1
     assert summary["cross_paid_consumption_amount"] == 2.0
     assert summary["cross_paid_consumption_events"] == 1
+    assert summary["llm_valid_downstream_value"] == 2.0
     assert summary["specialization_hhi_mean"] == 1.0
     assert summary["minted_artifact_count"] == 1
     assert summary["minted_with_downstream_value_count"] == 1

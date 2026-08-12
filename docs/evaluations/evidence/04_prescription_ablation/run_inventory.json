@@ -1,0 +1,58 @@
+{
+  "actual_paid_cost_usd": 0.0744073,
+  "classification": "inconclusive",
+  "classification_reasons": [
+    "More than one paid run failed the frozen validity thresholds.",
+    "The shared client retained rendered messages but not raw tool-call envelopes."
+  ],
+  "llm_off_runs": [
+    "run_20260812_012834",
+    "run_20260812_012844",
+    "run_20260812_012855"
+  ],
+  "minimal_condition_started": false,
+  "model": "minimax/minimax-m3",
+  "paid_runs": [
+    {
+      "role": "excluded_horizon_pilot",
+      "run_id": "run_20260812_005820",
+      "valid": false
+    },
+    {
+      "role": "retained_output_cap_pilot",
+      "run_id": "run_20260812_011048",
+      "valid": false
+    },
+    {
+      "role": "prescribed_replicate_1",
+      "run_id": "run_20260812_011449",
+      "valid": true
+    },
+    {
+      "role": "prescribed_replicate_2",
+      "run_id": "run_20260812_012034",
+      "valid": true
+    },
+    {
+      "role": "prescribed_replicate_3",
+      "run_id": "run_20260812_012401",
+      "valid": false
+    }
+  ],
+  "preflight": {
+    "cost_usd": 0.0001023,
+    "trace_id": "ae3/preflight_1786496281479803236/event_0/payer/alpha_1"
+  },
+  "run_revision": "03be7c4",
+  "run_worktree_was_clean": true,
+  "schema_version": "ae3_evaluation_04_evidence_v1",
+  "stop_reason": "Frozen invalid-run limit reached during the prescribed control.",
+  "trace_custody_audit": {
+    "ae3_attempt_events": 94,
+    "matching_receipt_rows": 94,
+    "missing_receipt_events": 0,
+    "records_with_messages": 94,
+    "records_with_nonempty_response_text": 2,
+    "tool_call_records_with_empty_response_text": 74
+  }
+}
