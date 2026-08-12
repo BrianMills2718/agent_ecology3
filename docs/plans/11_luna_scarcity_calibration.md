@@ -47,10 +47,50 @@ horizon completes without budget scarcity.
 No prompt comparison, reliability claim, behavioral-effect claim, retry,
 fallback, MCP path, or Evaluation 07 mutation is in this increment.
 
+## Authentic Midpoint Probe — Frozen Contract
+
+**Claim:** With `0.033192` starting LLM budget, the normal one-principal Luna
+loop reaches a proven pre-dispatch `insufficient_budget` boundary before 16
+provider dispatches.
+
+**Decision:** A pass makes the midpoint setting eligible for a later
+calibration/control design. Completion of 16 dispatches without the boundary
+rejects the midpoint. Any other terminal condition is inconclusive.
+
+**Execution:** exact `codex/gpt-5.6-luna`, medium reasoning, CLI,
+subscription-included billing, one principal, at most 16 provider dispatches,
+zero retries/repair/fallback/MCP, exact accepted shared client, clean pushed AE3
+revision, and acknowledgement `plan11/luna-medium/scarcity-midpoint/v1`.
+
+**Controls:** The provider-free positive fixture recognizes a trace-free
+`insufficient_budget` result as `pre_dispatch_rejected`, stops validly, and
+does not increment provider dispatch count. Existing ambiguity and corrupt
+checkpoint controls must still terminate invalid. A budget rejection carrying
+a provider trace is not accepted as pre-dispatch evidence.
+
+**Readout:** pass only when the durable checkpoint has terminal state `stopped`,
+terminal reason `scarcity_binding_pre_dispatch`, a final
+`pre_dispatch_rejected` attempt with no trace, and provider dispatch count below
+16. Preserve every prior committed action, settlement, budget trajectory,
+timing, usage, and shared-client trace. The dashboard must show the terminal
+state and concrete history.
+
+**External-call budget:** maximum 16 calls, serial width 1, no retry or
+fallback. Plan 10 observed 7.2–8.6 seconds and subscription-included provider
+cost USD 0 per call; those are observations rather than guaranteed bounds.
+Checkpoint after every settlement; resume identity is the frozen run ID plus
+acknowledgement. Stop immediately on the scarcity boundary or any ambiguity.
+
+**Non-claims:** This single cell does not establish reliability, a scarcity
+effect on behavior, a comparison baseline, or a production parameter.
+
 ## Files Affected
 
 - `src/agent_ecology3/analysis/scarcity_calibration.py` (create)
+- `src/agent_ecology3/simulation/recovery.py` (modify)
+- `scripts/run_recoverable_evaluation.py` (modify)
 - `tests/test_scarcity_calibration.py` (create)
+- `tests/test_recoverable_poc.py` (modify)
 - `docs/evaluations/evidence/11_luna_scarcity_calibration/provider_free_projection.json` (create)
 - `docs/plans/11_luna_scarcity_calibration.md` (create)
 - `docs/plans/CLAUDE.md` (modify)

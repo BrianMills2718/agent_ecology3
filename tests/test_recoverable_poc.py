@@ -14,6 +14,7 @@ from agent_ecology3.config import AppConfig
 from agent_ecology3.dashboard import create_app
 from agent_ecology3.simulation import (
     RecoveryCoordinator,
+    RecoveryScarcityBoundary,
     RecoveryTerminalError,
     SimulatedRecoveryInterruption,
     SimulationRunner,
@@ -165,6 +166,46 @@ def test_corrupt_checkpoint_is_terminal_without_dispatch(tmp_path: Path) -> None
     payload = json.loads(status.read_text(encoding="utf-8"))
     assert payload["lifecycle_state"] == "invalid"
     assert "corrupt checkpoint" in payload["terminal_reason"]
+
+
+def test_pre_dispatch_budget_rejection_stops_without_provider_dispatch(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    checkpoint, status = _paths(tmp_path)
+    _world, coordinator = build_recoverable_world(
+        config,
+        run_id="plan11_scarcity_fixture",
+        target_attempts=16,
+        checkpoint_path=checkpoint,
+        status_path=status,
+    )
+
+    async def reject_before_dispatch(**_kwargs):
+        return {
+            "success": False,
+            "error": "insufficient llm_budget",
+            "error_code": "insufficient_budget",
+            "budget": 0.001,
+            "estimated_cost": 0.004,
+        }
+
+    coordinator._original_syscall = reject_before_dispatch
+    with pytest.raises(RecoveryScarcityBoundary, match="scarcity_binding"):
+        asyncio.run(
+            coordinator.call_llm(
+                payer_id="alpha_1",
+                model=config.llm.default_model,
+                messages=[{"role": "user", "content": "decide"}],
+            )
+        )
+
+    durable = json.loads(checkpoint.read_text(encoding="utf-8"))
+    assert durable["provider_dispatch_count"] == 0
+    assert durable["terminal_state"] == "stopped"
+    assert durable["attempts"][-1]["phase"] == "pre_dispatch_rejected"
+    assert durable["attempts"][-1]["trace_id"] is None
+    assert json.loads(status.read_text(encoding="utf-8"))["lifecycle_state"] == "stopped"
 
 
 def test_runner_can_start_paused_and_resume(tmp_path: Path) -> None:
