@@ -98,6 +98,125 @@
       },
       "status": "accepted",
       "record_version": 1
+    },
+    {
+      "schema_version": "1.0",
+      "record_type": "work_unit",
+      "id": "WU-10-03",
+      "initiative_id": "agent-ecology-luna-recovery",
+      "goal_id": "truthful-luna-canary-settlement",
+      "design_revision": "91d0434c4f0ee72029e5bb58c0213b5170737486",
+      "spec_revision": "wu-10-03-v1",
+      "title": "Make the one-call Luna boundary truthful and fail closed",
+      "class": "implementation",
+      "objective": "Ensure the production Luna syscall binds the exact reviewed shared-client source, settles every returned result truthfully, retains ambiguous attempts, and rejects unclassified Codex events before any live canary.",
+      "profile": "small",
+      "execution_class": "independently_executable",
+      "claimability": "ready_for_execution",
+      "authorization_mode": "registry_claim",
+      "scope": {
+        "included": [
+          "Exact accepted llm_client revision preflight",
+          "Synchronous and asynchronous Luna settlement accounting",
+          "Dispatch-ambiguous Luna attempt accounting",
+          "Fail-closed Codex completed-item allowlist",
+          "Focused provider-free production-consumer tests"
+        ],
+        "excluded": [
+          "Live Luna call",
+          "Retries or fallback routes",
+          "Recoverable 16-attempt cell",
+          "Detached worker or supervisor",
+          "MCP bridge changes",
+          "Evaluation 07, Evaluation 08, or Plan 11 execution",
+          "llm_client mutation or publication"
+        ]
+      },
+      "inputs": [
+        {
+          "kind": "ImplementationPlan",
+          "id": "agent-ecology3-plan-10",
+          "revision": "91d0434c4f0ee72029e5bb58c0213b5170737486"
+        },
+        {
+          "kind": "AcceptedSharedContract",
+          "id": "llm-client-plan-355-wu-355-01",
+          "revision": "286715784f1d535d6dfcd2c867ca678d666e27d5"
+        }
+      ],
+      "outputs": [
+        "Production Luna preflight bound to the exact reviewed llm_client revision",
+        "Truthful provider_settled_rejected and dispatch_ambiguous syscall receipts",
+        "Fail-closed passive Codex event policy",
+        "Provider-free focused evidence for both production syscall entrypoints"
+      ],
+      "dependencies": [],
+      "conflict_surfaces": [
+        {
+          "kind": "repository_path",
+          "target": "src/agent_ecology3/world/luna_actions.py",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-canary-safety"
+        },
+        {
+          "kind": "repository_path",
+          "target": "src/agent_ecology3/world/world.py",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-canary-safety"
+        },
+        {
+          "kind": "repository_path",
+          "target": "tests/test_luna_recovery_gate.py",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-canary-safety"
+        },
+        {
+          "kind": "contract",
+          "target": "LLMCallResult.codex_events@286715784f1d535d6dfcd2c867ca678d666e27d5",
+          "access": "read",
+          "coordination_key": "llm-client-codex-events-v1"
+        }
+      ],
+      "acceptance": [
+        {
+          "id": "AC-10-03-dependency",
+          "criterion": "A field-compatible but unreviewed llm_client revision fails before Luna resource reservation and dispatch.",
+          "evidence_required": [
+            "Focused dependency-mismatch test",
+            "Exact expected and observed source revisions"
+          ],
+          "negative_control": "The exact accepted revision with the public codex_events field passes preflight."
+        },
+        {
+          "id": "AC-10-03-settlement",
+          "criterion": "Returned-but-rejected and dispatch-ambiguous Luna attempts remain unsuccessful, consume their reserved call, retain truthful resource accounting, and do not retry.",
+          "evidence_required": [
+            "Focused sync and async production-consumer tests",
+            "Inspectable syscall receipts and resource deltas"
+          ],
+          "negative_control": "A pre-dispatch dependency failure reserves no resources and records no provider attempt."
+        },
+        {
+          "id": "AC-10-03-events",
+          "criterion": "Only reviewed passive Codex completed-item types pass; active, missing, and unclassified types fail closed after truthful settlement.",
+          "evidence_required": [
+            "Focused passive/active/unknown event fixtures",
+            "Ordered event types in the rejection receipt"
+          ],
+          "negative_control": "A result containing only reasoning and agent_message events remains eligible for action validation."
+        }
+      ],
+      "readiness": {
+        "status": "ready",
+        "required_approval_types": [],
+        "approvals": [],
+        "failed_guards": []
+      },
+      "status": "ready",
+      "record_version": 1
     }
   ]
 }
