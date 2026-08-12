@@ -148,6 +148,7 @@ agent_ecology3/
 
 ## Docs
 
+- `docs/LINEAGE_AND_RESTARTS.md` - canonical comparison of AE1, AE2, and AE3; restart evidence, recurring failure modes, and the unresolved lifecycle decision.
 - `docs/REWRITE_SCOPE.md` - keep/add/remove scope for the rebuild.
 - `docs/REMOVAL_SEQUENCE.md` - ordered removal plan for review one item at a time.
 - `docs/REMOVAL_01_RUNTIME_GOVERNANCE.md` - detailed review doc for removal #1.
