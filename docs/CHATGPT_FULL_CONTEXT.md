@@ -201,8 +201,9 @@ Evaluation status as of 2026-08-11:
 - Evaluation 07 is that new preregistered design: 12 valid matched
   prescribed/minimal pairs, up to two ordered reserve pairs, exact 16-attempt
   runs, observed scarcity and full-custody gates, and a USD 1.68 maximum. It is
-  not implemented or run; execution requires a clean pushed implementation,
-  passing controls, and separate human authorization.
+  implemented but not run. The zero-provider preflight passes, and execution
+  still requires a clean pushed revision, passing controls, exact cost
+  acknowledgement, and separate human authorization.
 
 ### 7.2 Entropy metric definition
 

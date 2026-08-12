@@ -1002,3 +1002,68 @@ def test_transfer_resource_rejects_non_transferable_resource(tmp_path) -> None:
     )
     assert result.success is False
     assert result.error_code == "invalid_argument"
+
+
+def test_runner_stops_after_exact_settled_attempt_target(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.principals.count = 4
+    cfg.llm.enable_bootstrap_loop_llm = True
+    cfg.llm.loop_forced_explore_mode = "off"
+    cfg.simulation.loop.min_delay_seconds = 0.001
+    cfg.simulation.loop.max_delay_seconds = 0.002
+    world = World(cfg, run_id="test_exact_attempt_stop")
+    runner = SimulationRunner(world)
+    attempts = 0
+
+    async def _fake_call_llm_as_syscall_async(**kwargs):
+        nonlocal attempts
+        attempts += 1
+        trace_id = f"ae3/test_exact_attempt_stop/attempt_{attempts}"
+        tool_call = {
+            "id": f"call-{attempts}",
+            "type": "function",
+            "function": {
+                "name": "ae3_action",
+                "arguments": (
+                    '{"action_type":"query_kernel","query_type":"resources",'
+                    '"params":{}}'
+                ),
+            },
+        }
+        world.logger.log(
+            "llm_syscall",
+            {
+                "event_number": world.event_number,
+                "trace_id": trace_id,
+                "payer_id": kwargs["payer_id"],
+                "model": kwargs["model"],
+                "actual_cost": 0.0,
+                "charged_cost": 0.0,
+                "cache_hit": False,
+                "tool_calls_count": 1,
+            },
+        )
+        return {
+            "success": True,
+            "trace_id": trace_id,
+            "content": "",
+            "tool_calls": [tool_call],
+            "cost": 0.0,
+            "charged_cost": 0.0,
+            "cache_hit": False,
+        }
+
+    world.call_llm_as_syscall_async = _fake_call_llm_as_syscall_async  # type: ignore[method-assign]
+    asyncio.run(runner.run(duration=3.0, target_llm_attempts=16))
+
+    events = world.logger.read_recent(1000)
+    attempt_events = [
+        event
+        for event in events
+        if event.get("event_type") in {"llm_syscall", "llm_syscall_error"}
+    ]
+    decisions = [event for event in events if event.get("event_type") == "loop_decision"]
+    assert attempts == 16
+    assert len(attempt_events) == 16
+    assert len(decisions) == 16
+    assert decisions[-1]["llm_trace_id"] == "ae3/test_exact_attempt_stop/attempt_16"

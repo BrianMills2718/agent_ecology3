@@ -46,6 +46,18 @@ class SimulationRunner:
         self._loop_states: dict[str, LoopRuntimeState] = {}
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
         self._world_execution_lock = asyncio.Lock()
+        self._target_llm_attempts: int | None = None
+
+    def _settled_llm_attempt_count(self) -> int:
+        # The stop boundary must not depend on the dashboard retention window.
+        # Read the complete bounded run log so an older settled attempt cannot
+        # fall out of the count before the target is reached.
+        limit = max(1, int(self.world.logger.sequence))
+        return sum(
+            1
+            for event in self.world.logger.read_recent(limit)
+            if event.get("event_type") in {"llm_syscall", "llm_syscall_error"}
+        )
 
     @property
     def is_running(self) -> bool:
@@ -128,6 +140,10 @@ class SimulationRunner:
             self.world.unfreeze_agent(state.principal_id)
 
             async with self._world_execution_lock:
+                # A sibling loop may have been waiting on the serial lane when
+                # another loop reached an evaluation stop boundary.
+                if self._target_llm_attempts is not None and self._stop_requested:
+                    break
                 result = await self.world.execute_action_data_async(
                     state.principal_id,
                     {
@@ -138,6 +154,11 @@ class SimulationRunner:
                     },
                     increment_event=True,
                 )
+                if (
+                    self._target_llm_attempts is not None
+                    and self._settled_llm_attempt_count() >= self._target_llm_attempts
+                ):
+                    self.stop()
             state.iterations += 1
 
             if result.success:
@@ -166,9 +187,16 @@ class SimulationRunner:
 
         state.running = False
 
-    async def run(self, duration: float | None = None) -> World:
+    async def run(
+        self,
+        duration: float | None = None,
+        *,
+        target_llm_attempts: int | None = None,
+    ) -> World:
         if self._running:
             return self.world
+        if target_llm_attempts is not None and int(target_llm_attempts) <= 0:
+            raise ValueError("target_llm_attempts must be > 0 when provided")
 
         max_runtime = self.world.config.simulation.max_runtime_seconds
         target_duration = duration if duration is not None else self.world.config.simulation.default_duration_seconds
@@ -180,6 +208,9 @@ class SimulationRunner:
         self._stop_event.clear()
         self._pause_event.set()
         self._start_monotonic = time.monotonic()
+        self._target_llm_attempts = (
+            int(target_llm_attempts) if target_llm_attempts is not None else None
+        )
 
         loop_pairs = self._discover_loops()
         self._loop_states = {
@@ -243,6 +274,7 @@ class SimulationRunner:
                 await asyncio.gather(*self._loop_tasks.values(), return_exceptions=True)
 
             self._running = False
+            self._target_llm_attempts = None
             self.world.log_summary_snapshot()
             self.world.logger.log(
                 "simulation_stopped",
