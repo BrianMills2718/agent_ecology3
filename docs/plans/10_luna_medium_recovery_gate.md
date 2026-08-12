@@ -1,10 +1,52 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** In progress — Slices A-B passed; one-call canary awaits authorization
+**Status:** In progress — Slices A-C passed; recovery/dashboard PoC selected
 **Type:** implementation
 **Priority:** High
-**Blocked By:** None; live canary dispatch remains separately authorized
+**Blocked By:** None
 **Blocks:** Luna-specific qualification and scarcity calibration (Plan #11)
+
+### Current execution frontier (2026-08-12)
+
+- **Outcome:** run the smallest recoverable, detached, dashboard-visible Luna
+  PoC without reopening the accepted model, route, action, or UI architecture.
+- **Completed unit:** `WU-10-04`; the separately authorized canary passed on its
+  only dispatch from pushed source revision
+  `d65b46e0884c98574cd9fd13355c6bd74377e276`.
+- **Proven:** exact `codex/gpt-5.6-luna` at medium effort through direct CLI,
+  subscription-included billing, one strict `query_kernel` action, passive
+  `agent_message` event custody, and caller/readback equality.
+- **Next action:** use the canary's observed 7.7-second latency and 15,568-token
+  usage to bound one recoverable dashboard-visible PoC unit implementing the
+  conditional Slices D-E.
+- **Stop condition:** no multi-call Luna run begins until recovery prevents a
+  settled or ambiguous attempt from being replaced after interruption.
+- **Evidence:** `docs/evaluations/evidence/plan10_luna_recovery_gate/`.
+- **Non-claim:** the canary establishes route compatibility only; it does not
+  establish reliability, behavioral effect, or valid scarcity parameters.
+
+### Slice C checkpoint (2026-08-12)
+
+The one authentic canary passed with exactly one provider dispatch and no
+retry, repair, fallback, or MCP server. The retained receipt records:
+
+- stable trace `ae3/plan10_luna_medium_canary_v1/event_0/payer/alpha_1`;
+- exact AE3 source `d65b46e0884c98574cd9fd13355c6bd74377e276`
+  and shared-client source
+  `286715784f1d535d6dfcd2c867ca678d666e27d5`;
+- 15,422 prompt tokens, 146 completion tokens, 15,568 total tokens, and
+  7.7 seconds observed latency;
+- provider cost USD 0.00 under `subscription_included` billing, with AE3's
+  configured internal estimated-budget charge retained separately;
+- one passive `agent_message` Codex event and no intrinsic/MCP tool execution;
+- one Pydantic-validated `query_kernel` action requesting readable artifacts;
+  and
+- exact caller/shared-client readback equality plus one terminal shared-client
+  receipt.
+
+The evidence file is `live_canary.json`, SHA-256
+`698faab71cad8f96f1d37231e41703439fe0500c402ec5d96413bc5321518ba0`.
+This selects Slices D-E before any multi-call Luna execution.
 
 ### Slice A checkpoint (2026-08-12)
 
@@ -629,9 +671,9 @@ loops.
       model-visible state match the last committed checkpoint.
 - [ ] A detached worker survives launcher exit and exposes truthful status and
       resume evidence to a new process.
-- [ ] The live entry point refuses dispatch without exact one-call human
+- [x] The live entry point refuses dispatch without exact one-call human
       acknowledgement.
-- [ ] After separate authorization, one and only one authentic canary either
+- [x] After separate authorization, one and only one authentic canary either
       passes every route/action/custody gate or retains a blocked bundle naming
       the failed boundary.
 - [ ] No Evaluation 07 input/evidence changes, no Evaluation 08 claim is made,
