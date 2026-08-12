@@ -15,7 +15,7 @@ Track all implementation work here.
 | 7 | [Behavioral comparison preregistration](07_behavioral_comparison_preregistration.md) | High | ✅ Complete | Evaluation 07 implementation and separately authorized execution |
 | 8 | [Behavioral comparison runner](08_behavioral_comparison_runner.md) | High | ✅ Complete | Separately authorized Evaluation 07 execution |
 | 9 | [Behavioral comparison execution](09_behavioral_comparison_execution.md) | High | ✅ Complete (invalid) | New-number evaluation only |
-| 10 | [Luna Medium compatibility and recovery gate](10_luna_medium_recovery_gate.md) | High | 🚧 Blocked after Slice A | Public `llm_client` intrinsic Codex event custody |
+| 10 | [Luna Medium compatibility and recovery gate](10_luna_medium_recovery_gate.md) | High | 🚧 Shared dependency accepted; Slice A adoption ready | Provider-free downstream adoption |
 
 ## Status Key
 
