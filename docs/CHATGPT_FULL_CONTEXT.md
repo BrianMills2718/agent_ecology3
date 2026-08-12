@@ -192,6 +192,12 @@ Evaluation status as of 2026-08-11:
   the public readback record omitted. A non-decision diagnostic was 16/16 usable
   prescribed and 15/16 usable minimal (one empty provider response), but neither
   a rerun nor behavioral evaluation is authorized from that audit.
+- Evaluation 06 passed on a held-out state after its isolated real
+  public-readback controls passed: 16/16 prescribed and 15/16 minimal calls
+  produced usable legal actions, with zero timeout, truncation, trace, or
+  custody failures. An independent execution-based verifier signed off the
+  instrument qualification only. This unblocks a new behavioral design and
+  preregistration; it does not establish emergence or a prescription effect.
 
 ### 7.2 Entropy metric definition
 

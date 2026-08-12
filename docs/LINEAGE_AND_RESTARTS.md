@@ -185,8 +185,10 @@ These are observed risks, not reasons to restart AE3 now.
    stopped before treatment after a second invalid paid run. Evaluation 05's
    provider/tool qualification descriptively produced usable actions in 16/16
    prescribed and 15/16 minimal calls, but its frozen classifier returned
-   `not_qualified` because of the readback-metadata defect. The required
-   intervention-off behavioral comparison therefore remains outstanding.
+   `not_qualified` because of the readback-metadata defect. Evaluation 06 then
+   qualified the held-out provider/prompt/tool instrument with independent
+   signoff, but the required intervention-off behavioral comparison itself
+   remains outstanding.
 3. **Historical empirical claims are not self-contained in Git.** The README
    and `CHATGPT_FULL_CONTEXT.md` name run IDs and summary files, but a clean
    clone contains no tracked logs or summary JSON. Treat those claims as a
@@ -223,6 +225,11 @@ The review intentionally separates code health from thesis evidence:
   trace/tool custody, but its immutable runner verdict is **not qualified** due
   to the classifier/readback metadata mismatch documented above. It was not
   rerun and no behavioral evaluation followed.
+- Evaluation 06 used a new held-out state and real zero-spend public-readback
+  controls before making 32 new calls. It qualified both prompt routes at the
+  frozen reliability threshold for USD 0.03988458 and received independent
+  adversarial signoff. This repairs the instrument prerequisite; it is not the
+  missing behavioral comparison.
 
 ## Advice and Next Decision
 
@@ -253,6 +260,11 @@ custody alone is not enough if the decision classifier assumes fields outside
 the public readback contract. The preserved data is encouraging but does not
 replace its frozen verdict. Any further qualification needs a new
 preregistration; do not recycle Evaluation 05 as a passing assay.
+
+Evaluation 06 supplied that new preregistration and passed its independently
+verified instrument gate. The next legitimate step is a fresh behavioral
+design/preregistration using the qualified boundary—not another repository
+rewrite and not retrospective promotion of Evaluation 04 or 05.
 
 If AE3 produces that evidence while retaining the essential contract/resource
 semantics needed for subsequent experiments, decide explicitly whether to mark

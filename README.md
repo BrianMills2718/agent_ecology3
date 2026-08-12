@@ -108,6 +108,11 @@ PYTHONPATH=src python -m agent_ecology3.analysis.phase1_compare --baseline-suite
   actions in 16/16 prescribed and 15/16 minimal calls; that audit does not
   overwrite the frozen verdict, authorize a rerun, or authorize behavioral
   comparison.
+- Evaluation 06 passed and received independent adversarial signoff for the
+  narrow instrument claim: 16/16 prescribed and 15/16 minimal actions were
+  usable, with zero timeout, truncation, trace, or custody failures. It unblocks
+  design/preregistration of a fresh behavioral comparison; it does not itself
+  establish emergence or a prescription effect.
 - `phase1_suite` runs baseline/reduced/off matrix conditions in sequence and writes a scenario-level cohort comparison from `llm_client.compare_cohorts`.
 - `phase1_suite` launches matrix children with unbuffered Python (`-u`) so condition driver logs stream progress in real time.
 - `matrix_progress` summarizes in-flight matrix JSONL files (completed replicate count, rolling aggregate metrics, last-run key signals) during long-running suites.
@@ -166,6 +171,8 @@ agent_ecology3/
 - `docs/evaluations/05_provider_tool_qualification.md` - async/provider/tool
   qualification design, one-shot result, classifier failure mode, and immutable
   evidence bundle.
+- `docs/evaluations/06_public_readback_qualification.md` - held-out provider
+  qualification with a real zero-spend public-readback gate.
 - `docs/REWRITE_SCOPE.md` - keep/add/remove scope for the rebuild.
 - `docs/REMOVAL_SEQUENCE.md` - ordered removal plan for review one item at a time.
 - `docs/REMOVAL_01_RUNTIME_GOVERNANCE.md` - detailed review doc for removal #1.

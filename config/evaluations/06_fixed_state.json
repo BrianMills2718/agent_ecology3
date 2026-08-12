@@ -1,0 +1,42 @@
+{
+  "balance": 9,
+  "resources": {
+    "llm_budget": 0.25,
+    "llm_calls_remaining": 120,
+    "llm_tokens_remaining": 400000,
+    "disk_bytes_remaining": 232000
+  },
+  "artifacts": [
+    {
+      "id": "${principal_id}_scratch",
+      "type": "scratchpad",
+      "owner": "${principal_id}",
+      "read_price": 0,
+      "invoke_price": 0
+    },
+    {
+      "id": "alpha_3_demand_signal",
+      "type": "market_report",
+      "owner": "alpha_3",
+      "read_price": 2,
+      "invoke_price": 0
+    },
+    {
+      "id": "alpha_4_shared_calculator",
+      "type": "service",
+      "owner": "alpha_4",
+      "read_price": 1,
+      "invoke_price": 1
+    }
+  ],
+  "memory": {
+    "turn": 7,
+    "next_objective": "trade",
+    "objectives": ["adapt", "discover", "produce", "trade"],
+    "stagnation_count": 0
+  },
+  "recent_feedback": {
+    "recent_action_types": ["read_artifact", "write_artifact", "transfer"],
+    "recent_error_codes": ["not_found"]
+  }
+}
