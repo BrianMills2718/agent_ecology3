@@ -165,7 +165,12 @@ def _write_reproduction_fixture(
     inputs = evidence / "inputs"
     inputs.mkdir(parents=True)
     for relative in FROZEN_INPUT_SHA256:
-        shutil.copyfile(repo / relative, inputs / relative.replace("/", "__"))
+        retained = (
+            repo
+            / "docs/evaluations/evidence/07_behavioral_comparison/inputs"
+            / relative.replace("/", "__")
+        )
+        shutil.copyfile(retained, inputs / relative.replace("/", "__"))
     cases = json.loads((repo / CASES_PATH).read_text(encoding="utf-8"))
     dispatch = {
         "schema_version": "ae3_eval07_dispatch_plan_v1",

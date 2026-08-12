@@ -1,0 +1,523 @@
+{
+  "schema_version": "luna_preflight.v1",
+  "status": "blocked",
+  "blocker_code": "intrinsic_codex_events_not_public",
+  "blocker_owner": "llm_client",
+  "blocker_reason": "The shared Codex CLI result retains only MCP tool calls and a transport summary; command, file-change, and web/search item events are not exposed, so AE3 cannot prove that intrinsic Codex tools executed zero times.",
+  "model": "codex/gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "transport": "cli",
+  "sandbox_mode": "read-only",
+  "approval_policy": "never",
+  "retry_count": 0,
+  "fallback_models": [],
+  "response_model": "LunaLoopDecisionV1",
+  "action_types": [
+    "write_artifact",
+    "read_artifact",
+    "transfer",
+    "transfer_resource",
+    "submit_to_mint",
+    "query_kernel"
+  ],
+  "action_branch_count": 6,
+  "provider_schema_sha256": "4f8344df4e01d3f7adf1287ffe794edeb2552f94e8d8268558d3cc102be5d2d2",
+  "provider_schema": {
+    "$defs": {
+      "LunaQueryKernelV1": {
+        "additionalProperties": false,
+        "properties": {
+          "action_type": {
+            "const": "query_kernel",
+            "title": "Action Type",
+            "type": "string"
+          },
+          "query_type": {
+            "enum": [
+              "artifacts",
+              "artifact",
+              "principals",
+              "principal",
+              "balances",
+              "resources",
+              "quotas",
+              "mint",
+              "events",
+              "frozen",
+              "libraries",
+              "dependencies"
+            ],
+            "title": "Query Type",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/$defs/LunaQueryParamsV1"
+          }
+        },
+        "required": [
+          "action_type",
+          "query_type",
+          "params"
+        ],
+        "title": "LunaQueryKernelV1",
+        "type": "object"
+      },
+      "LunaQueryParamsV1": {
+        "additionalProperties": false,
+        "description": "Closed projection of the query keys currently consumed by the kernel.",
+        "properties": {
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "artifact_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Type"
+          },
+          "artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Id"
+          },
+          "executable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executable"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          },
+          "offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset"
+          },
+          "principal_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Principal Id"
+          },
+          "readable_only": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readable Only"
+          },
+          "include_permissions": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include Permissions"
+          },
+          "resource": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource"
+          },
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id"
+          }
+        },
+        "title": "LunaQueryParamsV1",
+        "type": "object",
+        "required": [
+          "owner",
+          "type",
+          "artifact_type",
+          "artifact_id",
+          "executable",
+          "limit",
+          "offset",
+          "principal_id",
+          "readable_only",
+          "include_permissions",
+          "resource",
+          "agent_id"
+        ]
+      },
+      "LunaReadArtifactV1": {
+        "additionalProperties": false,
+        "properties": {
+          "action_type": {
+            "const": "read_artifact",
+            "title": "Action Type",
+            "type": "string"
+          },
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action_type",
+          "artifact_id"
+        ],
+        "title": "LunaReadArtifactV1",
+        "type": "object"
+      },
+      "LunaSubmitToMintV1": {
+        "additionalProperties": false,
+        "properties": {
+          "action_type": {
+            "const": "submit_to_mint",
+            "title": "Action Type",
+            "type": "string"
+          },
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "bid": {
+            "title": "Bid",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action_type",
+          "artifact_id",
+          "bid"
+        ],
+        "title": "LunaSubmitToMintV1",
+        "type": "object"
+      },
+      "LunaTransferResourceV1": {
+        "additionalProperties": false,
+        "properties": {
+          "action_type": {
+            "const": "transfer_resource",
+            "title": "Action Type",
+            "type": "string"
+          },
+          "recipient_id": {
+            "title": "Recipient Id",
+            "type": "string"
+          },
+          "resource": {
+            "enum": [
+              "llm_budget",
+              "disk_quota",
+              "llm_calls",
+              "llm_tokens",
+              "cpu_seconds"
+            ],
+            "title": "Resource",
+            "type": "string"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "memo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memo"
+          }
+        },
+        "required": [
+          "action_type",
+          "recipient_id",
+          "resource",
+          "amount",
+          "memo"
+        ],
+        "title": "LunaTransferResourceV1",
+        "type": "object"
+      },
+      "LunaTransferV1": {
+        "additionalProperties": false,
+        "properties": {
+          "action_type": {
+            "const": "transfer",
+            "title": "Action Type",
+            "type": "string"
+          },
+          "recipient_id": {
+            "title": "Recipient Id",
+            "type": "string"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "integer"
+          },
+          "memo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memo"
+          }
+        },
+        "required": [
+          "action_type",
+          "recipient_id",
+          "amount",
+          "memo"
+        ],
+        "title": "LunaTransferV1",
+        "type": "object"
+      },
+      "LunaWriteArtifactV1": {
+        "additionalProperties": false,
+        "properties": {
+          "action_type": {
+            "const": "write_artifact",
+            "title": "Action Type",
+            "type": "string"
+          },
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "artifact_type": {
+            "title": "Artifact Type",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "read_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Price"
+          },
+          "invoke_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoke Price"
+          },
+          "access_contract_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Contract Id"
+          }
+        },
+        "required": [
+          "action_type",
+          "artifact_id",
+          "artifact_type",
+          "content",
+          "read_price",
+          "invoke_price",
+          "access_contract_id"
+        ],
+        "title": "LunaWriteArtifactV1",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Versioned provider envelope containing exactly one permitted action.",
+    "properties": {
+      "schema_version": {
+        "const": "luna_loop_decision.v1",
+        "title": "Schema Version",
+        "type": "string"
+      },
+      "action": {
+        "title": "Action",
+        "anyOf": [
+          {
+            "$ref": "#/$defs/LunaWriteArtifactV1"
+          },
+          {
+            "$ref": "#/$defs/LunaReadArtifactV1"
+          },
+          {
+            "$ref": "#/$defs/LunaTransferV1"
+          },
+          {
+            "$ref": "#/$defs/LunaTransferResourceV1"
+          },
+          {
+            "$ref": "#/$defs/LunaSubmitToMintV1"
+          },
+          {
+            "$ref": "#/$defs/LunaQueryKernelV1"
+          }
+        ]
+      }
+    },
+    "required": [
+      "schema_version",
+      "action"
+    ],
+    "title": "LunaLoopDecisionV1",
+    "type": "object"
+  },
+  "provider_schema_has_open_object": false,
+  "prompt_messages": [
+    {
+      "role": "system",
+      "content": "Choose one AE3 action and return only a LunaLoopDecisionV1 JSON envelope: schema_version must be 'luna_loop_decision.v1' and action must contain exactly one legal action matching the supplied schema. Do not use tools. No prose."
+    },
+    {
+      "role": "user",
+      "content": "You are agent alpha_1 in an economy simulation. Act strategically to maximize long-run survival and economic power under scarcity. Choose exactly one action and never use noop. Valid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel. Do not invoke artifacts directly. For query_kernel you must include query_type and params object. When querying artifacts, prefer query_type='artifacts' with params.readable_only=true. For submit_to_mint include artifact_id and bid. When useful, monetize artifacts by setting read_price/invoke_price on write_artifact. If writing a reusable artifact (not heartbeat/scratch), set read_price >= 1 to test demand. For transfer_resource include recipient_id, resource, and amount. Do not modify *_loop artifacts. When writing artifacts, use ids prefixed with alpha_1_. Use memory.next_objective and memory.objectives to choose the next economically useful move. Once discovery is complete, avoid repeating query_kernel unless you need new counterparties. Prefer cross-agent interaction and production actions over status checks. If memory.stagnation_count >= 3, choose a different action_type than your most recent action. Return the action in the LunaLoopDecisionV1 envelope required by the supplied schema. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 100, \"resources\": {\"llm_budget\": 1.0, \"disk_available\": 100000}, \"artifacts\": [], \"memory\": {\"next_objective\": \"discover ecosystem artifacts\"}, \"recent_feedback\": {\"actions_attempted\": 0, \"recent_error_codes\": []}}"
+    }
+  ],
+  "working_directory_empty": true,
+  "codex_home_isolated": true,
+  "codex_home_source": "shared config and auth projected without ambient MCP tables",
+  "codex_home_config_sha256": "b090ae09798d12cfb3f5804d452bf0eacd299f9d16c546bc75b7007767fc6d95",
+  "inherited_mcp_servers": [],
+  "command": [
+    "<codex-cli>",
+    "exec",
+    "--json",
+    "--color",
+    "never",
+    "-C",
+    "<empty-decision-workspace>",
+    "-s",
+    "read-only",
+    "-o",
+    "<empty-decision-workspace>/last_message.txt",
+    "-c",
+    "approval_policy=\"never\"",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-5.6-luna",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "--output-schema",
+    "<empty-decision-workspace>/output_schema.json",
+    "-"
+  ],
+  "command_uses_stdin_prompt": true,
+  "command_uses_output_schema": true,
+  "structured_kwargs_omit_tools": true,
+  "structured_kwargs_omit_mcp_servers": true,
+  "intrinsic_tool_events_observable": false,
+  "intrinsic_event_contract": {
+    "fixture_item_types": [
+      "command_execution",
+      "file_change",
+      "web_search",
+      "mcp_tool_call"
+    ],
+    "public_tool_call_names": [
+      "probe_tool"
+    ],
+    "public_raw_response_keys": [
+      "n_turns",
+      "session_id",
+      "transport"
+    ],
+    "missing_intrinsic_item_types": [
+      "command_execution",
+      "file_change",
+      "web_search"
+    ],
+    "all_intrinsic_item_types_observable": false
+  },
+  "shared_client_revision": "e068430c991fd460c73d7f4faf5c92ee393b8a66"
+}

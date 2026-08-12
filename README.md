@@ -89,6 +89,11 @@ manifest and `interruption.json` preserve its integrity.
 - Agent SDK loop-call options can be forwarded from config with `llm.agent_cwd`, `llm.agent_max_turns`, and `llm.agent_permission_mode`.
 - Subscription-billed agent models can still deplete `llm_budget` via `llm.subscription_budget_charge_mode` (`estimated` by default) so budget scarcity stays binding even when provider-reported USD marginal cost is zero.
 - For `claude-code/*` loop calls, AE3 now injects an MCP stdio `ae3_action` tool bridge so agent-mode tool calls are captured and parsed symmetrically with non-agent tool calls.
+- The opt-in Plan 10 `luna_structured_v1` path instead uses the exact
+  `codex/gpt-5.6-luna` medium/CLI profile and a strict six-action structured
+  envelope with no tools or MCP. Its provider-free preflight is currently
+  blocked because public `llm_client` results do not retain intrinsic Codex
+  command/file/web events; no Luna call is authorized or qualified yet.
 - Agent-SDK syscalls now pass `max_retries=0` explicitly for `claude-code/*`, `codex/*`, and `openai-agents/*` models, matching side-effect-safe no-retry semantics while avoiding repeated retry-disabled warning spam.
 - Each principal boots with persistent cognitive artifacts (`*_strategy`, `*_state`, `*_notebook`). `llm.loop_cognition_mode=prescribed` retains assigned roles and the discover->read->produce->trade->mint objective cycle; `minimal` removes those prescriptions while retaining outcome history and resource state.
 - LLM syscall and loop-decision events retain the deterministic `llm_client` trace ID. `llm.provider_max_budget_usd`, `llm.provider_budget_reservation_usd`, `llm.num_retries`, and `llm.max_output_tokens` provide bounded evaluation controls without changing the default unlimited provider budget.

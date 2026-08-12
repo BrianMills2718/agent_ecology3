@@ -282,6 +282,20 @@ next legitimate step is a new-number design with a durable worker and atomic
 settlement/custody recovery—not another repository rewrite and not
 retrospective promotion of Evaluations 04, 05, or 07.
 
+Plan 10's provider-free Luna Slice A then closed the model/action-shape side of
+that restart risk without making a provider call. AE3 now has one exact
+structured Luna profile and a strict six-action envelope that enters the
+existing semantic action parser and production loop. Its preflight stopped at
+a different custody boundary: the shared Codex CLI adapter exposes completed
+MCP calls, but not intrinsic command, file-change, or web/search events through
+its public result. That means “no intrinsic tool executed” is currently
+unknowable to AE3. Treat this as a shared-client observability dependency, not
+as permission to reintroduce MCP, scrape provider output privately, dispatch a
+canary, or begin recovery machinery against an unverifiable call record.
+Evaluation 07's verifier now resolves changed production files to the immutable
+input copies already retained in its evidence bundle, so later AE3 development
+does not require rewriting the frozen hashes or mutating the terminal evidence.
+
 If AE3 produces that evidence while retaining the essential contract/resource
 semantics needed for subsequent experiments, decide explicitly whether to mark
 AE2 superseded or keep it as a separately active reference runtime. Until then,
@@ -298,6 +312,7 @@ rewrite.
 - Inconclusive prescription-ablation result and evidence: [Evaluation 04](evaluations/04_prescription_ablation.md)
 - One-shot provider/tool qualification and classifier failure: [Evaluation 05](evaluations/05_provider_tool_qualification.md)
 - Terminal paired behavioral attempt and interruption evidence: [Evaluation 07](evaluations/07_behavioral_comparison.md)
+- Luna provider-free route inventory and named shared-client blocker: [Plan 10 Slice A evidence](evaluations/evidence/plan10_luna_recovery_gate/README.md)
 - AE2 behavioral observations: [`SIMULATION_LEARNINGS.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/SIMULATION_LEARNINGS.md)
 - AE2 V1 gate: [`V1_ACCEPTANCE.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/V1_ACCEPTANCE.md)
 - AE1 mechanism code: [`agent_ecology` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology/tree/720920732373292d1353be9a1f8066016b6f5aa8)

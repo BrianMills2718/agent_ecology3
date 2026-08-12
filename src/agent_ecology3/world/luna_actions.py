@@ -1,0 +1,176 @@
+"""Strict structured-output contract for one Luna loop decision."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from typing import Annotated, Any, Literal, TypeAlias, cast
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from .actions import ActionIntent, parse_intent_from_json
+
+LUNA_MODEL = "codex/gpt-5.6-luna"
+LUNA_RESPONSE_MODEL = "LunaLoopDecisionV1"
+LUNA_SCHEMA_VERSION = "luna_loop_decision.v1"
+LUNA_ACTION_TYPES = (
+    "write_artifact",
+    "read_artifact",
+    "transfer",
+    "transfer_resource",
+    "submit_to_mint",
+    "query_kernel",
+)
+
+LunaQueryType: TypeAlias = Literal[
+    "artifacts",
+    "artifact",
+    "principals",
+    "principal",
+    "balances",
+    "resources",
+    "quotas",
+    "mint",
+    "events",
+    "frozen",
+    "libraries",
+    "dependencies",
+]
+
+LunaResourceType: TypeAlias = Literal[
+    "llm_budget",
+    "disk_quota",
+    "llm_calls",
+    "llm_tokens",
+    "cpu_seconds",
+]
+
+
+class _StrictContract(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class LunaQueryParamsV1(_StrictContract):
+    """Closed projection of the query keys currently consumed by the kernel."""
+
+    owner: str | None = None
+    type: str | None = None
+    artifact_type: str | None = None
+    artifact_id: str | None = None
+    executable: bool | None = None
+    limit: int | None = None
+    offset: int | None = None
+    principal_id: str | None = None
+    readable_only: bool | None = None
+    include_permissions: bool | None = None
+    resource: str | None = None
+    agent_id: str | None = None
+
+
+class LunaWriteArtifactV1(_StrictContract):
+    action_type: Literal["write_artifact"]
+    artifact_id: str
+    artifact_type: str
+    content: str
+    read_price: int | None = None
+    invoke_price: int | None = None
+    access_contract_id: str | None = None
+
+
+class LunaReadArtifactV1(_StrictContract):
+    action_type: Literal["read_artifact"]
+    artifact_id: str
+
+
+class LunaTransferV1(_StrictContract):
+    action_type: Literal["transfer"]
+    recipient_id: str
+    amount: int
+    memo: str | None = None
+
+
+class LunaTransferResourceV1(_StrictContract):
+    action_type: Literal["transfer_resource"]
+    recipient_id: str
+    resource: LunaResourceType
+    amount: float
+    memo: str | None = None
+
+
+class LunaSubmitToMintV1(_StrictContract):
+    action_type: Literal["submit_to_mint"]
+    artifact_id: str
+    bid: int
+
+
+class LunaQueryKernelV1(_StrictContract):
+    action_type: Literal["query_kernel"]
+    query_type: LunaQueryType
+    params: LunaQueryParamsV1
+
+
+LunaActionV1: TypeAlias = Annotated[
+    LunaWriteArtifactV1
+    | LunaReadArtifactV1
+    | LunaTransferV1
+    | LunaTransferResourceV1
+    | LunaSubmitToMintV1
+    | LunaQueryKernelV1,
+    Field(discriminator="action_type"),
+]
+
+
+class LunaLoopDecisionV1(_StrictContract):
+    """Versioned provider envelope containing exactly one permitted action."""
+
+    schema_version: Literal["luna_loop_decision.v1"]
+    action: LunaActionV1
+
+    def action_payload(self) -> dict[str, Any]:
+        """Return the action shape consumed by AE3's existing action boundary."""
+
+        return self.action.model_dump(mode="json", exclude_none=True)
+
+
+def luna_provider_schema() -> dict[str, Any]:
+    """Compile the exact provider schema through the shared Codex projector."""
+
+    from llm_client.route_certification_runtime import codex_native_provider_schema
+
+    return cast(dict[str, Any], codex_native_provider_schema(LunaLoopDecisionV1))
+
+
+def luna_provider_schema_sha256() -> str:
+    """Return a stable digest of the exact shared-client provider schema."""
+
+    encoded = json.dumps(
+        luna_provider_schema(),
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def shared_client_exposes_codex_events() -> bool:
+    """Return whether the public shared result declares Codex event custody."""
+
+    from llm_client.core.data_types import LLMCallResult
+
+    return "codex_events" in LLMCallResult.__dataclass_fields__
+
+
+def validate_luna_action_for_principal(
+    decision: LunaLoopDecisionV1,
+    principal_id: str,
+) -> tuple[dict[str, Any], ActionIntent]:
+    """Feed a typed action through AE3's canonical semantic action parser."""
+
+    action = decision.action_payload()
+    parsed = parse_intent_from_json(
+        principal_id,
+        json.dumps(action, ensure_ascii=True, sort_keys=True),
+    )
+    if isinstance(parsed, str):
+        raise TypeError(f"Luna action failed canonical AE3 parsing: {parsed}")
+    return action, parsed
