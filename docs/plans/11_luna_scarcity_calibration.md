@@ -1,6 +1,6 @@
 # Plan #11: Luna Scarcity Calibration
 
-**Status:** Provider-free projection complete — authentic probe gated
+**Status:** Authentic midpoint probe passed — control design pending
 **Type:** evaluation design and instrument
 **Priority:** High
 **Blocked By:** Plan #10 complete
@@ -83,6 +83,24 @@ acknowledgement. Stop immediately on the scarcity boundary or any ambiguity.
 
 **Non-claims:** This single cell does not establish reliability, a scarcity
 effect on behavior, a comparison baseline, or a production parameter.
+
+### Authentic result (2026-08-12)
+
+The frozen midpoint probe passed from clean pushed AE3 revision `49ce2a4` and
+the exact accepted shared-client revision. Seven Luna calls settled and
+committed. The eighth attempt stopped at a trace-free pre-dispatch
+`insufficient_budget` result, leaving `0.002196` budget. Custody records seven
+provider dispatches, not eight, with no retry, fallback, MCP, ambiguity, or
+invalid state.
+
+The dashboard showed `7/16`, custody `stopped`, the concrete action history,
+and remaining budget with no console errors or failed requests. The durable
+compact result is `authentic_midpoint_probe.json`; content hashes there bind
+the locally retained full receipt and checkpoint.
+
+This makes the midpoint eligible for a later calibration/control design. It
+does not yet establish that scarcity changes behavior or select a production
+parameter.
 
 ## Files Affected
 
