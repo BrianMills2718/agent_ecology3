@@ -217,6 +217,149 @@
       },
       "status": "accepted",
       "record_version": 2
+    },
+    {
+      "schema_version": "1.0",
+      "record_type": "work_unit",
+      "id": "WU-10-04",
+      "initiative_id": "agent-ecology-luna-recovery",
+      "goal_id": "authentic-luna-canary",
+      "design_revision": "d68a2c0ad95b53154914b6d39d430f9c3c5088b5",
+      "spec_revision": "wu-10-04-v1",
+      "title": "Execute the authorized one-call Luna Medium canary",
+      "class": "verification",
+      "objective": "Add the explicit live acknowledgement boundary, dispatch exactly one representative Luna Medium production-path call, and retain a terminal passing or blocked receipt without retry or fallback.",
+      "profile": "small",
+      "execution_class": "independently_executable",
+      "claimability": "ready_for_execution",
+      "authorization_mode": "registry_claim",
+      "scope": {
+        "included": [
+          "Exact one-call acknowledgement gate",
+          "Provider-free negative test proving live dispatch is inaccessible without acknowledgement",
+          "One authentic codex/gpt-5.6-luna call through the production prompt, schema, settlement, and action path",
+          "Durable route, trace, usage, timing, billing, event, action, and custody receipt",
+          "Truthful Plan 10 Slice C status"
+        ],
+        "excluded": [
+          "Retry, semantic repair, or fallback call",
+          "Prompt or schema tuning after dispatch",
+          "Reliability qualification or model comparison",
+          "Recoverable multi-call cell or detached worker",
+          "MCP bridge changes",
+          "Evaluation 07, Evaluation 08, Plan 11, or package publication"
+        ]
+      },
+      "inputs": [
+        {
+          "kind": "ImplementationPlan",
+          "id": "agent-ecology3-plan-10",
+          "revision": "d68a2c0ad95b53154914b6d39d430f9c3c5088b5"
+        },
+        {
+          "kind": "AcceptedSharedContract",
+          "id": "llm-client-plan-355-wu-355-01",
+          "revision": "286715784f1d535d6dfcd2c867ca678d666e27d5"
+        }
+      ],
+      "outputs": [
+        "Frozen, pushed Agent Ecology 3 canary source revision",
+        "One terminal Luna Medium canary receipt under docs/evaluations/evidence/plan10_luna_recovery_gate",
+        "Plan 10 status that selects conditional recovery work only after a passing canary"
+      ],
+      "dependencies": [
+        {
+          "unit_id": "WU-10-03",
+          "type": "hard",
+          "gate": {
+            "type": "unit_status",
+            "required_status": "accepted"
+          },
+          "rationale": "The authentic call may begin only after exact dependency binding, truthful settlement, and fail-closed event custody are accepted."
+        }
+      ],
+      "conflict_surfaces": [
+        {
+          "kind": "repository_path",
+          "target": "src/agent_ecology3/analysis/luna_recovery_gate.py",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-live-canary"
+        },
+        {
+          "kind": "repository_path",
+          "target": "tests/test_luna_recovery_gate.py",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-live-canary"
+        },
+        {
+          "kind": "repository_path",
+          "target": "docs/evaluations/evidence/plan10_luna_recovery_gate",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-live-canary"
+        },
+        {
+          "kind": "repository_path",
+          "target": "docs/plans/10_luna_medium_recovery_gate.md",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-live-canary"
+        },
+        {
+          "kind": "repository_path",
+          "target": "docs/plans/CLAUDE.md",
+          "repository": "agent_ecology3",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-live-canary"
+        },
+        {
+          "kind": "external_system",
+          "target": "ChatGPT subscription route plan10/luna-medium/canary/v1",
+          "access": "exclusive",
+          "coordination_key": "agent-ecology3-plan-10-live-canary"
+        }
+      ],
+      "acceptance": [
+        {
+          "id": "AC-10-04-ack",
+          "criterion": "The live entry point refuses to cross the shared-client boundary unless the operator supplies the exact one-call acknowledgement.",
+          "evidence_required": [
+            "Focused provider-free acknowledgement test",
+            "Single public live entry point with fail-closed default"
+          ],
+          "negative_control": "Omitting or altering the acknowledgement produces zero provider dispatches."
+        },
+        {
+          "id": "AC-10-04-receipt",
+          "criterion": "Exactly one authentic call either passes every frozen route, schema, event, action, accounting, and custody gate or retains a terminal blocked receipt naming the failed boundary.",
+          "evidence_required": [
+            "Pushed pre-dispatch Agent Ecology 3 source revision",
+            "Exact llm_client revision",
+            "Trace identity, timing, usage, billing, ordered Codex events, settlement, action, and custody evidence",
+            "Provider dispatch count of exactly one"
+          ],
+          "negative_control": "Any failure permits no retry, repair, fallback, or route switch."
+        }
+      ],
+      "readiness": {
+        "status": "ready",
+        "required_approval_types": [],
+        "approvals": [],
+        "failed_guards": []
+      },
+      "claim_policy": {
+        "eligibility_rule": "Current user request plus Agent Ecology 3 repository authority, with one active canonical claim",
+        "lease_policy": "renewable",
+        "lease_duration_minutes": 1440,
+        "max_active_per_claimant": 1,
+        "named_owner_id": null
+      },
+      "status": "ready",
+      "record_version": 1,
+      "created_at": "2026-08-12T20:57:12Z",
+      "updated_at": "2026-08-12T20:57:12Z"
     }
   ]
 }
