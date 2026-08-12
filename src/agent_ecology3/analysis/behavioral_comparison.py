@@ -38,6 +38,7 @@ CONFIG_PATH = "config/config.behavioral_comparison_07.yaml"
 CASES_PATH = "config/evaluations/07_behavioral_cases.json"
 PREREGISTRATION_PATH = "docs/evaluations/07_behavioral_comparison.md"
 DEFAULT_OUTPUT = "docs/evaluations/evidence/07_behavioral_comparison"
+FROZEN_INPUT_BUNDLE = Path(DEFAULT_OUTPUT) / "inputs"
 EXECUTION_DEADLINE = datetime(2026, 8, 19, 3, 33, 25, tzinfo=UTC)
 MAX_ACTUAL_COST_USD = 1.68
 PREREGISTRATION_RESULTS_MARKER = "\n## Results\n"
@@ -119,6 +120,22 @@ def _frozen_input_matches(relative: str, path: Path, expected: str) -> bool:
     prefix, marker, _results = current.partition(PREREGISTRATION_RESULTS_MARKER)
     prefix_digest = hashlib.sha256(prefix.encode("utf-8")).hexdigest()
     return bool(marker) and prefix_digest == FROZEN_PREREGISTRATION_PREFIX_SHA256
+
+
+def _frozen_input_source(repo: Path, relative: str) -> Path:
+    """Prefer Eval07's retained immutable input once live source has advanced."""
+
+    live = repo / relative
+    if _frozen_input_matches(relative, live, FROZEN_INPUT_SHA256[relative]):
+        return live
+    retained = repo / FROZEN_INPUT_BUNDLE / relative.replace("/", "__")
+    if retained.is_file() and _frozen_input_matches(
+        relative,
+        retained,
+        FROZEN_INPUT_SHA256[relative],
+    ):
+        return retained
+    return live
 
 
 def _regular_files(root: Path) -> set[str]:
@@ -247,7 +264,7 @@ def verify_frozen_inputs(
     repo = repo.resolve()
     observed: dict[str, str] = {}
     for relative, expected in FROZEN_INPUT_SHA256.items():
-        path = repo / relative
+        path = _frozen_input_source(repo, relative)
         digest = _sha256(path)
         observed[relative] = digest
         if not _frozen_input_matches(relative, path, expected):
@@ -1373,7 +1390,10 @@ def _copy_frozen_inputs(repo: Path, output: Path) -> None:
     inputs = output / "inputs"
     inputs.mkdir(parents=True)
     for relative in FROZEN_INPUT_SHA256:
-        shutil.copyfile(repo / relative, inputs / relative.replace("/", "__"))
+        shutil.copyfile(
+            _frozen_input_source(repo, relative),
+            inputs / relative.replace("/", "__"),
+        )
 
 
 def _merge_checkpoint_attempts(

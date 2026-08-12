@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml  # type: ignore[import-untyped]
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictModel(BaseModel):
@@ -79,6 +79,53 @@ class LLMConfig(StrictModel):
     loop_action_gate_enabled: bool = True
     subscription_budget_charge_mode: Literal["actual", "estimated", "none"] = "estimated"
     subscription_estimated_cost_multiplier: float = Field(default=1.0, ge=0.0)
+    decision_output_mode: Literal["legacy", "luna_structured_v1"] = "legacy"
+    reasoning_effort: Literal["low", "medium", "high"] | None = None
+    codex_transport: Literal["sdk", "cli", "auto"] | None = None
+    codex_sandbox_mode: (
+        Literal["read-only", "workspace-write", "danger-full-access"] | None
+    ) = None
+    codex_approval_policy: (
+        Literal["never", "on-request", "on-failure", "untrusted"] | None
+    ) = None
+    codex_isolate_home: bool = True
+    structured_response_model: Literal["LunaLoopDecisionV1"] | None = None
+    expected_billing_mode: Literal["api_metered", "subscription_included"] | None = None
+
+    @model_validator(mode="after")
+    def validate_luna_structured_profile(self) -> LLMConfig:
+        """Reject any partial or weakened Plan 10 Luna route before dispatch."""
+
+        if self.decision_output_mode != "luna_structured_v1":
+            return self
+
+        expected: dict[str, object] = {
+            "default_model": "codex/gpt-5.6-luna",
+            "reasoning_effort": "medium",
+            "codex_transport": "cli",
+            "codex_sandbox_mode": "read-only",
+            "codex_approval_policy": "never",
+            "codex_isolate_home": True,
+            "structured_response_model": "LunaLoopDecisionV1",
+            "expected_billing_mode": "subscription_included",
+            "num_retries": 0,
+            "agent_cwd": None,
+        }
+        mismatches = [
+            f"{field}={getattr(self, field)!r} (expected {value!r})"
+            for field, value in expected.items()
+            if getattr(self, field) != value
+        ]
+        if self.allowed_models and self.allowed_models != ["codex/gpt-5.6-luna"]:
+            mismatches.append(
+                "allowed_models must be empty or exactly ['codex/gpt-5.6-luna']"
+            )
+        if mismatches:
+            raise ValueError(
+                "luna_structured_v1 requires the exact Plan 10 profile: "
+                + "; ".join(mismatches)
+            )
+        return self
 
 
 class ContractsConfig(StrictModel):

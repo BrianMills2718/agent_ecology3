@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
+import tempfile
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -12,7 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ..config import AppConfig
+from pydantic import ValidationError
+
+from ..config import AppConfig, LLMConfig
 from .action_executor import ActionExecutor
 from .actions import (
     ActionIntent,
@@ -97,6 +101,12 @@ MINIMAL_LOOP_PROMPT_TEMPLATE = (
 LOOP_SYSTEM_INSTRUCTION = (
     "Choose one AE3 action. Prefer tool call ae3_action when available; "
     "else return exactly one JSON action object. No prose."
+)
+
+LUNA_LOOP_SYSTEM_INSTRUCTION = (
+    "Choose one AE3 action and return only a LunaLoopDecisionV1 JSON envelope: "
+    "schema_version must be 'luna_loop_decision.v1' and action must contain exactly "
+    "one legal action matching the supplied schema. Do not use tools. No prose."
 )
 
 
@@ -388,6 +398,15 @@ class World:
 
     def _render_loop_prompt_template(self, principal_id: str) -> str:
         template = self._load_loop_prompt_template()
+        if self.config.llm.decision_output_mode == "luna_structured_v1":
+            template = template.replace(
+                "If tools are available, prefer calling the ae3_action tool; "
+                "otherwise return one JSON action object.",
+                "Return the action in the LunaLoopDecisionV1 envelope required by the supplied schema.",
+            ).replace(
+                "Return one action through ae3_action when available, otherwise return one JSON object.",
+                "Return the action in the LunaLoopDecisionV1 envelope required by the supplied schema.",
+            )
         return template.replace("{principal_id}", principal_id)
 
     def _default_strategy_text(self, principal_id: str, slot: int) -> str:
@@ -504,8 +523,13 @@ class World:
             prompt = f"Strategy:\n{strategy_text[:2400]}\n\n{prompt}"
         if self.config.llm.loop_prompt_feedback_enabled:
             prompt += " Use recent_feedback to avoid repeating actions with recent error codes."
+        system_instruction = (
+            LUNA_LOOP_SYSTEM_INSTRUCTION
+            if self.config.llm.decision_output_mode == "luna_structured_v1"
+            else LOOP_SYSTEM_INSTRUCTION
+        )
         return [
-            {"role": "system", "content": LOOP_SYSTEM_INSTRUCTION},
+            {"role": "system", "content": system_instruction},
             {
                 "role": "user",
                 "content": prompt + "\nState:\n" + json.dumps(state_snapshot),
@@ -894,6 +918,11 @@ class World:
         loop_tools = self.build_loop_action_tools()
         loop_tools_json = json.dumps(loop_tools, ensure_ascii=True)
         loop_prompt_template = self._render_loop_prompt_template(principal_id)
+        loop_system_instruction = (
+            LUNA_LOOP_SYSTEM_INSTRUCTION
+            if self.config.llm.decision_output_mode == "luna_structured_v1"
+            else LOOP_SYSTEM_INSTRUCTION
+        )
         return f'''import json
 import time
 
@@ -1590,7 +1619,7 @@ async def run():
         if feedback_enabled:
             prompt += " Use recent_feedback to avoid repeating actions with recent error codes."
         messages = [
-            {{"role": "system", "content": {LOOP_SYSTEM_INSTRUCTION!r}}},
+            {{"role": "system", "content": {loop_system_instruction!r}}},
             {{"role": "user", "content": prompt + "\\nState:\\n" + json.dumps(state_snapshot)}},
         ]
 
@@ -1628,15 +1657,21 @@ async def run():
             decision_meta["llm_trace_id"] = llm_result.get("trace_id")
             if llm_result.get("success"):
                 decision_meta["llm_success"] = True
-                raw_decision = _extract_json(llm_result.get("content", ""))
+                structured_decision = llm_result.get("structured_action")
+                if isinstance(structured_decision, dict):
+                    raw_decision = structured_decision
+                    decision_meta["llm_action_source"] = "structured_output"
+                    decision = structured_decision
+                else:
+                    raw_decision = _extract_json(llm_result.get("content", ""))
                 tool_decision = _extract_action_from_tool_calls(llm_result.get("tool_calls"))
                 if isinstance(tool_decision, dict):
                     decision_meta["llm_action_source"] = "tool_call"
                     decision = tool_decision
-                elif isinstance(raw_decision, dict):
+                elif decision is None and isinstance(raw_decision, dict):
                     decision_meta["llm_action_source"] = "json"
                     decision = raw_decision
-                else:
+                elif decision is None:
                     decision_meta["llm_action_source"] = "unparsed"
             else:
                 decision_meta["source"] = "llm_error"
@@ -1985,6 +2020,36 @@ async def run():
         if context is None:  # pragma: no cover - defensive invariant
             return {"success": False, "error": "missing syscall context", "error_code": "llm_error"}
         try:
+            if self._uses_luna_structured_output(model):
+                try:
+                    from llm_client import call_llm_structured
+                except Exception as exc:  # pragma: no cover - optional dependency fallback
+                    raise RuntimeError(f"llm_client import failed: {exc}") from exc
+                from .luna_actions import (
+                    LunaLoopDecisionV1,
+                    luna_provider_schema_sha256,
+                    validate_luna_action_for_principal,
+                )
+
+                self._require_luna_isolated_home()
+                with tempfile.TemporaryDirectory(prefix="ae3_luna_decision_") as decision_dir:
+                    decision, llm_result = call_llm_structured(
+                        response_model=LunaLoopDecisionV1,
+                        **self._luna_structured_call_kwargs(
+                            model=model,
+                            messages=messages,
+                            trace_id=context.trace_id,
+                            working_directory=decision_dir,
+                        ),
+                    )
+                action, _intent = validate_luna_action_for_principal(decision, payer_id)
+                self._validate_luna_result_profile(llm_result, model=model)
+                return self._settle_llm_syscall(
+                    context,
+                    llm_result,
+                    structured_action=action,
+                    structured_schema_sha256=luna_provider_schema_sha256(),
+                )
             try:
                 from llm_client import call_llm
             except Exception as exc:  # pragma: no cover - optional dependency fallback
@@ -2021,6 +2086,36 @@ async def run():
         if context is None:  # pragma: no cover - defensive invariant
             return {"success": False, "error": "missing syscall context", "error_code": "llm_error"}
         try:
+            if self._uses_luna_structured_output(model):
+                try:
+                    from llm_client import acall_llm_structured
+                except Exception as exc:  # pragma: no cover - optional dependency fallback
+                    raise RuntimeError(f"llm_client import failed: {exc}") from exc
+                from .luna_actions import (
+                    LunaLoopDecisionV1,
+                    luna_provider_schema_sha256,
+                    validate_luna_action_for_principal,
+                )
+
+                self._require_luna_isolated_home()
+                with tempfile.TemporaryDirectory(prefix="ae3_luna_decision_") as decision_dir:
+                    decision, llm_result = await acall_llm_structured(
+                        response_model=LunaLoopDecisionV1,
+                        **self._luna_structured_call_kwargs(
+                            model=model,
+                            messages=messages,
+                            trace_id=context.trace_id,
+                            working_directory=decision_dir,
+                        ),
+                    )
+                action, _intent = validate_luna_action_for_principal(decision, payer_id)
+                self._validate_luna_result_profile(llm_result, model=model)
+                return self._settle_llm_syscall(
+                    context,
+                    llm_result,
+                    structured_action=action,
+                    structured_schema_sha256=luna_provider_schema_sha256(),
+                )
             try:
                 from llm_client import acall_llm
             except Exception as exc:  # pragma: no cover - optional dependency fallback
@@ -2047,6 +2142,35 @@ async def run():
         model: str,
         messages: list[dict[str, Any]],
     ) -> tuple[dict[str, Any] | None, _LLMSyscallContext | None]:
+        if self.config.llm.decision_output_mode == "luna_structured_v1":
+            try:
+                LLMConfig.model_validate(self.config.llm.model_dump())
+            except ValidationError as exc:
+                return {
+                    "success": False,
+                    "error": f"invalid Luna structured profile: {exc}",
+                    "error_code": "invalid_luna_profile",
+                }, None
+            if model != self.config.llm.default_model:
+                return {
+                    "success": False,
+                    "error": (
+                        "Luna structured profile rejects a per-call model override: "
+                        f"{model!r}"
+                    ),
+                    "error_code": "invalid_luna_profile",
+                }, None
+            from .luna_actions import shared_client_exposes_codex_events
+
+            if not shared_client_exposes_codex_events():
+                return {
+                    "success": False,
+                    "error": (
+                        "Luna dispatch is blocked: public llm_client results do not "
+                        "expose Codex intrinsic events"
+                    ),
+                    "error_code": "intrinsic_codex_events_not_public",
+                }, None
         if self.config.llm.allowed_models and model not in self.config.llm.allowed_models:
             return {
                 "success": False,
@@ -2153,10 +2277,109 @@ async def run():
         call_kwargs.update(agent_kwargs)
         return call_kwargs
 
+    def _uses_luna_structured_output(self, model: str) -> bool:
+        return (
+            self.config.llm.decision_output_mode == "luna_structured_v1"
+            and model == self.config.llm.default_model
+        )
+
+    @staticmethod
+    def _require_luna_isolated_home() -> None:
+        raw = os.environ.get("LLM_CLIENT_CODEX_ISOLATE_HOME", "1").strip().lower()
+        if raw in {"0", "false", "no", "off"}:
+            raise RuntimeError(
+                "Luna structured output requires LLM_CLIENT_CODEX_ISOLATE_HOME"
+            )
+
+    def _luna_structured_call_kwargs(
+        self,
+        *,
+        model: str,
+        messages: list[dict[str, Any]],
+        trace_id: str,
+        working_directory: str,
+    ) -> dict[str, Any]:
+        """Build the exact MCP-free public shared-client call for Luna."""
+
+        call_kwargs = self._llm_call_kwargs(
+            model=model,
+            messages=messages,
+            tools=None,
+            trace_id=trace_id,
+        )
+        for key in ("tools", "cwd", "max_turns", "permission_mode", "mcp_servers"):
+            call_kwargs.pop(key, None)
+        call_kwargs.update(
+            {
+                "reasoning_effort": self.config.llm.reasoning_effort,
+                "codex_transport": self.config.llm.codex_transport,
+                "working_directory": working_directory,
+                "sandbox_mode": self.config.llm.codex_sandbox_mode,
+                "approval_policy": self.config.llm.codex_approval_policy,
+                "skip_git_repo_check": True,
+                "fallback_models": [],
+            }
+        )
+        return call_kwargs
+
+    def _validate_luna_result_profile(self, llm_result: Any, *, model: str) -> None:
+        """Fail the syscall if the settled result drifted from the exact route."""
+
+        requested = getattr(llm_result, "requested_model", None) or getattr(
+            llm_result, "model", None
+        )
+        resolved = getattr(llm_result, "resolved_model", None) or getattr(
+            llm_result, "model", None
+        )
+        raw = getattr(llm_result, "raw_response", None)
+        transport = raw.get("transport") if isinstance(raw, dict) else None
+        billing = getattr(llm_result, "billing_mode", None)
+        expected_billing = self.config.llm.expected_billing_mode
+        if requested != model or resolved != model:
+            raise RuntimeError(
+                f"Luna route identity drifted: requested={requested!r}, resolved={resolved!r}"
+            )
+        if transport != "codex_cli":
+            raise RuntimeError(f"Luna transport drifted: {transport!r}")
+        if billing != expected_billing:
+            raise RuntimeError(
+                f"Luna billing drifted: {billing!r} (expected {expected_billing!r})"
+            )
+        if getattr(llm_result, "tool_calls", None):
+            raise RuntimeError("Luna structured result contained an MCP tool call")
+        codex_events = getattr(llm_result, "codex_events", None)
+        if not isinstance(codex_events, list):
+            raise TypeError("Luna result lacks public Codex event custody")
+        forbidden_types = {
+            "command_execution",
+            "file_change",
+            "web_search",
+            "shell",
+            "workspace",
+            "network",
+        }
+        executed = [
+            event
+            for event in codex_events
+            if isinstance(event, dict)
+            and str(event.get("type") or "").strip().lower() in forbidden_types
+        ]
+        if executed:
+            event_types = sorted(
+                {str(event.get("type") or "") for event in executed}
+            )
+            raise RuntimeError(
+                "Luna executed a forbidden intrinsic Codex tool: "
+                + ", ".join(event_types)
+            )
+
     def _settle_llm_syscall(
         self,
         context: _LLMSyscallContext,
         llm_result: Any,
+        *,
+        structured_action: dict[str, Any] | None = None,
+        structured_schema_sha256: str | None = None,
     ) -> dict[str, Any]:
         payer_id = context.payer_id
         model = context.model
@@ -2287,10 +2510,16 @@ async def run():
                 "duration_ms": duration_ms,
                 "tokens": usage,
                 "tool_calls_count": len(tool_calls),
+                "structured_action_type": (
+                    structured_action.get("action_type")
+                    if structured_action is not None
+                    else None
+                ),
+                "structured_schema_sha256": structured_schema_sha256,
             },
         )
         self._llm_syscall_count += 1
-        return {
+        result = {
             "success": True,
             "trace_id": trace_id,
             "content": content,
@@ -2307,6 +2536,10 @@ async def run():
             "tool_calls": tool_calls,
             "duration_ms": duration_ms,
         }
+        if structured_action is not None:
+            result["structured_action"] = structured_action
+            result["structured_schema_sha256"] = structured_schema_sha256
+        return result
 
     def _fail_llm_syscall(
         self,
