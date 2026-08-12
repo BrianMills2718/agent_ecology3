@@ -1,6 +1,19 @@
 # Plan #4: Prescriptive Cognition Ablation
 
-**Status:** In Progress
+**Status:** ✅ Complete
+
+**Verified:** 2026-08-12T01:35:21Z
+**Verification Evidence:**
+```yaml
+completed_by: scripts/complete_plan.py
+timestamp: 2026-08-12T01:35:21Z
+tests:
+  unit: 57 passed in 1.43s
+  e2e_smoke: skipped (no e2e directory)
+  e2e_real: skipped (--skip-real-e2e)
+  doc_coupling: passed
+commit: 03be7c4
+```
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None
@@ -57,8 +70,10 @@ of AE3's strongest behavioral prescriptions.
 - `tests/test_emergence_report.py` (modify)
 - `tests/test_scarcity_matrix.py` (modify)
 - `README.md` (modify)
+- `docs/LINEAGE_AND_RESTARTS.md` (modify)
 - `docs/evaluations/04_prescription_ablation.md` (create, then append results)
 - `docs/evaluations/evidence/04_prescription_ablation/` (generated evidence bundle)
+- `scripts/export_prescription_ablation_evidence.py` (create)
 - `docs/plans/CLAUDE.md` (modify)
 
 ---
@@ -99,14 +114,14 @@ of AE3's strongest behavioral prescriptions.
 
 ## Acceptance Criteria
 
-- [ ] The default mode reproduces the existing prescribed cognition artifacts and prompt behavior.
-- [ ] Minimal mode contains no assigned role, specialization, mandatory discover/read/produce/trade/mint sequence, or automatic price nudge.
-- [ ] Minimal invalid-output fallback cannot manufacture cross-agent reads, production, transfers, or mint submissions.
-- [ ] Every successful or failed LLM syscall event exposes the deterministic `llm_client` trace ID; loop decisions retain it.
-- [ ] The report exposes paid downstream value attributed specifically to an LLM-valid artifact-creation action.
-- [ ] All frozen controls and stop rules are evaluated before interpreting the treatment.
-- [ ] Raw events, summaries, run IDs, code revision, prompt/config hashes, and trace receipts are preserved.
-- [ ] Results are explicitly exploratory and do not change AE2/AE3 lifecycle authority.
+- [x] The default mode reproduces the existing prescribed cognition artifacts and prompt behavior.
+- [x] Minimal mode contains no assigned role, specialization, mandatory discover/read/produce/trade/mint sequence, or automatic price nudge.
+- [x] Minimal invalid-output fallback cannot manufacture cross-agent reads, production, transfers, or mint submissions.
+- [x] Every successful or failed LLM syscall event exposes the deterministic `llm_client` trace ID; loop decisions retain it.
+- [x] The report exposes paid downstream value attributed specifically to an LLM-valid artifact-creation action.
+- [x] All frozen controls and stop rules are evaluated before interpreting the treatment.
+- [x] Raw events, summaries, run IDs, code revision, prompt/config hashes, and trace receipts are preserved.
+- [x] Results are explicitly exploratory and do not change AE2/AE3 lifecycle authority.
 
 ---
 
@@ -116,3 +131,13 @@ This is a package ablation, not a claim that `minimal` is instruction-free. The
 kernel must still communicate the legal action schema and reject invalid
 actions. The experiment does not isolate which removed prescription matters;
 that requires later component ablations if this probe is informative.
+
+## Outcome
+
+The implementation and evidence-preservation work completed, but the frozen
+evaluation classified itself as **inconclusive** before the minimal condition
+began. Two paid runs failed validity and the trace audit found that shared-client
+tool-call rows did not retain the raw tool-call envelope. See
+`docs/evaluations/04_prescription_ablation.md` for the bounded interpretation
+and next prerequisites. This terminal outcome completes the plan without
+supporting the behavioral claim it was designed to test.

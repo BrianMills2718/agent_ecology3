@@ -149,4 +149,70 @@ remaining matched evidence.
 
 ## Results
 
-Not run yet.
+**Classification: Inconclusive.** The frozen rule fired before the minimal
+condition began: a second paid run failed the validity threshold. No treatment
+comparison or claim about prescription-independent behavior is available from
+this evaluation.
+
+### Run accounting
+
+| Run | Role | Successful / attempted calls | LLM-valid decisions | Valid-decision rate | Primary value | Cost (USD) | Disposition |
+|---|---|---:|---:|---:|---:|---:|---|
+| `run_20260812_005820` | excluded horizon pilot | 10 / 12 | 9 | 0.7500 | 1.0 | 0.008360 | Invalid: missed successful-call and valid-decision minima |
+| `run_20260812_011048` | retained output-cap pilot | 16 / 22 | 15 | 0.6818 | 1.0 | 0.015404 | Invalid: below valid-decision-rate floor |
+| `run_20260812_011449` | prescribed replicate 1 | 16 / 19 | 16 | 0.8421 | 2.0 | 0.017003 | Valid; positive primary outcome |
+| `run_20260812_012034` | prescribed replicate 2 | 16 / 19 | 15 | 0.7895 | 2.0 | 0.016336 | Valid; positive primary outcome |
+| `run_20260812_012401` | prescribed replicate 3 | 17 / 22 | 16 | 0.7273 | 2.0 | 0.017202 | Invalid: below valid-decision-rate floor |
+
+The successful preflight cost USD 0.0001023, bringing total paid cost to USD
+0.0744073. The final prescribed matrix showed the assay's intended positive
+signal in two valid replicates, but its third replicate is the second retained
+invalid paid run. Its positive primary value cannot rescue validity.
+
+The LLM-off negative control (`run_20260812_012834`,
+`run_20260812_012844`, and `run_20260812_012855`) passed: every run had zero
+LLM calls, zero LLM-valid decisions, and zero LLM-valid downstream value. The
+minimal treatment was not started after the stop rule fired, so no additional
+provider spend was incurred.
+
+### Observed failure modes
+
+1. **A synchronous provider call blocks the asynchronous simulation loop.** In
+   the first pilot, serial attempt durations consumed almost the entire elapsed
+   run, and a 60-second provider timeout could not be observed by the monitor
+   until control returned. A wall-clock safety horizon is therefore not an
+   independent bound while this call path remains synchronous.
+2. **Output truncation contaminates the behavioral-validity denominator.** The
+   512-token attempt produced six truncation errors. At 1,024 tokens, the three
+   prescribed replicates still produced three, three, and five provider errors;
+   the last five were truncations. The final run consequently recorded 16
+   LLM-valid decisions across 22 attempts (0.7273), even though it exceeded the
+   successful-call target.
+3. **Trace identity is complete but raw tool-call custody is not.** All 94 paid
+   AE3 attempt events matched one `llm_client` receipt, and all 94 retained
+   rendered messages. However, 74 successful tool-call rows retained an empty
+   response-text field and no raw tool-call envelope. AE3 preserved the paired
+   normalized action in `loop_decision`, but that does not satisfy the frozen
+   raw-response evidence contract.
+
+These failures separate two concerns that the current validity rate mixes:
+provider/transport reliability and agent action validity. They do not show
+that the minimal condition would pass or fail.
+
+### Recommendation
+
+Do not rerun Evaluation 04 or relax its thresholds. Before preregistering a new
+evaluation:
+
+1. preserve a serializable raw tool-call envelope at the shared-client or AE3
+   syscall boundary and verify one trace end to end;
+2. replace the blocking provider call with an async-safe boundary and test that
+   the monitor remains responsive during a timed-out call; and
+3. qualify the selected model/prompt/tool schema in a separate reliability
+   assay, then freeze a new call cap and validity rule before comparing
+   prescribed and minimal cognition.
+
+The implementation remains useful and backward compatible, but this result
+does not authorize an emergence claim or an AE2/AE3 lifecycle change. The
+reopenable evidence bundle is in
+[`evidence/04_prescription_ablation/`](evidence/04_prescription_ablation/).
