@@ -93,6 +93,199 @@ def test_runner_executes_bootstrap_loop(tmp_path) -> None:
     assert all("forced_explore_reason" in e for e in loop_decisions)
 
 
+def test_runner_monitor_remains_responsive_during_slow_async_syscall(tmp_path) -> None:
+    async def _exercise() -> None:
+        cfg = _make_config(tmp_path)
+        cfg.llm.enable_bootstrap_loop_llm = True
+        world = World(cfg, run_id="test_async_monitor")
+        runner = SimulationRunner(world)
+        started = asyncio.Event()
+        release = asyncio.Event()
+        heartbeat_count = 0
+
+        async def _slow_syscall(**_kwargs):
+            started.set()
+            await release.wait()
+            return {
+                "success": True,
+                "trace_id": "ae3/test_async_monitor/event_1/payer/alpha_1",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "monitor-call",
+                        "type": "function",
+                        "function": {
+                            "name": "ae3_action",
+                            "arguments": '{"action_type":"query_kernel","query_type":"resources"}',
+                        },
+                    }
+                ],
+            }
+
+        def _blocking_old_syscall(**_kwargs):
+            time.sleep(0.15)
+            return {
+                "success": True,
+                "trace_id": "ae3/test_async_monitor/old-boundary",
+                "content": '{"action_type":"query_kernel","query_type":"resources"}',
+                "tool_calls": [],
+            }
+
+        async def _heartbeat() -> None:
+            nonlocal heartbeat_count
+            while not runner._stop_requested:
+                heartbeat_count += 1
+                await asyncio.sleep(0.01)
+
+        world.call_llm_as_syscall = _blocking_old_syscall  # type: ignore[method-assign]
+        world.call_llm_as_syscall_async = _slow_syscall  # type: ignore[method-assign]
+        run_task = asyncio.create_task(runner.run(duration=0.05))
+        heartbeat_task = asyncio.create_task(_heartbeat())
+        await asyncio.wait_for(started.wait(), timeout=0.5)
+        await asyncio.sleep(0.12)
+
+        assert heartbeat_count >= 5
+        assert runner._stop_requested is True
+        assert run_task.done() is False
+
+        release.set()
+        await asyncio.wait_for(run_task, timeout=0.5)
+        await heartbeat_task
+
+    asyncio.run(_exercise())
+
+
+def test_runner_drains_inflight_loop_before_returning(tmp_path) -> None:
+    async def _exercise() -> None:
+        cfg = _make_config(tmp_path)
+        cfg.llm.enable_bootstrap_loop_llm = True
+        world = World(cfg, run_id="test_async_drain")
+        runner = SimulationRunner(world)
+        started = asyncio.Event()
+        release = asyncio.Event()
+        completed = False
+
+        async def _slow_syscall(**_kwargs):
+            nonlocal completed
+            started.set()
+            await release.wait()
+            completed = True
+            return {
+                "success": True,
+                "trace_id": "ae3/test_async_drain/event_1/payer/alpha_1",
+                "content": '{"action_type":"query_kernel","query_type":"resources"}',
+                "tool_calls": [],
+            }
+
+        def _blocking_old_syscall(**_kwargs):
+            time.sleep(0.15)
+            return {
+                "success": True,
+                "trace_id": "ae3/test_async_drain/old-boundary",
+                "content": '{"action_type":"query_kernel","query_type":"resources"}',
+                "tool_calls": [],
+            }
+
+        world.call_llm_as_syscall = _blocking_old_syscall  # type: ignore[method-assign]
+        world.call_llm_as_syscall_async = _slow_syscall  # type: ignore[method-assign]
+        run_task = asyncio.create_task(runner.run(duration=0.05))
+        await asyncio.wait_for(started.wait(), timeout=0.5)
+        await asyncio.sleep(0.12)
+
+        assert runner._stop_requested is True
+        assert run_task.done() is False
+        assert completed is False
+
+        release.set()
+        await asyncio.wait_for(run_task, timeout=0.5)
+        returned_event_number = world.event_number
+        assert completed is True
+        await asyncio.sleep(0.05)
+        assert world.event_number == returned_event_number
+
+    asyncio.run(_exercise())
+
+
+def test_runner_serializes_loop_world_mutations(tmp_path) -> None:
+    async def _exercise() -> None:
+        cfg = _make_config(tmp_path)
+        cfg.principals.count = 2
+        cfg.llm.enable_bootstrap_loop_llm = True
+        world = World(cfg, run_id="test_async_serial")
+        runner = SimulationRunner(world)
+        active = 0
+        maximum_active = 0
+
+        async def _slow_syscall(**kwargs):
+            nonlocal active, maximum_active
+            active += 1
+            maximum_active = max(maximum_active, active)
+            await asyncio.sleep(0.03)
+            active -= 1
+            payer = str(kwargs["payer_id"])
+            return {
+                "success": True,
+                "trace_id": f"ae3/test_async_serial/event_1/payer/{payer}",
+                "content": '{"action_type":"query_kernel","query_type":"resources"}',
+                "tool_calls": [],
+            }
+
+        def _blocking_old_syscall(**kwargs):
+            time.sleep(0.03)
+            payer = str(kwargs["payer_id"])
+            return {
+                "success": True,
+                "trace_id": f"ae3/test_async_serial/old-boundary/{payer}",
+                "content": '{"action_type":"query_kernel","query_type":"resources"}',
+                "tool_calls": [],
+            }
+
+        world.call_llm_as_syscall = _blocking_old_syscall  # type: ignore[method-assign]
+        world.call_llm_as_syscall_async = _slow_syscall  # type: ignore[method-assign]
+        await asyncio.wait_for(runner.run(duration=0.16), timeout=0.8)
+
+        assert maximum_active == 1
+
+    asyncio.run(_exercise())
+
+
+def test_legacy_sync_artifact_can_still_invoke_nested_artifact(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    world = World(cfg, run_id="test_sync_nested_compatibility")
+    for artifact_id, code in (
+        ("alpha_1_target", "def run():\n    return {'value': 7}\n"),
+        ("alpha_1_wrapper", "def run():\n    return invoke('alpha_1_target')\n"),
+    ):
+        write = world.execute_action_data(
+            "alpha_1",
+            {
+                "action_type": "write_artifact",
+                "artifact_id": artifact_id,
+                "artifact_type": "tool",
+                "content": "sync compatibility fixture",
+                "executable": True,
+                "code": code,
+            },
+        )
+        assert write.success, write.message
+
+    invoked = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "invoke_artifact",
+            "artifact_id": "alpha_1_wrapper",
+            "method": "run",
+            "args": [],
+        },
+    )
+
+    assert invoked.success, invoked.message
+    assert invoked.data is not None
+    nested = invoked.data["result"]
+    assert nested["success"] is True
+    assert nested["data"]["result"]["value"] == 7
+
+
 def test_loop_artifact_is_kernel_protected(tmp_path) -> None:
     cfg = _make_config(tmp_path)
     world = World(cfg, run_id="test_loop_protection")
@@ -597,6 +790,62 @@ def test_syscall_logs_and_returns_trace_id_and_budget_controls(tmp_path, monkeyp
     assert captured["budget_reservation"] == pytest.approx(0.01)
     events = [e for e in world.logger.read_recent(20) if e.get("event_type") == "llm_syscall"]
     assert events[-1]["trace_id"] == expected_trace
+
+
+def test_async_syscall_uses_shared_accounting_and_native_async_client(tmp_path, monkeypatch) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.num_retries = 0
+    cfg.llm.max_output_tokens = 512
+    cfg.llm.provider_max_budget_usd = 0.25
+    cfg.llm.provider_budget_reservation_usd = 0.01
+    world = World(cfg, run_id="test_async_trace_budget")
+    captured: dict[str, object] = {}
+
+    async def _fake_acall_llm(**kwargs):
+        captured.update(kwargs)
+        await asyncio.sleep(0)
+        return _stub_llm_result(
+            content="",
+            tool_calls=[
+                {
+                    "id": "async-call",
+                    "type": "function",
+                    "function": {
+                        "name": "ae3_action",
+                        "arguments": '{"action_type":"query_kernel","query_type":"resources"}',
+                    },
+                }
+            ],
+        )
+
+    def _unexpected_sync_call(**_kwargs):
+        raise AssertionError("async syscall dispatched through call_llm")
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.acall_llm = _fake_acall_llm
+    fake_module.call_llm = _unexpected_sync_call
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+
+    result = asyncio.run(
+        world.call_llm_as_syscall_async(
+            payer_id="alpha_1",
+            model="minimax/minimax-m3",
+            messages=[{"role": "user", "content": "short test prompt"}],
+            tools=World.build_loop_action_tools(),
+        )
+    )
+
+    expected_trace = "ae3/test_async_trace_budget/event_0/payer/alpha_1"
+    assert result.get("success") is True
+    assert result.get("trace_id") == expected_trace
+    assert len(result.get("tool_calls", [])) == 1
+    assert captured.get("num_retries") == 0
+    assert captured.get("max_tokens") == 512
+    assert captured.get("max_budget") == pytest.approx(0.25)
+    assert captured.get("budget_reservation") == pytest.approx(0.01)
+    events = [e for e in world.logger.read_recent(20) if e.get("event_type") == "llm_syscall"]
+    assert len(events) == 1
+    assert events[0].get("trace_id") == expected_trace
 
 
 def test_subscription_included_budget_mode_none_refunds_budget(tmp_path, monkeypatch) -> None:

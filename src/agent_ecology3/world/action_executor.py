@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from dataclasses import dataclass
 from typing import Any
 
 from .actions import (
@@ -16,8 +17,8 @@ from .actions import (
     NoopIntent,
     QueryKernelIntent,
     ReadArtifactIntent,
-    SubscribeArtifactIntent,
     SubmitToMintIntent,
+    SubscribeArtifactIntent,
     TransferIntent,
     TransferResourceIntent,
     UnsubscribeArtifactIntent,
@@ -89,6 +90,17 @@ def _derive_decision_origin_reason(
     if isinstance(source, str) and source:
         return source
     return None
+
+
+@dataclass(frozen=True)
+class _InvocationContext:
+    start: float
+    artifact: Any
+    permission: Any
+    payer: str
+    entry_point: str
+    current_depth: int
+    max_depth: int
 
 
 class ActionExecutor:
@@ -311,18 +323,28 @@ class ActionExecutor:
         )
         return ActionResult(True, f"edited '{intent.artifact_id}'", data={"size_delta": size_delta})
 
-    def _invoke(self, intent: InvokeArtifactIntent) -> ActionResult:
+    def _prepare_invocation(
+        self,
+        intent: InvokeArtifactIntent,
+    ) -> tuple[ActionResult | None, _InvocationContext | None]:
         start = time.perf_counter()
 
         if intent.artifact_id in self.world.kernel_services:
             service = self.world.kernel_services[intent.artifact_id]
             method = service.get("methods", {}).get(intent.method)
             if method is None:
-                return ActionResult(False, f"unknown method '{intent.method}' on {intent.artifact_id}", error_code="not_found")
+                return (
+                    ActionResult(
+                        False,
+                        f"unknown method '{intent.method}' on {intent.artifact_id}",
+                        error_code="not_found",
+                    ),
+                    None,
+                )
             try:
                 payload = method(intent.args, intent.principal_id)
             except Exception as exc:
-                return ActionResult(False, f"service error: {exc}", error_code="runtime_error")
+                return ActionResult(False, f"service error: {exc}", error_code="runtime_error"), None
             duration_ms = (time.perf_counter() - start) * 1000
             if payload.get("success", False):
                 self.world.logger.log(
@@ -335,7 +357,10 @@ class ActionExecutor:
                         "duration_ms": duration_ms,
                     },
                 )
-                return ActionResult(True, f"invoked {intent.artifact_id}.{intent.method}", data=payload)
+                return (
+                    ActionResult(True, f"invoked {intent.artifact_id}.{intent.method}", data=payload),
+                    None,
+                )
 
             self.world.logger.log(
                 "invoke_failure",
@@ -348,25 +373,35 @@ class ActionExecutor:
                     "error": payload.get("error", "service failed"),
                 },
             )
-            return ActionResult(False, payload.get("error", "service failed"), error_code=payload.get("error_code"))
+            return (
+                ActionResult(
+                    False,
+                    payload.get("error", "service failed"),
+                    error_code=payload.get("error_code"),
+                ),
+                None,
+            )
 
         artifact = self.world.artifacts.get(intent.artifact_id)
         if artifact is None or artifact.deleted:
-            return ActionResult(False, f"artifact '{intent.artifact_id}' not found", error_code="not_found")
+            return ActionResult(False, f"artifact '{intent.artifact_id}' not found", error_code="not_found"), None
         if not artifact.executable:
-            return ActionResult(False, f"artifact '{artifact.id}' is not executable", error_code="invalid_type")
+            return ActionResult(False, f"artifact '{artifact.id}' is not executable", error_code="invalid_type"), None
 
         if intent.method == "describe":
-            return ActionResult(
-                True,
-                f"interface for '{artifact.id}'",
-                data={
-                    "artifact_id": artifact.id,
-                    "type": artifact.type,
-                    "owner": artifact.owner,
-                    "interface": artifact.interface,
-                    "description": artifact.content,
-                },
+            return (
+                ActionResult(
+                    True,
+                    f"interface for '{artifact.id}'",
+                    data={
+                        "artifact_id": artifact.id,
+                        "type": artifact.type,
+                        "owner": artifact.owner,
+                        "interface": artifact.interface,
+                        "description": artifact.content,
+                    },
+                ),
+                None,
             )
 
         perm = self.world.contract_engine.check(
@@ -377,36 +412,99 @@ class ActionExecutor:
             args=intent.args,
         )
         if not perm.allowed:
-            return ActionResult(False, f"invoke not allowed: {perm.reason}", error_code="not_authorized")
+            return ActionResult(False, f"invoke not allowed: {perm.reason}", error_code="not_authorized"), None
 
         charge_to = str(artifact.metadata.get("charge_to", "caller"))
         try:
             payer = self.world.delegation_manager.resolve_payer(charge_to, intent.principal_id, artifact)
         except ValueError as exc:
-            return ActionResult(False, str(exc), error_code="invalid_charge_directive")
+            return ActionResult(False, str(exc), error_code="invalid_charge_directive"), None
 
         if payer != intent.principal_id:
             authorized, reason = self.world.delegation_manager.authorize_charge(payer, intent.principal_id, float(artifact.invoke_price))
             if not authorized:
-                return ActionResult(False, f"delegation denied: {reason}", error_code="not_authorized")
+                return ActionResult(False, f"delegation denied: {reason}", error_code="not_authorized"), None
 
         if artifact.invoke_price > 0 and not self.world.ledger.can_afford_scrip(payer, artifact.invoke_price):
-            return ActionResult(False, "insufficient scrip for invoke price", error_code="insufficient_funds", retriable=True)
+            return (
+                ActionResult(
+                    False,
+                    "insufficient scrip for invoke price",
+                    error_code="insufficient_funds",
+                    retriable=True,
+                ),
+                None,
+            )
 
         entry_point = "handle_request" if "def handle_request(" in artifact.code else "run"
         current_depth = int(getattr(intent, "_invoke_depth", 0))
         max_depth = int(getattr(intent, "_max_invoke_depth", self.world.max_invoke_depth))
+        return (
+            None,
+            _InvocationContext(
+                start=start,
+                artifact=artifact,
+                permission=perm,
+                payer=payer,
+                entry_point=entry_point,
+                current_depth=current_depth,
+                max_depth=max_depth,
+            ),
+        )
+
+    def _invoke(self, intent: InvokeArtifactIntent) -> ActionResult:
+        early_result, context = self._prepare_invocation(intent)
+        if early_result is not None:
+            return early_result
+        if context is None:  # pragma: no cover - defensive invariant
+            return ActionResult(False, "missing invocation context", error_code="runtime_error")
         exec_result = self.world.executor.execute_with_invoke(
-            code=artifact.code,
+            code=context.artifact.code,
             args=intent.args,
             caller_id=intent.principal_id,
-            artifact_id=artifact.id,
+            artifact_id=context.artifact.id,
             world=self.world,
-            current_depth=current_depth,
-            max_depth=max_depth,
-            entry_point=entry_point,
+            current_depth=context.current_depth,
+            max_depth=context.max_depth,
+            entry_point=context.entry_point,
             method_name=intent.method,
         )
+        return self._finish_invocation(intent, context, exec_result)
+
+    async def execute_loop_async(self, intent: InvokeArtifactIntent) -> ActionResult:
+        """Execute one autonomous loop through the async artifact boundary."""
+
+        early_result, context = self._prepare_invocation(intent)
+        if early_result is not None:
+            result = early_result
+        elif context is None:  # pragma: no cover - defensive invariant
+            result = ActionResult(False, "missing invocation context", error_code="runtime_error")
+        else:
+            exec_result = await self.world.executor.execute_with_invoke_async(
+                code=context.artifact.code,
+                args=intent.args,
+                caller_id=intent.principal_id,
+                artifact_id=context.artifact.id,
+                world=self.world,
+                current_depth=context.current_depth,
+                max_depth=context.max_depth,
+                entry_point=context.entry_point,
+                method_name=intent.method,
+            )
+            result = self._finish_invocation(intent, context, exec_result)
+        self._log_action(intent, result)
+        return result
+
+    def _finish_invocation(
+        self,
+        intent: InvokeArtifactIntent,
+        context: _InvocationContext,
+        exec_result: dict[str, Any],
+    ) -> ActionResult:
+        start = context.start
+        artifact = context.artifact
+        perm = context.permission
+        payer = context.payer
 
         resources = exec_result.get("resources_consumed", {})
         cpu_used = float(resources.get("cpu_seconds", 0.0))

@@ -38,12 +38,14 @@ class SimulationRunner:
         self._running = False
         self._paused = False
         self._stop_requested = False
+        self._stop_event = asyncio.Event()
         self._pause_event = asyncio.Event()
         self._pause_event.set()
         self._start_monotonic: float | None = None
 
         self._loop_states: dict[str, LoopRuntimeState] = {}
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
+        self._world_execution_lock = asyncio.Lock()
 
     @property
     def is_running(self) -> bool:
@@ -69,7 +71,14 @@ class SimulationRunner:
 
     def stop(self) -> None:
         self._stop_requested = True
+        self._stop_event.set()
         self._pause_event.set()
+
+    async def _sleep_until_stop(self, delay: float) -> None:
+        try:
+            await asyncio.wait_for(self._stop_event.wait(), timeout=max(0.0, delay))
+        except TimeoutError:
+            return
 
     def get_status(self) -> RunnerStatus:
         return RunnerStatus(
@@ -114,20 +123,21 @@ class SimulationRunner:
             # Hard resource gate on budget; freeze until budget returns.
             if self.world.ledger.get_llm_budget(state.principal_id) <= 0:
                 self.world.freeze_agent(state.principal_id)
-                await asyncio.sleep(max(0.05, cfg.resource_check_interval_seconds))
+                await self._sleep_until_stop(max(0.05, cfg.resource_check_interval_seconds))
                 continue
             self.world.unfreeze_agent(state.principal_id)
 
-            result = self.world.execute_action_data(
-                state.principal_id,
-                {
-                    "action_type": "invoke_artifact",
-                    "artifact_id": state.artifact_id,
-                    "method": "run",
-                    "args": [],
-                },
-                increment_event=True,
-            )
+            async with self._world_execution_lock:
+                result = await self.world.execute_action_data_async(
+                    state.principal_id,
+                    {
+                        "action_type": "invoke_artifact",
+                        "artifact_id": state.artifact_id,
+                        "method": "run",
+                        "args": [],
+                    },
+                    increment_event=True,
+                )
             state.iterations += 1
 
             if result.success:
@@ -150,7 +160,9 @@ class SimulationRunner:
                         },
                     )
 
-            await asyncio.sleep(delay)
+            if self._stop_requested:
+                break
+            await self._sleep_until_stop(delay)
 
         state.running = False
 
@@ -165,6 +177,7 @@ class SimulationRunner:
         self._running = True
         self._paused = False
         self._stop_requested = False
+        self._stop_event.clear()
         self._pause_event.set()
         self._start_monotonic = time.monotonic()
 
@@ -207,18 +220,25 @@ class SimulationRunner:
                 if target_duration > 0 and elapsed >= target_duration:
                     break
 
-                self.world.tick()
+                # A provider await may hold the serial world-execution lane.
+                # Skipping mutable maintenance keeps duration monitoring independent.
+                if not self._world_execution_lock.locked():
+                    async with self._world_execution_lock:
+                        self.world.tick()
+                        if elapsed >= next_summary_at:
+                            self.world.log_summary_snapshot()
+                            next_summary_at = elapsed + summary_interval
 
-                if elapsed >= next_summary_at:
-                    self.world.log_summary_snapshot()
-                    next_summary_at = elapsed + summary_interval
-
-                await asyncio.sleep(1.0)
+                remaining = 1.0
+                if target_duration > 0:
+                    remaining = min(remaining, max(0.01, target_duration - elapsed))
+                if max_runtime > 0:
+                    remaining = min(remaining, max(0.01, max_runtime - elapsed))
+                await self._sleep_until_stop(remaining)
         finally:
             self._stop_requested = True
+            self._stop_event.set()
             self._pause_event.set()
-            for task in self._loop_tasks.values():
-                task.cancel()
             if self._loop_tasks:
                 await asyncio.gather(*self._loop_tasks.values(), return_exceptions=True)
 

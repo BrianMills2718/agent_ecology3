@@ -100,9 +100,14 @@ instrument before spending on behavioral replicates.
 | `tests/test_runtime_smoke.py` | `test_runner_monitor_remains_responsive_during_slow_async_syscall` | A slow provider await does not block an independent heartbeat or the runner's duration checks. |
 | `tests/test_runtime_smoke.py` | `test_runner_drains_inflight_loop_before_returning` | Stop requests do not orphan work that mutates the world after `run()` returns. |
 | `tests/test_runtime_smoke.py` | `test_runner_serializes_loop_world_mutations` | Multiple autonomous loops do not concurrently mutate shared world state. |
+| `tests/test_runtime_smoke.py` | `test_legacy_sync_artifact_can_still_invoke_nested_artifact` | The async runner route does not break existing synchronous nested artifacts. |
+| `tests/test_runtime_smoke.py` | `test_async_syscall_uses_shared_accounting_and_native_async_client` | The async boundary dispatches through `acall_llm` with the same trace and budget contract. |
 | `tests/test_provider_qualification.py` | `test_valid_tool_call_and_exact_custody_pass` | A legal `ae3_action` plus identical durable tool-call readback is usable. |
 | `tests/test_provider_qualification.py` | `test_malformed_or_missing_tool_call_fails` | Missing, malformed, or illegal actions fail qualification visibly. |
 | `tests/test_provider_qualification.py` | `test_truncation_and_custody_mismatch_fail` | Transport truncation and non-identical durable payloads are separate hard failures. |
+| `tests/test_provider_qualification.py` | `test_metadata_only_call_record_fails_custody` | A redacted call record cannot satisfy exact-custody qualification. |
+| `tests/test_provider_qualification.py` | `test_frozen_case_order_is_balanced_and_alternating` | The 32-call dispatch order stays balanced and serially alternating. |
+| `tests/test_provider_qualification.py` | `test_frozen_summary_requires_threshold_and_zero_hard_failures` | The frozen 15/16 threshold passes only without timeout or truncation failures. |
 
 ### Existing Tests (Must Pass)
 
@@ -133,10 +138,10 @@ instrument before spending on behavioral replicates.
 
 ## Failure Handling
 
-The async route fails loud on unsupported executable entry points and records
-normal AE3 action failures. On runner stop, new iterations cease but an
+The production bootstrap route awaits the native async provider client. Legacy
+synchronous loop artifacts are offloaded as one serialized invocation and are
+also drained before return. On runner stop, new iterations cease but an
 in-flight invocation is awaited to terminal completion; provider timeout is the
 outer bound. Evaluation 05 stops immediately on trace/custody corruption,
 budget exhaustion, or an unexpected configuration hash. A failed qualification
 is a result, not permission to tune and rerun.
-
