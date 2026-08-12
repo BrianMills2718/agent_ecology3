@@ -192,6 +192,7 @@ class SimulationRunner:
         duration: float | None = None,
         *,
         target_llm_attempts: int | None = None,
+        start_paused: bool = False,
     ) -> World:
         if self._running:
             return self.world
@@ -203,10 +204,13 @@ class SimulationRunner:
         summary_interval = max(1.0, self.world.config.simulation.summary_interval_seconds)
 
         self._running = True
-        self._paused = False
+        self._paused = bool(start_paused)
         self._stop_requested = False
         self._stop_event.clear()
-        self._pause_event.set()
+        if start_paused:
+            self._pause_event.clear()
+        else:
+            self._pause_event.set()
         self._start_monotonic = time.monotonic()
         self._target_llm_attempts = (
             int(target_llm_attempts) if target_llm_attempts is not None else None
@@ -235,6 +239,11 @@ class SimulationRunner:
         next_summary_at = self.elapsed_seconds + summary_interval
         try:
             while not self._stop_requested:
+                for task in self._loop_tasks.values():
+                    if task.done() and not task.cancelled():
+                        failure = task.exception()
+                        if failure is not None:
+                            raise failure
                 await self._pause_event.wait()
 
                 elapsed = self.elapsed_seconds

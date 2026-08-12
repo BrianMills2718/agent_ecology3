@@ -1,6 +1,6 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** In progress — Slices A-C passed; recovery/dashboard PoC selected
+**Status:** Complete — Slices A-E and WU-10-05 accepted
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None
@@ -16,14 +16,77 @@
 - **Proven:** exact `codex/gpt-5.6-luna` at medium effort through direct CLI,
   subscription-included billing, one strict `query_kernel` action, passive
   `agent_message` event custody, and caller/readback equality.
-- **Next action:** use the canary's observed 7.7-second latency and 15,568-token
-  usage to bound one recoverable dashboard-visible PoC unit implementing the
-  conditional Slices D-E.
+- **Next action:** begin Luna-specific qualification and scarcity calibration
+  under Plan #11 without expanding the claims established by this PoC.
 - **Stop condition:** no multi-call Luna run begins until recovery prevents a
   settled or ambiguous attempt from being replaced after interruption.
 - **Evidence:** `docs/evaluations/evidence/plan10_luna_recovery_gate/`.
 - **Non-claim:** the canary establishes route compatibility only; it does not
   establish reliability, behavioral effect, or valid scarcity parameters.
+
+### Recoverable dashboard PoC checkpoint (2026-08-12)
+
+`WU-10-05` is the accepted bounded integration unit. Its provider-free vertical
+was frozen before the two-call authentic boundary:
+
+- an atomic Pydantic checkpoint records stable run/attempt identities,
+  semantic request hashes, dispatch count, syscall result, trace, and the
+  `dispatching -> provider_settled -> applying -> committed` boundary;
+- restart rebuilds the deterministic `World`, reapplies the cached settlement
+  accounting, and replays the retained response through the normal generated
+  loop and kernel action seam rather than making a replacement call;
+- measured local CPU jitter is removed from the recoverable model prompt so it
+  cannot create false replay drift; the actual dashboard resource state remains
+  unchanged and visible;
+- dispatch ambiguity, corrupt custody, request/trace drift, or interruption
+  during action application becomes terminal `invalid` and raises past the
+  loop's ordinary fallback behavior;
+- the canonical 16-attempt fixture interrupts after attempt 8 settlement,
+  restarts, and ends with exactly 16 provider dispatches and 16 committed
+  attempts; and
+- `scripts/run_recoverable_evaluation.py` owns detached `start`, `status`,
+  `resume`, `pause`, `stop`, and `shutdown` around the existing runner and
+  dashboard. Start is paused, requires exact acknowledgement
+  `plan10/luna-medium/dashboard-poc/v1`, and is frozen to two attempts.
+
+The authentic run must start only from a clean pushed AE3 revision and the
+exact clean accepted shared client. It uses `codex/gpt-5.6-luna`, medium
+reasoning, CLI transport, read-only sandbox, isolated home,
+subscription-included billing, zero retries/fallbacks, and no MCP server.
+
+The bounded authentic run passed from pushed revision
+`3f175e71b08757fd5e298fb85f8d09048899a0d1`:
+
+- exactly two Luna Medium provider dispatches produced exactly two committed
+  attempts with no retry, fallback, MCP server, ambiguity, or terminal error;
+- both returned the strict `query_kernel`/`artifacts` action with
+  `readable_only=true`, both actions succeeded, and both retained only the
+  passive `agent_message` Codex event;
+- the attempts used 15,576 and 15,739 tokens and completed in 8.52 and 7.23
+  seconds; provider cost was USD 0.00 under subscription-included billing and
+  AE3 retained separate internal estimated charges of 0.003873 and 0.004149;
+- the fresh browser observed the paused `0/2` state and completed `2/2` state,
+  preserved Resume/Pause/Stop, showed both loop actions, and reported no
+  console errors or failed requests; and
+- the compact durable receipt is `dashboard_poc.json`. The external full
+  receipt and checkpoint are content-addressed there for local forensic use.
+
+This completes the PoC implementation and evidence boundary only. It does not
+qualify reliability, behavioral effect, scarcity parameters, Evaluation 08,
+or adoption of AE2's fuller dashboard.
+
+#### Existing dashboard continuity contract
+
+| Entry point | State | Preserved or extended surfaces |
+| --- | --- | --- |
+| `/` direct load or refresh | paused | Existing state/events panes and resume/pause/stop controls; add stable run, attempt progress, and custody status pills |
+| `/` | running | Same panes and controls update through existing 1.5-second polling; actions, events, balances, quotas, and budget remain visible |
+| `/` | completed, stopped, or invalid | Reviewable final state/events and stable run/custody identity remain visible; no result is silently presented as running |
+| `/state`, `/events` | all states | Existing response remains additive; `recovery` is the only new top-level projection |
+
+No navigation, projection, control, or lifecycle state is removed. A fresh
+browser observation of paused -> running -> completed plus console, failed
+request, and backend-log inspection remains required at the authentic boundary.
 
 ### Slice C checkpoint (2026-08-12)
 
@@ -663,20 +726,20 @@ loops.
       no automatic retry.
 - [x] Only reviewed passive Codex event types are accepted; active, missing,
       and unknown types fail closed after truthful settlement.
-- [ ] The canonical 16-attempt recovery fixture completes with exactly 16 fake
+- [x] The canonical 16-attempt recovery fixture completes with exactly 16 fake
       dispatches after a post-settlement restart.
-- [ ] Every ambiguous in-flight/action/corrupt-checkpoint case is terminally
+- [x] Every ambiguous in-flight/action/corrupt-checkpoint case is terminally
       invalid and causes no replacement dispatch.
-- [ ] Restored World, scheduler, logical time/ID, accounting, artifacts, and
+- [x] Restored World, scheduler, logical time/ID, accounting, artifacts, and
       model-visible state match the last committed checkpoint.
-- [ ] A detached worker survives launcher exit and exposes truthful status and
+- [x] A detached worker survives launcher exit and exposes truthful status and
       resume evidence to a new process.
 - [x] The live entry point refuses dispatch without exact one-call human
       acknowledgement.
 - [x] After separate authorization, one and only one authentic canary either
       passes every route/action/custody gate or retains a blocked bundle naming
       the failed boundary.
-- [ ] No Evaluation 07 input/evidence changes, no Evaluation 08 claim is made,
+- [x] No Evaluation 07 input/evidence changes, no Evaluation 08 claim is made,
       and Plan 11 remains blocked unless the canary passes.
 
 ---
@@ -703,11 +766,9 @@ loops.
   an authentic capability, two consecutive non-outcome increments, or three
   failures at the same boundary. The outcome and gates do not silently shrink.
 
-The next action is the human-decision boundary for Slice C: separately
-authorize one authentic Luna Medium call through the frozen production path.
-Until that exact authorization is given, no provider call is permitted. A
-passing canary selects the conditional Slices D-E before any multi-call run; a
-failed canary remains a terminal blocked receipt with no retry or route switch.
+The separately authorized canary and bounded two-attempt PoC both passed. Plan
+10 is complete; subsequent Luna qualification or scarcity calibration belongs
+to Plan 11 and requires its own bounded execution and claims.
 
 The listed files are the expected AE3 surfaces and may be narrowed during
 implementation. Plan 10 may not add a parallel LLM client or alter Evaluation
