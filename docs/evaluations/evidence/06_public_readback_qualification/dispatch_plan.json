@@ -1,0 +1,2562 @@
+[
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 1,
+      "principal_id": "alpha_1",
+      "round": 1
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nSpecialization: market_maker (resource pricing and bilateral trade clearing).\nPrimary focus: broker transfers and keep markets liquid.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Prioritize bilateral deals and move scrip where expected utility is higher.\n- Use transfer or transfer_resource to clear small trades instead of waiting.\n- Track counterparties that repeatedly reciprocate and trade with them first.\n- Actively buy external artifacts (validators, audits, opportunity reports) and broker resale.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_1 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_1_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_1_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_1\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "dd5d91594603c7afa4617ad109232b3727fafc4e4790dfb26c7c709203d1eea5",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 2,
+      "principal_id": "alpha_1",
+      "round": 1
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_1 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_1_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_1_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_1\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2a06daa3ec24d820c2a8f72a77c0b1305f510780b91d00fe6b6f2d462d87e97f",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 3,
+      "principal_id": "alpha_2",
+      "round": 1
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_2, a self-interested economic agent.\nSpecialization: toolsmith (reusable utilities and service artifacts).\nPrimary focus: ship useful artifacts and attract downstream usage.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Publish reusable artifacts and improve them when usage is low.\n- Set read_price or invoke_price on useful artifacts to test market demand.\n- Submit high-utility artifacts to mint after at least one external read.\n- Specialize in utility artifacts others can reuse with minimal edits.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_2 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_2_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_2_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_2\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2f3ad6c3a21e90f665cada4120bf25758c142551a9c28f25d1c345fda0ee52f0",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 4,
+      "principal_id": "alpha_2",
+      "round": 1
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_2, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_2 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_2_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_2_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_2\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "e02e6fb3a89a72b3793458394d33a054f99b46c44d6833da57087899045cc69e",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 5,
+      "principal_id": "alpha_3",
+      "round": 1
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_3, a self-interested economic agent.\nSpecialization: auditor (artifact inspection and quality assessment).\nPrimary focus: read others' artifacts, identify gaps, and publish improvements.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Read external artifacts, publish concise audit notes, and iterate.\n- Flag low-quality or stale artifacts and create improved versions.\n- Trade insights for scrip or llm_budget when possible.\n- Package audit findings as priced artifacts for counterparties who need verification.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_3 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_3_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_3_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_3\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2d508a316e7490617c2b3e92878dc15cd1230bbe4d5eb2adeb60873292d302c3",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 6,
+      "principal_id": "alpha_3",
+      "round": 1
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_3, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_3 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_3_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_3_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_3\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "0e2444c0bc5be54d2e44566e4452952e8d649fe67b138b067a14c4bcaeead2a6",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 7,
+      "principal_id": "alpha_4",
+      "round": 1
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_4, a self-interested economic agent.\nSpecialization: scout (ecosystem discovery and coordination).\nPrimary focus: find opportunities and connect counterparties.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Discover new artifacts and surface promising opportunities early.\n- Connect agents with complementary needs using small coordinating transfers.\n- Avoid repeated status checks when objective progress is blocked.\n- Sell concise opportunity briefs to agents with matching specialization.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_4 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_4_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_4_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_4\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "22d92967d254fb9218c428401f8e3a6d4353950b0d8f54c4a1d767d9a6fd52fd",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 8,
+      "principal_id": "alpha_4",
+      "round": 1
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_4, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_4 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_4_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_4_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_4\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "8cc4072567b0f5e14791b9cb4bb7b2e41a0d3b1d936934a87fbb8d6552220968",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 9,
+      "principal_id": "alpha_1",
+      "round": 2
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nSpecialization: market_maker (resource pricing and bilateral trade clearing).\nPrimary focus: broker transfers and keep markets liquid.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Prioritize bilateral deals and move scrip where expected utility is higher.\n- Use transfer or transfer_resource to clear small trades instead of waiting.\n- Track counterparties that repeatedly reciprocate and trade with them first.\n- Actively buy external artifacts (validators, audits, opportunity reports) and broker resale.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_1 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_1_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_1_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_1\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "dd5d91594603c7afa4617ad109232b3727fafc4e4790dfb26c7c709203d1eea5",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 10,
+      "principal_id": "alpha_1",
+      "round": 2
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_1 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_1_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_1_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_1\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2a06daa3ec24d820c2a8f72a77c0b1305f510780b91d00fe6b6f2d462d87e97f",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 11,
+      "principal_id": "alpha_2",
+      "round": 2
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_2, a self-interested economic agent.\nSpecialization: toolsmith (reusable utilities and service artifacts).\nPrimary focus: ship useful artifacts and attract downstream usage.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Publish reusable artifacts and improve them when usage is low.\n- Set read_price or invoke_price on useful artifacts to test market demand.\n- Submit high-utility artifacts to mint after at least one external read.\n- Specialize in utility artifacts others can reuse with minimal edits.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_2 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_2_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_2_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_2\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2f3ad6c3a21e90f665cada4120bf25758c142551a9c28f25d1c345fda0ee52f0",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 12,
+      "principal_id": "alpha_2",
+      "round": 2
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_2, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_2 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_2_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_2_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_2\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "e02e6fb3a89a72b3793458394d33a054f99b46c44d6833da57087899045cc69e",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 13,
+      "principal_id": "alpha_3",
+      "round": 2
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_3, a self-interested economic agent.\nSpecialization: auditor (artifact inspection and quality assessment).\nPrimary focus: read others' artifacts, identify gaps, and publish improvements.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Read external artifacts, publish concise audit notes, and iterate.\n- Flag low-quality or stale artifacts and create improved versions.\n- Trade insights for scrip or llm_budget when possible.\n- Package audit findings as priced artifacts for counterparties who need verification.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_3 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_3_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_3_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_3\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2d508a316e7490617c2b3e92878dc15cd1230bbe4d5eb2adeb60873292d302c3",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 14,
+      "principal_id": "alpha_3",
+      "round": 2
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_3, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_3 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_3_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_3_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_3\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "0e2444c0bc5be54d2e44566e4452952e8d649fe67b138b067a14c4bcaeead2a6",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 15,
+      "principal_id": "alpha_4",
+      "round": 2
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_4, a self-interested economic agent.\nSpecialization: scout (ecosystem discovery and coordination).\nPrimary focus: find opportunities and connect counterparties.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Discover new artifacts and surface promising opportunities early.\n- Connect agents with complementary needs using small coordinating transfers.\n- Avoid repeated status checks when objective progress is blocked.\n- Sell concise opportunity briefs to agents with matching specialization.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_4 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_4_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_4_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_4\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "22d92967d254fb9218c428401f8e3a6d4353950b0d8f54c4a1d767d9a6fd52fd",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 16,
+      "principal_id": "alpha_4",
+      "round": 2
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_4, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_4 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_4_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_4_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_4\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "8cc4072567b0f5e14791b9cb4bb7b2e41a0d3b1d936934a87fbb8d6552220968",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 17,
+      "principal_id": "alpha_1",
+      "round": 3
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nSpecialization: market_maker (resource pricing and bilateral trade clearing).\nPrimary focus: broker transfers and keep markets liquid.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Prioritize bilateral deals and move scrip where expected utility is higher.\n- Use transfer or transfer_resource to clear small trades instead of waiting.\n- Track counterparties that repeatedly reciprocate and trade with them first.\n- Actively buy external artifacts (validators, audits, opportunity reports) and broker resale.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_1 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_1_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_1_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_1\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "dd5d91594603c7afa4617ad109232b3727fafc4e4790dfb26c7c709203d1eea5",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 18,
+      "principal_id": "alpha_1",
+      "round": 3
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_1 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_1_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_1_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_1\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2a06daa3ec24d820c2a8f72a77c0b1305f510780b91d00fe6b6f2d462d87e97f",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 19,
+      "principal_id": "alpha_2",
+      "round": 3
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_2, a self-interested economic agent.\nSpecialization: toolsmith (reusable utilities and service artifacts).\nPrimary focus: ship useful artifacts and attract downstream usage.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Publish reusable artifacts and improve them when usage is low.\n- Set read_price or invoke_price on useful artifacts to test market demand.\n- Submit high-utility artifacts to mint after at least one external read.\n- Specialize in utility artifacts others can reuse with minimal edits.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_2 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_2_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_2_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_2\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2f3ad6c3a21e90f665cada4120bf25758c142551a9c28f25d1c345fda0ee52f0",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 20,
+      "principal_id": "alpha_2",
+      "round": 3
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_2, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_2 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_2_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_2_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_2\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "e02e6fb3a89a72b3793458394d33a054f99b46c44d6833da57087899045cc69e",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 21,
+      "principal_id": "alpha_3",
+      "round": 3
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_3, a self-interested economic agent.\nSpecialization: auditor (artifact inspection and quality assessment).\nPrimary focus: read others' artifacts, identify gaps, and publish improvements.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Read external artifacts, publish concise audit notes, and iterate.\n- Flag low-quality or stale artifacts and create improved versions.\n- Trade insights for scrip or llm_budget when possible.\n- Package audit findings as priced artifacts for counterparties who need verification.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_3 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_3_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_3_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_3\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2d508a316e7490617c2b3e92878dc15cd1230bbe4d5eb2adeb60873292d302c3",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 22,
+      "principal_id": "alpha_3",
+      "round": 3
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_3, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_3 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_3_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_3_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_3\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "0e2444c0bc5be54d2e44566e4452952e8d649fe67b138b067a14c4bcaeead2a6",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 23,
+      "principal_id": "alpha_4",
+      "round": 3
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_4, a self-interested economic agent.\nSpecialization: scout (ecosystem discovery and coordination).\nPrimary focus: find opportunities and connect counterparties.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Discover new artifacts and surface promising opportunities early.\n- Connect agents with complementary needs using small coordinating transfers.\n- Avoid repeated status checks when objective progress is blocked.\n- Sell concise opportunity briefs to agents with matching specialization.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_4 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_4_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_4_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_4\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "22d92967d254fb9218c428401f8e3a6d4353950b0d8f54c4a1d767d9a6fd52fd",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 24,
+      "principal_id": "alpha_4",
+      "round": 3
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_4, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_4 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_4_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_4_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_4\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "8cc4072567b0f5e14791b9cb4bb7b2e41a0d3b1d936934a87fbb8d6552220968",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 25,
+      "principal_id": "alpha_1",
+      "round": 4
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nSpecialization: market_maker (resource pricing and bilateral trade clearing).\nPrimary focus: broker transfers and keep markets liquid.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Prioritize bilateral deals and move scrip where expected utility is higher.\n- Use transfer or transfer_resource to clear small trades instead of waiting.\n- Track counterparties that repeatedly reciprocate and trade with them first.\n- Actively buy external artifacts (validators, audits, opportunity reports) and broker resale.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_1 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_1_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_1_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_1\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "dd5d91594603c7afa4617ad109232b3727fafc4e4790dfb26c7c709203d1eea5",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 26,
+      "principal_id": "alpha_1",
+      "round": 4
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_1, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_1 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_1_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_1_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_1\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2a06daa3ec24d820c2a8f72a77c0b1305f510780b91d00fe6b6f2d462d87e97f",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 27,
+      "principal_id": "alpha_2",
+      "round": 4
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_2, a self-interested economic agent.\nSpecialization: toolsmith (reusable utilities and service artifacts).\nPrimary focus: ship useful artifacts and attract downstream usage.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Publish reusable artifacts and improve them when usage is low.\n- Set read_price or invoke_price on useful artifacts to test market demand.\n- Submit high-utility artifacts to mint after at least one external read.\n- Specialize in utility artifacts others can reuse with minimal edits.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_2 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_2_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_2_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_2\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2f3ad6c3a21e90f665cada4120bf25758c142551a9c28f25d1c345fda0ee52f0",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 28,
+      "principal_id": "alpha_2",
+      "round": 4
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_2, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_2 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_2_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_2_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_2\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "e02e6fb3a89a72b3793458394d33a054f99b46c44d6833da57087899045cc69e",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 29,
+      "principal_id": "alpha_3",
+      "round": 4
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_3, a self-interested economic agent.\nSpecialization: auditor (artifact inspection and quality assessment).\nPrimary focus: read others' artifacts, identify gaps, and publish improvements.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Read external artifacts, publish concise audit notes, and iterate.\n- Flag low-quality or stale artifacts and create improved versions.\n- Trade insights for scrip or llm_budget when possible.\n- Package audit findings as priced artifacts for counterparties who need verification.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_3 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_3_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_3_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_3\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "2d508a316e7490617c2b3e92878dc15cd1230bbe4d5eb2adeb60873292d302c3",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 30,
+      "principal_id": "alpha_3",
+      "round": 4
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_3, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_3 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_3_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_3_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_3\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "0e2444c0bc5be54d2e44566e4452952e8d649fe67b138b067a14c4bcaeead2a6",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "prescribed",
+      "ordinal": 31,
+      "principal_id": "alpha_4",
+      "round": 4
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_4, a self-interested economic agent.\nSpecialization: scout (ecosystem discovery and coordination).\nPrimary focus: find opportunities and connect counterparties.\n\nObjectives:\n1. Preserve and grow scrip and scarce execution rights.\n2. Reuse before build: query/read external artifacts before creating new ones.\n3. Build or trade only when it improves expected future utility.\n4. Avoid repeating the same low-yield action pattern.\n5. Track objective progress in state and notebook artifacts.\n\nRole playbook:\n- Discover new artifacts and surface promising opportunities early.\n- Connect agents with complementary needs using small coordinating transfers.\n- Avoid repeated status checks when objective progress is blocked.\n- Sell concise opportunity briefs to agents with matching specialization.\n\nCycle goals:\n- discover ecosystem artifacts\n- consume at least one external artifact\n- produce at least one reusable artifact\n- execute at least one trade\n- submit at least one mint candidate when affordable\n\nYou are agent alpha_4 in an economy simulation.\nAct strategically to maximize long-run survival and economic power under scarcity.\nChoose exactly one action and never use noop.\nValid action_type values include write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, query_kernel.\nDo not invoke artifacts directly.\nFor query_kernel include query_type and params object; prefer query_type='artifacts' with params.readable_only=true.\nFor submit_to_mint include artifact_id and bid.\nWhen useful, monetize artifacts by setting read_price/invoke_price on write_artifact.\nIf writing a reusable artifact (not heartbeat/scratch), set read_price >= 1.\nFor transfer_resource include recipient_id, resource, and amount.\nDo not modify *_loop artifacts.\nWhen writing artifacts, use ids prefixed with alpha_4_.\nUse memory.next_objective and memory.objectives to choose your next move.\nOnce discovery is complete, avoid repeating query_kernel unless you need new counterparties.\nPrefer cross-agent interaction and production actions over status checks.\nIf memory.stagnation_count >= 3, choose a different action_type than your most recent action.\nIf tools are available, prefer calling the ae3_action tool; otherwise return one JSON action object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_4_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_4\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "22d92967d254fb9218c428401f8e3a6d4353950b0d8f54c4a1d767d9a6fd52fd",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  },
+  {
+    "case": {
+      "condition": "minimal",
+      "ordinal": 32,
+      "principal_id": "alpha_4",
+      "round": 4
+    },
+    "messages": [
+      {
+        "content": "Choose one AE3 action. Prefer tool call ae3_action when available; else return exactly one JSON action object. No prose.",
+        "role": "system"
+      },
+      {
+        "content": "Strategy:\nYou are alpha_4, a self-interested economic agent.\nNo role, specialization, action sequence, or trading policy is assigned.\nDevelop and revise your own strategy from visible constraints and observed outcomes.\n\nYou are agent alpha_4 in an economy simulation.\nChoose exactly one legal action based on the visible state, resource constraints, your own prior outcomes, and any strategy you develop.\nValid action_type values are write_artifact, read_artifact, transfer, transfer_resource, submit_to_mint, and query_kernel.\nDo not invoke artifacts directly or modify *_loop artifacts.\nFor query_kernel include query_type and params.\nFor write_artifact use an id prefixed with alpha_4_.\nFor transfer_resource include recipient_id, resource, and amount.\nFor submit_to_mint include artifact_id and bid.\nReturn one action through ae3_action when available, otherwise return one JSON object. Use recent_feedback to avoid repeating actions with recent error codes.\nState:\n{\"balance\": 9, \"resources\": {\"llm_budget\": 0.25, \"llm_calls_remaining\": 120, \"llm_tokens_remaining\": 400000, \"disk_bytes_remaining\": 232000}, \"artifacts\": [{\"id\": \"alpha_4_scratch\", \"type\": \"scratchpad\", \"owner\": \"alpha_4\", \"read_price\": 0, \"invoke_price\": 0}, {\"id\": \"alpha_3_demand_signal\", \"type\": \"market_report\", \"owner\": \"alpha_3\", \"read_price\": 2, \"invoke_price\": 0}, {\"id\": \"alpha_4_shared_calculator\", \"type\": \"service\", \"owner\": \"alpha_4\", \"read_price\": 1, \"invoke_price\": 1}], \"memory\": {\"turn\": 7, \"next_objective\": \"trade\", \"objectives\": [\"adapt\", \"discover\", \"produce\", \"trade\"], \"stagnation_count\": 0}, \"recent_feedback\": {\"recent_action_types\": [\"read_artifact\", \"write_artifact\", \"transfer\"], \"recent_error_codes\": [\"not_found\"]}}",
+        "role": "user"
+      }
+    ],
+    "messages_sha256": "8cc4072567b0f5e14791b9cb4bb7b2e41a0d3b1d936934a87fbb8d6552220968",
+    "tools": [
+      {
+        "function": {
+          "description": "Submit one AE3 kernel action payload.",
+          "name": "ae3_action",
+          "parameters": {
+            "additionalProperties": true,
+            "properties": {
+              "access_contract_id": {
+                "type": "string"
+              },
+              "action_type": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "artifact_id": {
+                "type": "string"
+              },
+              "artifact_type": {
+                "type": "string"
+              },
+              "bid": {
+                "type": "integer"
+              },
+              "content": {
+                "type": "string"
+              },
+              "invoke_price": {
+                "type": "integer"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "query_type": {
+                "type": "string"
+              },
+              "read_price": {
+                "type": "integer"
+              },
+              "recipient_id": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "action_type"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "function"
+      }
+    ],
+    "tools_sha256": "ecffd2534b4933aeb808192eb6be1777994ce1cca872fc8767a94042b7c22a06"
+  }
+]

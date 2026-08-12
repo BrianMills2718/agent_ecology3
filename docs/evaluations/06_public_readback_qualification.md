@@ -149,4 +149,47 @@ before any behavioral evaluation begins.
 
 ## Results
 
-Not run.
+Run once from clean pushed revision
+`4b4a86c70b2b7d82b64a9bdb99ca9c887f4e4592` on 2026-08-12. The
+zero-spend control passed before provider dispatch: the untouched full-content
+public record classified `usable_tool_action`, while the actual metadata-only
+record and a corrupted record each classified `custody_failure`.
+
+### Frozen result
+
+| Condition | Attempts | Usable | Terminal classes | Qualified |
+|---|---:|---:|---|---|
+| prescribed | 16 | 16 (100%) | 16 `usable_tool_action` | yes |
+| minimal | 16 | 15 (93.75%) | 15 `usable_tool_action`; 1 `illegal_action` | yes |
+
+Frozen verdict: **`qualified`**. There were zero provider errors, timeouts,
+truncations, trace failures, custody failures, cache hits, fallbacks, or stop
+conditions. All 32 calls ended with `tool_calls`; exact sent/readback messages,
+caller/readback response content, and caller/readback tool payloads matched on
+32/32 attempts. Actual cost was USD 0.03988458.
+
+The unusable minimal call was case 12 (`alpha_2`, round 2): it selected
+`read_artifact` but supplied `access_contract_id` instead of the required
+`artifact_id`. It remains an `illegal_action` and was not repaired or replaced.
+
+Median/max latency was 14.527/42.447 seconds for prescribed and
+10.655/26.299 seconds for minimal. The evidence bundle's `SHA256SUMS` verifies,
+and the saved artifacts reproduce the frozen summary without another model
+call.
+
+### Decision signoff
+
+An independent verifier that did not run the assay executed the public-readback
+controls, focused build/regression suite, both evidence manifests, exact
+32-attempt reproduction, held-out-fixture comparison, Eval05 class-level
+diagnosis, and preregistration timestamp/hash checks. All five signal-integrity
+gates passed; verdict: **`SIGNED-OFF`**.
+
+The signed decision is limited to accepting the provider/prompt/tool
+measurement instrument and unblocking design/preregistration of a fresh
+prescribed-versus-minimal behavioral evaluation. No emergence,
+prompt-equivalence, prescription-effect, downstream-value, or representative
+population claim is supported here, and no behavioral run has begun.
+
+Evidence: `docs/evaluations/evidence/06_public_readback_qualification/`.
+Signoff: `docs/evaluations/06_public_readback_qualification_signoff.md`.

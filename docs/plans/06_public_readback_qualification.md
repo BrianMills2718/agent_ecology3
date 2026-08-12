@@ -1,6 +1,6 @@
 # Plan #6: Public-Readback Provider Qualification
 
-**Status:** In Progress
+**Status:** Complete
 **Type:** implementation
 **Priority:** High
 **Blocked By:** None
@@ -106,19 +106,19 @@ path without modifying Evaluation 05 or starting the behavioral comparison.
 
 ## Acceptance Criteria
 
-- [ ] Evaluation 06 inputs and readout are committed before any Eval06 model
+- [x] Evaluation 06 inputs and readout are committed before any Eval06 model
       call.
-- [ ] The zero-spend control uses the actual public receipt/readback APIs and
+- [x] The zero-spend control uses the actual public receipt/readback APIs and
       proves both acceptance and rejection behavior in an isolated store.
-- [ ] A failed control stops before provider dispatch and is preserved as an
+- [x] A failed control stops before provider dispatch and is preserved as an
       invalid assay rather than silently falling back.
-- [ ] The held-out case plan, messages, tool schema, effective config, control
+- [x] The held-out case plan, messages, tool schema, effective config, control
       receipts, provider receipts, call records, costs, and hashes are retained.
-- [ ] Evaluation 06 runs at most once with 32 serial calls, no retry, and an
+- [x] Evaluation 06 runs at most once with 32 serial calls, no retry, and an
       aggregate configured ceiling of USD 0.40.
-- [ ] Focused tests, full tests, changed-file type checking, document coupling,
+- [x] Focused tests, full tests, changed-file type checking, document coupling,
       evidence-manifest validation, and diff hygiene pass.
-- [ ] Evaluation 05 remains byte-for-byte unchanged; no behavioral comparison
+- [x] Evaluation 05 remains byte-for-byte unchanged; no behavioral comparison
       begins without a passing Evaluation 06 and independent decision signoff.
 
 ---
@@ -130,3 +130,25 @@ revision, missing receipt/call record, retry, concurrent dispatch, timeout,
 truncation, custody mismatch, or spend-cap breach is visible in the evidence.
 Pre-dispatch failures make no provider call. A completed non-passing or invalid
 assay is not tuned or rerun under Evaluation 06.
+
+---
+
+## Completion Evidence
+
+- Preregistration was pushed at `aa128e7`; the executable instrument was pushed
+  at `4b4a86c` before the first Eval06 control/provider timestamp.
+- The real isolated public-readback control passed its full-content positive,
+  metadata-only negative, and corrupted-record negative cases with zero
+  provider calls and zero cost.
+- Evaluation 06 ran once: prescribed 16/16 usable; minimal 15/16 usable with one
+  `illegal_action`; zero timeout, truncation, trace, custody, or provider
+  failures; actual cost USD 0.03988458; frozen verdict `qualified`.
+- The evidence manifest verifies and independently reproduces 32/32 exact
+  messages, response content, response-tool payloads, traces, call records, and
+  stored classifications.
+- Independent adversarial signoff: `SIGNED-OFF` for instrument qualification
+  and behavioral design/preregistration only. It explicitly rejects emergence,
+  prompt-equivalence, prescription-effect, downstream-value, or representative
+  population claims from this assay.
+- Local verification: 76 full-suite tests and 63 plan-required tests passed;
+  focused changed-file mypy, Ruff, document coupling, and diff hygiene passed.
