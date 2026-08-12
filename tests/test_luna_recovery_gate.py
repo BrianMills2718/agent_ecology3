@@ -228,6 +228,51 @@ def test_luna_structured_kwargs_are_explicit_and_mcp_free(
     assert not Path(captured["working_directory"]).exists()
 
 
+def test_luna_structured_result_rejects_observed_intrinsic_tool_event(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _configured_world(tmp_path)
+    before_budget = world.ledger.get_llm_budget("alpha_1")
+
+    async def fake_acall_llm_structured(**_kwargs: Any) -> tuple[Any, object]:
+        decision = LunaLoopDecisionV1.model_validate(
+            {
+                "schema_version": "luna_loop_decision.v1",
+                "action": {
+                    "action_type": "query_kernel",
+                    "query_type": "resources",
+                    "params": {"principal_id": "alpha_1"},
+                },
+            }
+        )
+        result = _llm_result(decision.model_dump_json())
+        result.codex_events = [
+            {"id": "cmd-1", "type": "command_execution", "status": "completed"}
+        ]
+        return decision, result
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.acall_llm_structured = fake_acall_llm_structured
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+    monkeypatch.setattr(
+        "agent_ecology3.world.luna_actions.shared_client_exposes_codex_events",
+        lambda: True,
+    )
+
+    result = asyncio.run(
+        world.call_llm_as_syscall_async(
+            payer_id="alpha_1",
+            model=LUNA_MODEL,
+            messages=[{"role": "user", "content": "choose"}],
+        )
+    )
+
+    assert result["success"] is False
+    assert "forbidden intrinsic Codex tool: command_execution" in result["error"]
+    assert world.ledger.get_llm_budget("alpha_1") == before_budget
+
+
 def test_production_loop_consumes_structured_action_without_json_or_tool_fallback(
     tmp_path: Path,
 ) -> None:
@@ -303,9 +348,14 @@ def test_luna_dispatch_rejects_disabled_home_isolation(
 
 def test_luna_dispatch_is_inaccessible_without_public_intrinsic_event_custody(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     world = _configured_world(tmp_path)
     before_budget = world.ledger.get_llm_budget("alpha_1")
+    monkeypatch.setattr(
+        "agent_ecology3.world.luna_actions.shared_client_exposes_codex_events",
+        lambda: False,
+    )
 
     result = world.call_llm_as_syscall(
         payer_id="alpha_1",
@@ -336,7 +386,7 @@ def test_luna_dispatch_revalidates_mutated_profile_before_reservation(
     assert world.ledger.get_llm_budget("alpha_1") == before_budget
 
 
-def test_prompt_schema_profile_is_ambient_free_and_blocks_without_tool_event_custody() -> None:
+def test_prompt_schema_profile_is_ambient_free_and_observes_tool_event_custody() -> None:
     report = build_provider_free_preflight(llm_client_repo=LLM_CLIENT_REPO)
 
     assert report.shared_client_revision == REVIEWED_LLM_CLIENT_REVISION
@@ -348,10 +398,17 @@ def test_prompt_schema_profile_is_ambient_free_and_blocks_without_tool_event_cus
     assert report.command_uses_output_schema is True
     assert report.structured_kwargs_omit_tools is True
     assert report.structured_kwargs_omit_mcp_servers is True
-    assert report.intrinsic_tool_events_observable is False
-    assert report.status == "blocked"
-    assert report.blocker_owner == "llm_client"
-    assert report.blocker_code == "intrinsic_codex_events_not_public"
+    assert report.intrinsic_event_contract["public_codex_event_types"] == [
+        "command_execution",
+        "file_change",
+        "web_search",
+        "mcp_tool_call",
+    ]
+    assert report.intrinsic_event_contract["public_tool_call_names"] == ["probe_tool"]
+    assert report.intrinsic_tool_events_observable is True
+    assert report.status == "pass"
+    assert report.blocker_owner is None
+    assert report.blocker_code is None
     assert "gpt-5.6-luna" in report.command
     assert 'model_reasoning_effort="medium"' in report.command
     assert report.command[report.command.index("-s") + 1] == "read-only"

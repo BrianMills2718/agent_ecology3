@@ -1,9 +1,9 @@
 {
   "schema_version": "luna_preflight.v1",
-  "status": "blocked",
-  "blocker_code": "intrinsic_codex_events_not_public",
-  "blocker_owner": "llm_client",
-  "blocker_reason": "The shared Codex CLI result retains only MCP tool calls and a transport summary; command, file-change, and web/search item events are not exposed, so AE3 cannot prove that intrinsic Codex tools executed zero times.",
+  "status": "pass",
+  "blocker_code": null,
+  "blocker_owner": null,
+  "blocker_reason": null,
   "model": "codex/gpt-5.6-luna",
   "reasoning_effort": "medium",
   "transport": "cli",
@@ -496,7 +496,7 @@
   "command_uses_output_schema": true,
   "structured_kwargs_omit_tools": true,
   "structured_kwargs_omit_mcp_servers": true,
-  "intrinsic_tool_events_observable": false,
+  "intrinsic_tool_events_observable": true,
   "intrinsic_event_contract": {
     "fixture_item_types": [
       "command_execution",
@@ -507,17 +507,19 @@
     "public_tool_call_names": [
       "probe_tool"
     ],
+    "public_codex_event_types": [
+      "command_execution",
+      "file_change",
+      "web_search",
+      "mcp_tool_call"
+    ],
     "public_raw_response_keys": [
       "n_turns",
       "session_id",
       "transport"
     ],
-    "missing_intrinsic_item_types": [
-      "command_execution",
-      "file_change",
-      "web_search"
-    ],
-    "all_intrinsic_item_types_observable": false
+    "missing_intrinsic_item_types": [],
+    "all_intrinsic_item_types_observable": true
   },
-  "shared_client_revision": "e068430c991fd460c73d7f4faf5c92ee393b8a66"
+  "shared_client_revision": "286715784f1d535d6dfcd2c867ca678d666e27d5"
 }

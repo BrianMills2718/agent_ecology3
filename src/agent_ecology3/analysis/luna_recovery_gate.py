@@ -23,7 +23,7 @@ from ..world.luna_actions import (
 )
 from ..world.world import World
 
-REVIEWED_LLM_CLIENT_REVISION = "e068430c991fd460c73d7f4faf5c92ee393b8a66"
+REVIEWED_LLM_CLIENT_REVISION = "286715784f1d535d6dfcd2c867ca678d666e27d5"
 
 
 class _StrictContract(BaseModel):
@@ -123,6 +123,7 @@ def _probe_shared_client_event_contract() -> dict[str, Any]:
     """Exercise the CLI event parser with intrinsic and MCP item fixtures."""
 
     from llm_client.sdk.agents_codex import (
+        _extract_codex_cli_completed_items,
         _extract_codex_cli_tool_calls,
         _result_from_codex_cli,
         parse_codex_exec_events,
@@ -146,6 +147,7 @@ def _probe_shared_client_event_contract() -> dict[str, Any]:
     stdout_jsonl = "\n".join(
         json.dumps({"type": "item.completed", "item": item}) for item in items
     )
+    codex_events = _extract_codex_cli_completed_items(stdout_jsonl)
     tool_calls = _extract_codex_cli_tool_calls(stdout_jsonl)
     session = parse_codex_exec_events(stdout_jsonl, "")
     result = _result_from_codex_cli(
@@ -154,10 +156,15 @@ def _probe_shared_client_event_contract() -> dict[str, Any]:
         transport="codex_cli",
         session=session,
         tool_calls=tool_calls,
+        codex_events=codex_events,
     )
     raw = result.raw_response if isinstance(result.raw_response, dict) else {}
     serialized = json.dumps(
-        {"tool_calls": result.tool_calls, "raw_response": raw},
+        {
+            "codex_events": result.codex_events,
+            "tool_calls": result.tool_calls,
+            "raw_response": raw,
+        },
         sort_keys=True,
     )
     missing = [item_type for item_type in intrinsic_types if item_type not in serialized]
@@ -167,6 +174,11 @@ def _probe_shared_client_event_contract() -> dict[str, Any]:
             str(call.get("function", {}).get("name", ""))
             for call in result.tool_calls
             if isinstance(call, dict)
+        ],
+        "public_codex_event_types": [
+            str(event.get("type", ""))
+            for event in result.codex_events
+            if isinstance(event, dict)
         ],
         "public_raw_response_keys": sorted(str(key) for key in raw),
         "missing_intrinsic_item_types": missing,

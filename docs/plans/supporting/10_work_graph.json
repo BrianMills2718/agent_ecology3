@@ -13,7 +13,7 @@
       "objective": "Bind Agent Ecology 3 to the accepted shared-client revision and prove its MCP-free provider-free Luna gate can observe intrinsic Codex events.",
       "profile": "small",
       "execution_class": "independently_executable",
-      "claimability": "ready_for_execution",
+      "claimability": "not_applicable",
       "authorization_mode": "registry_claim",
       "scope": {
         "included": [
@@ -96,7 +96,7 @@
         "approvals": [],
         "failed_guards": []
       },
-      "status": "ready",
+      "status": "completion_review",
       "record_version": 1
     }
   ]
