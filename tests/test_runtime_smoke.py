@@ -133,6 +133,95 @@ def test_bootstrap_cognitive_artifacts_exist(tmp_path) -> None:
     assert isinstance(notebook_payload.get("journal"), list)
 
 
+def test_minimal_cognition_omits_prescribed_roles_and_objectives(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.loop_cognition_mode = "minimal"
+    world = World(cfg, run_id="test_minimal_cognition")
+
+    strategy = world.artifacts.get("alpha_1_strategy")
+    state = world.artifacts.get("alpha_1_state")
+    notebook = world.artifacts.get("alpha_1_notebook")
+    loop = world.artifacts.get("alpha_1_loop")
+    assert strategy is not None
+    assert state is not None
+    assert notebook is not None
+    assert loop is not None
+    assert "Specialization:" not in strategy.content
+    assert "Cycle goals:" not in strategy.content
+    state_payload = json.loads(state.content)
+    notebook_payload = json.loads(notebook.content)
+    assert "role" not in state_payload
+    assert "specialization" not in state_payload
+    assert "objectives" not in state_payload
+    assert "next_objective" not in state_payload
+    assert "role" not in notebook_payload["key_facts"]
+    assert "if True:" in loop.code
+    assert "False\n            and \"read_price\" not in normalized" in loop.code
+
+
+def test_minimal_invalid_output_falls_back_only_to_self_resource_query(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.loop_cognition_mode = "minimal"
+    cfg.llm.enable_bootstrap_loop_llm = True
+    world = World(cfg, run_id="test_minimal_fallback")
+    world.call_llm_as_syscall = lambda **_: {
+        "success": True,
+        "trace_id": "ae3/test_minimal_fallback/event_1/payer/alpha_1",
+        "content": '{"action_type":"mint"}',
+        "tool_calls": [],
+    }
+
+    result = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "invoke_artifact",
+            "artifact_id": "alpha_1_loop",
+            "method": "run",
+            "args": [],
+        },
+    )
+    assert result.success, result.message
+    decisions = [e for e in world.logger.read_recent(50) if e.get("event_type") == "loop_decision"]
+    assert decisions
+    assert decisions[-1]["decision_action"] == "query_kernel"
+    assert decisions[-1]["gate_fallback_used"] is True
+    assert decisions[-1]["llm_trace_id"] == "ae3/test_minimal_fallback/event_1/payer/alpha_1"
+
+
+def test_minimal_valid_write_is_not_auto_priced(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.loop_cognition_mode = "minimal"
+    cfg.llm.enable_bootstrap_loop_llm = True
+    world = World(cfg, run_id="test_minimal_no_auto_price")
+    world.call_llm_as_syscall = lambda **_: {
+        "success": True,
+        "trace_id": "ae3/test_minimal_no_auto_price/event_1/payer/alpha_1",
+        "content": json.dumps(
+            {
+                "action_type": "write_artifact",
+                "artifact_id": "alpha_1_offer",
+                "artifact_type": "note",
+                "content": "self-selected output",
+            }
+        ),
+        "tool_calls": [],
+    }
+
+    result = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "invoke_artifact",
+            "artifact_id": "alpha_1_loop",
+            "method": "run",
+            "args": [],
+        },
+    )
+    assert result.success, result.message
+    artifact = world.artifacts.get("alpha_1_offer")
+    assert artifact is not None
+    assert artifact.read_price == 0
+
+
 def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     cfg = _make_config(tmp_path)
     world = World(cfg, run_id="test_loop_prompt_feedback")
@@ -152,7 +241,7 @@ def test_loop_code_includes_recent_feedback_summary(tmp_path) -> None:
     assert "readable_only=True" in loop_artifact.code
     assert "include_permissions=True" in loop_artifact.code
     assert "params.setdefault(\"readable_only\", True)" in loop_artifact.code
-    assert "if \"read_price\" not in normalized and not artifact_id.endswith(\"_scratch\")" in loop_artifact.code
+    assert "True\n            and \"read_price\" not in normalized" in loop_artifact.code
     assert "if priced_non_scratch is not None:" in loop_artifact.code
     assert "if priced_scratch is not None:" in loop_artifact.code
 
@@ -472,6 +561,41 @@ def test_subscription_included_charges_estimated_budget_by_default(tmp_path, mon
     llm_events = [e for e in world.logger.read_recent(20) if e.get("event_type") == "llm_syscall"]
     assert llm_events
     assert llm_events[-1].get("budget_charge_basis") == "subscription_estimated"
+
+
+def test_syscall_logs_and_returns_trace_id_and_budget_controls(tmp_path, monkeypatch) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.llm.num_retries = 0
+    cfg.llm.max_output_tokens = 512
+    cfg.llm.provider_max_budget_usd = 0.25
+    cfg.llm.provider_budget_reservation_usd = 0.01
+    world = World(cfg, run_id="test_trace_budget")
+    captured: dict[str, object] = {}
+
+    def _fake_call_llm(**kwargs):
+        captured.update(kwargs)
+        return _stub_llm_result(content='{"action_type":"query_kernel","query_type":"resources","params":{}}')
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.call_llm = _fake_call_llm
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model="minimax/minimax-m3",
+        messages=[{"role": "user", "content": "test"}],
+    )
+
+    expected_trace = "ae3/test_trace_budget/event_0/payer/alpha_1"
+    assert result["trace_id"] == expected_trace
+    assert captured["trace_id"] == expected_trace
+    assert captured["num_retries"] == 0
+    assert captured["max_tokens"] == 512
+    assert captured["max_budget"] == pytest.approx(0.25)
+    assert captured["budget_scope_trace_id"] == "ae3/test_trace_budget"
+    assert captured["budget_reservation"] == pytest.approx(0.01)
+    events = [e for e in world.logger.read_recent(20) if e.get("event_type") == "llm_syscall"]
+    assert events[-1]["trace_id"] == expected_trace
 
 
 def test_subscription_included_budget_mode_none_refunds_budget(tmp_path, monkeypatch) -> None:

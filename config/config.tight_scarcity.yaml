@@ -28,6 +28,10 @@ resources:
 llm:
   default_model: minimax/minimax-m3
   timeout_seconds: 60
+  num_retries: 2
+  max_output_tokens: null
+  provider_max_budget_usd: 0.0
+  provider_budget_reservation_usd: 0.0
   allowed_models:
     - minimax/minimax-m3
     - openrouter/deepseek/deepseek-chat
@@ -49,6 +53,7 @@ llm:
   agent_permission_mode: acceptEdits
   enable_bootstrap_loop_llm: false
   loop_llm_cooldown_seconds: 0.0
+  loop_cognition_mode: prescribed
   loop_prompt_feedback_enabled: true
   loop_action_gate_enabled: true
 

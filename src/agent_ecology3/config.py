@@ -58,6 +58,10 @@ class ResourcesConfig(StrictModel):
 class LLMConfig(StrictModel):
     default_model: str = "minimax/minimax-m3"
     timeout_seconds: int = 60
+    num_retries: int = Field(default=2, ge=0)
+    max_output_tokens: int | None = Field(default=None, ge=1)
+    provider_max_budget_usd: float = Field(default=0.0, ge=0.0)
+    provider_budget_reservation_usd: float = Field(default=0.0, ge=0.0)
     allowed_models: list[str] = Field(default_factory=list)
     model_override_acceptance: dict[str, dict[str, str]] = Field(default_factory=dict)
     estimate_tokens_per_call: int = 900
@@ -68,6 +72,7 @@ class LLMConfig(StrictModel):
     loop_llm_cooldown_seconds: float = 0.0
     loop_forced_explore_mode: Literal["baseline", "reduced", "off"] = "off"
     loop_policy_seed: int = 0
+    loop_cognition_mode: Literal["prescribed", "minimal"] = "prescribed"
     loop_prompt_template_path: str | None = None
     loop_prompt_feedback_enabled: bool = True
     loop_action_gate_enabled: bool = True

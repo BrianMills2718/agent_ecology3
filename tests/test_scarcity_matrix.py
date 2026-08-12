@@ -188,12 +188,14 @@ def test_build_config_applies_model_override_and_allowed_list(tmp_path) -> None:
         loop_prompt_template_path=str(prompt_template),
         model_override="claude-code/opus",
         subscription_estimated_cost_multiplier=2.5,
+        loop_cognition_mode="minimal",
     )
     assert loaded.llm.default_model == "claude-code/opus"
     assert "claude-code/opus" in loaded.llm.allowed_models
     assert loaded.llm.loop_policy_seed == 17
     assert loaded.llm.loop_prompt_template_path == str(prompt_template)
     assert loaded.llm.subscription_estimated_cost_multiplier == pytest.approx(2.5)
+    assert loaded.llm.loop_cognition_mode == "minimal"
 
 
 def test_build_config_rejects_negative_subscription_multiplier(tmp_path) -> None:
