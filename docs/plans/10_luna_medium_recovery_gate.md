@@ -1,10 +1,29 @@
 # Plan #10: Luna Medium Compatibility and Recovery Gate
 
-**Status:** In progress — Slices A-B passed; one-call canary awaits authorization
+**Status:** In progress — Slices A-B passed; Slice C one-call canary authorized
 **Type:** implementation
 **Priority:** High
-**Blocked By:** None; live canary dispatch remains separately authorized
+**Blocked By:** None
 **Blocks:** Luna-specific qualification and scarcity calibration (Plan #11)
+
+### Current execution frontier (2026-08-12)
+
+- **Outcome:** retain one authentic, inspectable Luna Medium structured-action
+  canary through the frozen production prompt, schema, settlement, and custody
+  path.
+- **Active unit:** `WU-10-04`; the user separately authorized exactly one call
+  on 2026-08-12.
+- **Proven:** Slices A-B pass provider-free; the exact clean shared-client
+  revision, truthful settlement, and fail-closed Codex event policy are bound.
+- **Next action:** push the clean canary entry-point revision, rerun its
+  provider-free preflight, then dispatch once.
+- **Stop condition:** any auth, quota, timeout, route, schema, event, action,
+  billing, accounting, or custody failure retains a terminal `blocked` receipt;
+  no retry, repair, fallback, or route switch is permitted.
+- **Evidence:** `docs/evaluations/evidence/plan10_luna_recovery_gate/`.
+- **Conditional continuation:** only a passing canary selects the smallest
+  recoverable, detached, dashboard-visible Luna PoC slice. Its call count and
+  duration must be derived from the canary readout rather than guessed now.
 
 ### Slice A checkpoint (2026-08-12)
 

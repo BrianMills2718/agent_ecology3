@@ -13,8 +13,11 @@ import pytest
 from pydantic import ValidationError
 
 from agent_ecology3.analysis.luna_recovery_gate import (
+    LIVE_CANARY_ACKNOWLEDGEMENT,
     REVIEWED_LLM_CLIENT_REVISION,
     build_provider_free_preflight,
+    main,
+    run_live_canary,
 )
 from agent_ecology3.config import AppConfig, LLMConfig, load_config
 from agent_ecology3.world.actions import ActionIntent
@@ -644,3 +647,43 @@ def test_luna_config_file_is_exact_profile() -> None:
             "subscription route."
         ),
     )
+
+
+@pytest.mark.parametrize(
+    "acknowledgement",
+    (None, "yes", "plan10/luna-medium/canary/v2"),
+)
+def test_live_canary_requires_exact_one_call_acknowledgement(
+    tmp_path: Path,
+    acknowledgement: str | None,
+) -> None:
+    output_path = tmp_path / "live_canary.json"
+
+    with pytest.raises(RuntimeError, match="exact one-call acknowledgement"):
+        run_live_canary(
+            config_path="config/config.luna_recovery_gate.yaml",
+            llm_client_repo=LLM_CLIENT_REPO,
+            repo_root=Path.cwd(),
+            output_path=output_path,
+            acknowledgement=acknowledgement,
+        )
+
+    assert LIVE_CANARY_ACKNOWLEDGEMENT == "plan10/luna-medium/canary/v1"
+    assert output_path.exists() is False
+
+
+def test_live_cli_refuses_dispatch_without_exact_one_call_acknowledgement() -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(
+            [
+                "--run-live",
+                "--config",
+                "config/config.luna_recovery_gate.yaml",
+                "--llm-client-repo",
+                str(LLM_CLIENT_REPO),
+                "--output",
+                "unused-live-canary.json",
+            ]
+        )
+
+    assert exc_info.value.code == 2
