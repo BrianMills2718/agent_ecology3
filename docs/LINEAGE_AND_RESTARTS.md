@@ -190,9 +190,10 @@ These are observed risks, not reasons to restart AE3 now.
    for that reason during this review.
 5. **Coordination configuration has drifted.** AE3 enables claims/worktrees in
    `meta-process.yaml` but does not expose the current sanctioned `make
-   worktree`, `make worktree-list`, and `make worktree-remove` entrypoints.
-   This does not affect simulation semantics, but it can recreate process
-   ambiguity during parallel work.
+   worktree`, `make worktree-list`, and `make worktree-remove` entrypoints. Its
+   Makefile also defines several workflow targets twice, so `make pr-ready`
+   emits recipe-override warnings. This does not affect simulation semantics,
+   but it can recreate process ambiguity during parallel work.
 
 ## Verification Snapshot
 
