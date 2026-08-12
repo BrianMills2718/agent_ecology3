@@ -16,6 +16,15 @@ stage. Reversible technical details use the recommended path below. A change of
 model, route, account/billing mode, call count, or success boundary returns to
 the user rather than proceeding implicitly.
 
+On 2026-08-12 the user delegated the MVP action-transport choice. The reviewed
+decision is to use strict structured output for Luna and leave AE3's existing
+MCP bridge unchanged for routes that already use it. Luna receives one complete
+decision snapshot and returns one action; it does not need mid-turn reads or
+callbacks. MCP would therefore add a server process, a second schema, and a
+tool-call parser without adding an MVP capability. Reconsider MCP for Luna only
+if a later outcome requires interactive observation or multiple actions inside
+one model turn.
+
 **Planning route:** durable solo. Work is sequential, but the experimental
 instrument and recovery contract are durable consumers. No work-unit graph or
 parallel lane is justified yet.
@@ -29,30 +38,34 @@ evaluation.
 
 ## Gap
 
-**Current:** AE3's LLM configuration cannot express Codex reasoning effort,
-execution mode, transport, sandbox, or isolation. `World._llm_call_kwargs`
-passes the OpenAI function-tool list to every route but only supplies the
-`ae3_action` MCP server to Claude agent models. The existing MCP server also
-omits provider-contract fields such as `read_price`, `invoke_price`, and
-`access_contract_id`. Evaluation 07 tied its worker lifetime to an interactive
-session and checkpointed the settled call separately from its normalized
-decision and custody record. It ended after 189 settled calls with only 188
-complete attempt records.
+**Current:** AE3's LLM configuration cannot select a structured decision call
+or express Codex reasoning effort, transport, sandbox, or isolation.
+`World._llm_call_kwargs` passes the OpenAI function-tool list to every generic
+route and only supplies the `ae3_action` MCP server to Claude agent models. That
+MCP schema also differs from the canonical action schema, but Luna does not need
+either schema: the model already receives the complete decision snapshot and
+produces one final action. Evaluation 07 tied its worker lifetime to an
+interactive session and checkpointed the settled call separately from its
+normalized decision and custody record. It ended after 189 settled calls with
+only 188 complete attempt records.
 
 The shared client supports the exact subscription route
-`codex/gpt-5.6-luna`, requires explicit reasoning effort, can carry Codex MCP
-calls into `LLMCallResult.tool_calls`, and records subscription billing. It
-does not establish that the direct Codex agent can expose an action-only tool
-surface: Codex has intrinsic workspace-agent instructions and built-in tools,
-and the current AE3 adapter does not constrain or inspect them.
+`codex/gpt-5.6-luna`, requires explicit reasoning effort, projects Pydantic
+contracts into Codex-compatible strict JSON schema, sends that schema to the
+CLI with `--output-schema`, validates the result locally, and records
+subscription billing. A real shared-client probe already certified a simple
+structured Luna result at medium effort. It does not certify AE3's exact action
+union or establish that ambient project context is absent from the direct
+Codex runtime.
 
 **Target:** From a fresh, pushed AE3 revision, one supervised representative
 AE3 turn invokes exactly `codex/gpt-5.6-luna` at medium reasoning through the
 ChatGPT subscription route, sees only the accepted Codex base envelope plus the
-AE3 prompt, submits exactly one legal `ae3_action`, and retains exact
-call/action custody. Before that canary, a provider-free 16-attempt fixture must
-prove that a worker or process failure cannot repeat a dispatched provider
-attempt and cannot promote ambiguous state as valid.
+AE3 prompt and strict action schema, returns exactly one Pydantic-validated
+legal action without MCP, and retains exact call/action custody. Before that
+canary, a provider-free 16-attempt fixture must prove that a worker or process
+failure cannot repeat a dispatched provider attempt and cannot promote
+ambiguous state as valid.
 
 **Why:** Evaluation 08 cannot inherit MiniMax qualification, and another paid
 batch would be indefensible until both the Luna action boundary and Evaluation
@@ -69,9 +82,10 @@ without inference:
 
 1. Was the requested, resolved, and executed route Luna through direct Codex
    subscription at medium reasoning?
-2. Did the model receive the exact AE3 messages and canonical action contract
-   without project instructions, plugins, prior conversation, web/network
-   access, or non-AE3 callable tools?
+2. Did the model receive the exact AE3 messages and strict action schema from an
+   empty decision workspace with no project instructions, plugins, prior
+   conversation, apps, or MCP servers, and execute no Codex workspace/network
+   tool?
 3. Did exactly one legal action survive caller result, shared-client readback,
    normalized decision, and durable checkpoint equality?
 4. Can a detached worker recover a settled response without another provider
@@ -90,8 +104,8 @@ terminal invalid cell receipt and no replacement call.
 
 After that example passes, separately authorize one authentic Luna Medium
 turn using the prescribed production prompt and a representative state. The
-inspectable output is one legal `ae3_action` plus exact route, prompt, tool,
-trace, timing, token, billing, and custody evidence.
+inspectable output is one legal `LunaLoopDecisionV1` action plus exact route,
+prompt, schema, Codex event trace, timing, token, billing, and custody evidence.
 
 ### Non-goals
 
@@ -104,6 +118,8 @@ trace, timing, token, billing, and custody evidence.
 - Do not make Luna a project-wide default outside the Plan 10 configuration.
 - Do not rewrite AE3, replace `llm_client`, or supersede AE2/AE3 lifecycle
   decisions.
+- Do not remove or rewrite the existing MCP action bridge used by other model
+  routes; it is outside Luna's MVP path.
 - Do not build a generic daemon, telemetry platform, or release-hardening lane.
 
 ---
@@ -118,12 +134,14 @@ trace, timing, token, billing, and custody evidence.
 - src/agent_ecology3/config.py:58 - strict LLMConfig lacks Luna/Codex execution controls
 - src/agent_ecology3/world/world.py:1939 - current agent-model/action-tool detection and MCP construction
 - src/agent_ecology3/world/world.py:2118 - current provider keyword-argument assembly
-- src/agent_ecology3/mcp/loop_action_server.py - AE3-owned MCP action bridge and provider-schema mismatch
+- src/agent_ecology3/mcp/loop_action_server.py - existing Claude-oriented MCP action bridge retained outside the Luna path
 - src/agent_ecology3/simulation/runner.py:33 - serialized world execution without restart state
 - src/agent_ecology3/analysis/behavioral_comparison.py:1248 - Evaluation 07 post-call capture and non-atomic checkpoint boundary
 - ../active/llm_client/docs/guides/codex-integration.md - direct Codex route and transport contract at revision e068430c991fd460c73d7f4faf5c92ee393b8a66
-- ../active/llm_client/llm_client/core/client.py:729 - public call contract at the reviewed shared-client revision
-- ../active/llm_client/llm_client/sdk/agents_codex.py:483 - CLI MCP call extraction and subscription observability at the reviewed revision
+- ../active/llm_client/llm_client/core/client.py:596 - public structured-call contract at the reviewed shared-client revision
+- ../active/llm_client/llm_client/sdk/agents_codex.py:47 - strict Codex Pydantic-schema projection at the reviewed revision
+- ../active/llm_client/llm_client/sdk/agents_codex.py:1148 - CLI structured dispatch and local Pydantic validation at the reviewed revision
+- ../active/llm_client/docs/plans/340_codex_luna_subscription_route.md:97 - retained live structured Luna evidence, including medium effort, CLI transport, isolated MCP-free home, and subscription billing
 - codex-cli-v0.144.1 - `debug prompt-input` evidence observed 2026-08-12 that ambient instruction surfaces remain a blocking preflight question
 
 ---
@@ -132,11 +150,12 @@ trace, timing, token, billing, and custody evidence.
 
 | Concern | Owner and seam | Disposition | Adoption proof |
 |---|---|---|---|
-| Model routing, billing, retry, trace, and MCP extraction | shared `llm_client` public `call_llm`/`acall_llm` boundary | **Reuse** the pinned public contract | Exact canary receipt names shared-client revision, requested/resolved/executed model, effort, transport, retry, billing, and tool calls |
-| AE3 action meaning | `World.build_loop_action_tools`, `parse_intent_from_json`, and action gate | **Extend** the existing MCP bridge to match this canonical seam | Provider schema and MCP schema parity test plus one production parser/action trace |
+| Model routing, strict decoding, billing, retry, and trace | shared `llm_client` public `call_llm_structured`/`acall_llm_structured` boundary | **Reuse** the pinned public contract | Exact canary receipt names shared-client revision, requested/resolved/executed model, effort, transport, schema digest, retry, and billing |
+| AE3 action meaning | existing loop action gate and `parse_intent_from_json` | **Extend** with one Pydantic `LunaLoopDecisionV1` union over the six permitted loop actions; unwrap into the existing parser | Provider-projected schema fixture plus one caller/readback/typed-model/parser equality trace |
+| Existing MCP action bridge | `World.build_loop_action_tools` and `mcp/loop_action_server.py` | **Keep unchanged** outside the Luna MVP route | Existing MCP/runtime tests remain green; Luna captured kwargs contain neither `tools` nor `mcp_servers` |
 | Simulation scheduling and action execution | `SimulationRunner` and `World` | **Extend** with opt-in recovery state; no second simulation kernel | Restart fixture resumes through the normal loop consumer path |
 | Evaluation 07 runner | frozen `behavioral_comparison.py` and Evaluation 07 inputs | **Do not reuse as mutable code** | New Plan 10 module imports stable classifiers where safe but never changes Evaluation 07 identity or output |
-| Strict Codex prompt/tool profile | shared Codex adapter/config surface | **Dependency probe first** | Provider-facing preflight proves the accepted prompt/tool inventory; otherwise a separately governed `llm_client` dependency is required |
+| Strict Codex decision profile | shared Codex adapter/config surface | **Dependency probe first** | Provider-free preflight proves the exact prompt/schema, empty workspace, isolated MCP-free home, and observable intrinsic-tool policy; otherwise a separately governed `llm_client` dependency is required |
 
 Landscape disposition is **linked**: AE3 consumes the shared client and owns its
 simulation/action contract. It may not copy provider routing, auth handling, or
@@ -155,35 +174,51 @@ but their semantics are fixed:
 |---|---|---|
 | model | `codex/gpt-5.6-luna` | Exact route; no alias or fallback |
 | reasoning effort | `medium` | Required and forwarded through the public control |
-| execution mode | `workspace_agent` | Explicit agent capability contract |
+| call boundary | `acall_llm_structured` | One typed decision, not an interactive tool loop |
 | transport | `cli` | No SDK-to-CLI automatic fallback |
+| response model | `LunaLoopDecisionV1` | Exact versioned Pydantic union; no generic JSON object |
 | retry count | `0` | No client, agent, or evaluation retry |
 | sandbox | `read-only` | Empty decision workspace; no repository as working directory |
 | approval | `never` | A forbidden tool fails rather than pausing for approval |
-| network/web | disabled | The absence is verified in the effective route profile |
+| MCP servers | none | Isolated Codex home strips ambient MCP configuration |
+| intrinsic Codex tools | route substrate, zero executions | Retain the provider event trace; any shell, workspace, web, or network tool execution fails the canary |
 | process boundary | CLI subprocess | Treat the CLI subprocess as the inner-call boundary; outer worker supervision remains separate |
 | provider billing | `subscription_included` | API-metered execution fails the gate |
 
 Configuration validation rejects Luna without medium effort, the exact CLI
-transport, the action-only profile, zero retries/fallbacks, or the approved
-billing expectation before dispatch. Generic provider routes remain compatible
-with their existing fields.
+transport, the exact response-model revision, zero retries/fallbacks, an empty
+read-only workspace, an isolated MCP-free Codex home, or the approved billing
+expectation before dispatch. Generic provider routes remain compatible with
+their existing fields.
 
-### 2. Prompt and tool boundary
+### 2. Prompt and structured-action boundary
 
-The intrinsic OpenAI/Codex base instruction and permission envelope are part of
-the selected direct route. No other ambient source is accepted. In particular,
-the provider-facing inventory must exclude repository/workspace instructions,
-skills, plugins, prior chat turns, apps, browser/search, shell/workspace tools,
-and ambient MCP servers.
+The intrinsic OpenAI/Codex base instruction, permission envelope, and built-in
+tool definitions are part of the selected direct route. No ambient project
+source is accepted. The provider-facing inventory must exclude repository or
+workspace instructions, skills, plugins, prior chat turns, apps, and ambient
+MCP servers. The decision workspace is a new empty temporary directory under a
+read-only sandbox. Plan 10 does not ask Codex to use a built-in tool; any
+observed shell, workspace, browser, search, or network tool execution invalidates
+the canary.
 
-The sole callable tool is AE3's `ae3_action`. Its MCP schema and the canonical
-provider function schema must expose the same action fields and requiredness.
-Tool names normalized by Codex may be qualified with their MCP server; AE3's
-existing exact-or-suffix parser remains the compatibility rule. A response is
-usable only when exactly one successful matching tool call parses to a legal
-AE3 intent. JSON text fallback, a non-AE3 tool call, multiple action calls, or
-an MCP error fails the Plan 10 canary.
+`LunaLoopDecisionV1` is a Pydantic envelope containing a discriminated union of
+exactly the six loop actions currently permitted by the production action gate:
+`write_artifact`, `read_artifact`, `transfer`, `transfer_resource`,
+`submit_to_mint`, and `query_kernel`. Each variant owns its action-specific
+required fields and forbids unknown fields. `query_kernel.params` uses a closed
+`LunaQueryParamsV1` model containing the current kernel query keys, because the
+Codex strict-schema route cannot preserve a free-form object. Semantic defaults
+and query-specific requirements remain owned by the existing action gate and
+parser. The shared Codex projector produces the provider schema; AE3 stores its
+digest and does not maintain a second handwritten copy.
+
+The Luna path passes neither `tools` nor `mcp_servers`. A response is usable
+only when the shared client validates the exact response model, AE3 unwraps one
+action, and the existing canonical parser accepts it. Hand-extracted JSON,
+semantic repair, multiple actions, unknown fields, schema-version mismatch, or
+any Codex tool execution fails the Plan 10 canary. AE3 alone executes the action
+after validation.
 
 ### 3. Recoverable attempt state
 
@@ -191,7 +226,7 @@ Create a versioned, Pydantic-validated recovery contract. At minimum it binds:
 
 - protocol/cell/condition/ordinal identity and configuration/source digests;
 - next scheduled loop identity and logical elapsed time;
-- exact messages/tools and their hashes;
+- exact messages/provider schema and their hashes;
 - requested route controls and stable trace ID;
 - attempt state, shared receipt/call-record identity, caller-visible result,
   normalized action/classification, and per-attempt event segment;
@@ -223,8 +258,8 @@ prepared -> dispatching -> provider_settled -> action_applying -> committed
   exactly one full shared-client record for its trace permits reconstruction;
   zero, redacted, or multiple records makes the cell terminally invalid. It
   never permits a replacement call.
-- `provider_settled` contains exact response/tool custody and may continue
-  through deterministic classification and application.
+- `provider_settled` contains exact response/schema/typed-action custody and may
+  continue through deterministic classification and application.
 - `action_applying` is deliberately conservative: if no atomic committed
   checkpoint exists after a crash, the cell is terminally invalid because
   exactly-once mutation cannot be proved.
@@ -246,7 +281,7 @@ profile; fail preflight when it is unavailable rather than falling back to the
 interactive shell. The launch receipt records session name, PID/process group,
 command, source/config digests, evidence directory, heartbeat, and exit status.
 
-The detached worker owns provider dispatch. The launching chat/tool process may
+The detached worker owns provider dispatch. The launching operator process may
 exit after it observes the durable launch receipt. Restart uses the stable cell
 identity and recovery contract, not shell history. A provider-free lifecycle
 test must terminate the launcher and worker independently and demonstrate that
@@ -260,23 +295,33 @@ the supervisor preserves or restarts the cell without duplicate dispatch.
 
 #### Slice A - exact Luna/action boundary (`exploration_required`)
 
-1. Extend strict AE3 config and `_llm_call_kwargs` for the exact Plan 10 route.
-2. Reconcile the MCP action schema with the canonical provider schema and add a
-   structural parity test.
-3. Generate the exact isolated Codex profile and provider-facing prompt/tool
-   inventory without a provider call.
-4. Stop if the existing shared client cannot exclude ambient instructions and
-   non-AE3 tools while retaining subscription auth and the required MCP server.
-   Route the smallest missing capability to `llm_client`; do not implement an
-   AE3-private provider/auth client and do not weaken the gate.
+1. Extend strict AE3 config and its provider-dispatch seam for the exact Plan 10
+   route.
+2. Define `LunaLoopDecisionV1` from the production loop-action set, project it
+   through the shared Codex schema compiler, and feed every variant through the
+   existing canonical action parser. Provider-free schema compilation must keep
+   exactly six top-level action branches and no open object node.
+3. Route Luna through `acall_llm_structured` without `tools` or `mcp_servers`;
+   retain existing generic/MCP behavior for other models.
+4. Generate the exact isolated Codex command, home configuration,
+   provider-facing prompt/schema inventory, and event-capture contract without
+   a provider call.
+5. Stop if the shared client cannot exclude ambient project instructions and
+   MCP servers, pass the exact schema to CLI, or expose enough CLI events to
+   detect built-in tool execution. Route the smallest missing capability to
+   `llm_client`; do not implement an AE3-private provider/auth client and do not
+   weaken the gate.
 
-**Readout:** one machine-readable inventory names every message source and
-callable tool. Pass requires only the accepted Codex base/permission envelope,
-the exact AE3 messages, and `ae3_action`.
+**Readout:** one machine-readable inventory names every message source, schema
+digest, working directory, Codex-home source, MCP server, relevant intrinsic
+tool surface, and executed command. Pass requires the accepted Codex base route,
+the exact AE3 messages/schema, an empty decision workspace, no MCP servers, and
+an event contract that makes any intrinsic tool use visible.
 
-**Promotion:** passing inventory freezes `LunaActionRouteV1` for the remaining
-Plan 10 slices. Failure returns `blocked` with the observed surface and exact
-shared dependency; OpenRouter remains a user decision, not an automatic branch.
+**Promotion:** passing inventory freezes `LunaStructuredActionV1` for the
+remaining Plan 10 slices. Failure returns `blocked` with the observed surface
+and exact shared dependency; OpenRouter remains a user decision, not an
+automatic branch.
 
 #### Slice B - recoverable cell and custody (`fully_specifiable_now`)
 
@@ -311,9 +356,9 @@ access to the original chat or PTY.
 
 This slice begins only after A-C pass and the user separately authorizes the
 external call. It runs once through the detached worker with the exact frozen
-prompt/action/recovery path. Any route, auth, quota, timeout, tool-surface,
-custody, action, or billing failure retains a `blocked` evidence bundle and
-ends Plan 10 without retry or route switch.
+prompt/action/recovery path. Any route, auth, quota, timeout, ambient-surface,
+schema, intrinsic-tool execution, custody, action, or billing failure retains a
+`blocked` evidence bundle and ends Plan 10 without retry or route switch.
 
 Plan 11 is selected only if the canary passes. The canary does not establish a
 reliability rate, behavioral effect, or valid scarcity treatment.
@@ -327,7 +372,7 @@ external_call_budget:
   calls:
     total: 1
     per_purpose:
-      luna_medium_ae3_action_canary: 1
+      luna_medium_structured_action_canary: 1
   serial_depth_and_parallelism: "one call; serial depth 1; parallel width 1"
   context_bound: >-
     Render and record exact message/schema bytes and the current Codex route
@@ -339,8 +384,10 @@ external_call_budget:
     Preserve AE3's current 90-second call boundary; timeout is terminal.
   completion_evidence: >-
     Exact requested/resolved/executed model and medium effort, CLI transport,
-    action-only prompt/tool inventory, one successful legal ae3_action, full
-    caller/readback/decision custody, trace, usage, timing, and billing receipt.
+    exact prompt/schema digest, no MCP servers, zero observed Codex tool
+    executions, one Pydantic-validated legal action, full
+    caller/readback/typed-action/decision custody, trace, usage, timing, and
+    billing receipt.
   retry_repair_fallback: >-
     zero retries, zero semantic repair calls, zero fallback models, and no
     invisible transport or provider switch; a failed settled call ends the gate.
@@ -365,7 +412,6 @@ one-call acknowledgement must remain unavailable until separate authorization.
 - src/agent_ecology3/world/delegation.py (modify)
 - src/agent_ecology3/world/mint.py (modify)
 - src/agent_ecology3/simulation/runner.py (modify)
-- src/agent_ecology3/mcp/loop_action_server.py (modify)
 - src/agent_ecology3/analysis/luna_recovery_gate.py (create)
 - config/config.luna_recovery_gate.yaml (create)
 - scripts/run_recoverable_evaluation.py (create)
@@ -386,9 +432,9 @@ one-call acknowledgement must remain unavailable until separate authorization.
 | Test File | Test Function | What It Verifies |
 |---|---|---|
 | tests/test_luna_recovery_gate.py | test_luna_route_requires_exact_medium_cli_profile | Omissions, aliases, retries, fallback, API billing, and unsupported effort fail closed |
-| tests/test_luna_recovery_gate.py | test_action_mcp_schema_matches_world_contract | The MCP surface exposes every canonical AE3 action field and requiredness rule |
-| tests/test_luna_recovery_gate.py | test_luna_call_kwargs_are_explicit_and_scoped | The production consumer adopts the exact shared-client route and scoped MCP server |
-| tests/test_luna_recovery_gate.py | test_prompt_tool_inventory_is_ae3_only | Provider-facing context contains only the accepted base envelope, AE3 messages, and action tool |
+| tests/test_luna_recovery_gate.py | test_luna_action_schema_projects_six_permitted_variants | One Pydantic union covers the production loop-action set with six branches and no open object node |
+| tests/test_luna_recovery_gate.py | test_luna_structured_kwargs_are_explicit_and_mcp_free | The production consumer adopts the exact shared structured route without tools or MCP servers |
+| tests/test_luna_recovery_gate.py | test_prompt_schema_profile_is_ambient_free_and_tool_use_observable | The profile has only accepted context, an empty workspace, no MCP, and inspectable intrinsic-tool events |
 | tests/test_luna_recovery_gate.py | test_attempt_state_machine_rejects_invalid_transitions | Unknown versions and illegal transitions fail closed |
 | tests/test_luna_recovery_gate.py | test_post_settlement_restart_does_not_duplicate_dispatch | The canonical 8-of-16 restart finishes with exactly 16 fake dispatches |
 | tests/test_luna_recovery_gate.py | test_action_application_crash_is_terminal | Ambiguous mutation cannot trigger a replacement dispatch |
@@ -415,10 +461,14 @@ loops.
 
 - [ ] Exact Luna Medium configuration is typed, fail-closed, and used by the
       production AE3 loop consumer.
-- [ ] Provider-facing preflight proves the accepted prompt and action-only tool
-      surface; otherwise the plan stops at a named shared dependency.
-- [ ] The MCP bridge matches the canonical action contract and retains one
-      normalized `ae3_action` through shared-client readback.
+- [ ] Provider-facing preflight proves the exact prompt/schema, empty workspace,
+      isolated MCP-free home, and intrinsic-tool event visibility; otherwise
+      the plan stops at a named shared dependency.
+- [ ] `LunaLoopDecisionV1` covers every permitted production loop action and
+      retains one normalized action through shared-client readback and the
+      existing canonical parser.
+- [ ] Luna passes neither tools nor MCP servers, while the existing MCP path for
+      other routes remains unchanged.
 - [ ] The canonical 16-attempt recovery fixture completes with exactly 16 fake
       dispatches after a post-settlement restart.
 - [ ] Every ambiguous in-flight/action/corrupt-checkpoint case is terminally
@@ -441,9 +491,9 @@ loops.
 
 - A pre-dispatch failure makes zero external calls and leaves an inspectable
   provider-free preflight result.
-- A settled canary failure is final for Plan 10 revision 1. Preserve it; do not
-  tune the prompt, repair semantically, retry, or switch route under the same
-  gate.
+- A settled canary failure is final for the executed Plan 10 revision. Preserve
+  it; do not tune the prompt, repair semantically, retry, or switch route under
+  the same gate.
 - A recovery ambiguity marks only the affected fixture/cell invalid; it never
   deletes the prior checkpoint or shared receipt.
 - Runtime auth links and isolated Codex configuration stay in a temporary
