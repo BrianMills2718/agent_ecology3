@@ -10,7 +10,8 @@ Track all implementation work here.
 | 2 | [Mint scorer llm_client migration](02_mint_scorer_llm_client.md) | High | ✅ Complete | - |
 | 3 | [Repository lineage and restart lessons](03_lineage_and_restart_lessons.md) | High | ✅ Complete | AE2/AE3 lifecycle decision |
 | 4 | [Prescriptive cognition ablation](04_prescription_ablation.md) | High | ✅ Complete | Evidence independent of assigned roles/objective cycles |
-| 5 | [Experiment instrument repair and provider qualification](05_experiment_instrument_repair.md) | High | In Progress | Fresh prescribed-versus-minimal behavioral evaluation |
+| 5 | [Experiment instrument repair and provider qualification](05_experiment_instrument_repair.md) | High | ✅ Complete | Fresh provider qualification with public-readback control |
+| 6 | [Public-readback provider qualification](06_public_readback_qualification.md) | High | In Progress | Fresh prescribed-versus-minimal behavioral evaluation |
 
 ## Status Key
 
