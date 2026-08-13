@@ -285,7 +285,14 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
                 "event_number": 14,
                 "principal_id": "alpha_2",
                 "decision_action": action,
-                "decision": {"action_type": action},
+                "decision": {
+                    "action_type": action,
+                    **(
+                        {"artifact_id": "alpha_2_strategy_v2"}
+                        if condition == "minimal"
+                        else {"query_type": "artifacts"}
+                    ),
+                },
                 "result_success": succeeded,
                 "result_error_code": None if succeeded else "not_authorized",
                 "fallback_used": False,
@@ -320,10 +327,31 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
                 "event_number": 14,
                 "principal_count": 2,
                 "artifact_count": 8,
+                "principals": ["alpha_1", "alpha_2"],
+                "frozen": [],
                 "balances": {
                     "alpha_1": {"scrip": 100, "resources": {"llm_budget": 0.01}},
                     "alpha_2": {"scrip": 100, "resources": {"llm_budget": 0.01}},
                 },
+                "quotas": {
+                    "alpha_1": {"disk": {"used": 100, "quota": 1000}},
+                    "alpha_2": {"disk": {"used": 120, "quota": 1000}},
+                },
+                "artifacts": [
+                    {
+                        "id": "alpha_2_strategy_v2",
+                        "type": "strategy",
+                        "owner": "alpha_2",
+                        "created_by": "alpha_2",
+                        "content": "Inspect the market before spending resources.",
+                        "read_price": 0,
+                        "invoke_price": 0,
+                        "executable": False,
+                        "access_contract_id": "kernel_contract_freeware",
+                    }
+                ]
+                if condition == "minimal"
+                else [],
                 "events": [],
                 "log_path": str(log_path),
             },
@@ -337,8 +365,12 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
     with TestClient(app) as client:
         page = client.get("/")
         assert page.status_code == 200
+        assert "Ecosystem" in page.text
+        assert "Play run replay" in page.text
+        assert "Agents" in page.text
+        assert "Artifacts" in page.text
         assert "What happened, decision by decision" in page.text
-        assert "Advanced evidence" in page.text
+        assert "Raw evidence" in page.text
 
         runs = client.get("/runs").json()
         assert [item["id"] for item in runs["runs"]] == ["prescribed", "minimal"]
@@ -357,6 +389,30 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
             {"id": "alpha_2_strategy_v2", "type": "strategy", "owner": "alpha_2"}
         ]
         assert minimal_summary["balances"][0]["scrip"] == 100
+
+        operator = client.get("/operator-state?run=minimal").json()
+        assert operator["schema_version"] == "ae3_operator_state.v1"
+        assert operator["condition"] == "minimal"
+        assert operator["max_turn"] == 1
+        assert [agent["id"] for agent in operator["agents"]] == [
+            "alpha_1",
+            "alpha_2",
+        ]
+        assert operator["actions"][0] == {
+            "turn": 1,
+            "event_number": 14,
+            "principal_id": "alpha_2",
+            "action": "write_artifact",
+            "description": "created alpha_2_strategy_v2",
+            "artifact_id": "alpha_2_strategy_v2",
+            "artifact_owner": "alpha_2",
+            "success": True,
+            "error_code": None,
+            "fallback_used": False,
+        }
+        assert operator["artifacts"][0]["created_turn"] == 1
+        assert operator["artifacts"][0]["agent_created"] is True
+        assert operator["artifacts"][0]["content"].startswith("Inspect the market")
 
         minimal = client.get("/state?run=minimal").json()
         assert minimal["run_id"] == "eval15_minimal"

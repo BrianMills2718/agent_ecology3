@@ -23,6 +23,7 @@ Track all implementation work here.
 | 15 | [Hard call cap](15_hard_call_cap.md) | High | ✅ Complete | Dashboard-visible matched pair |
 | 16 | [Completed run review](16_completed_run_review.md) | High | ✅ Complete | Human MVP review |
 | 17 | [Useful completed-run review](17_useful_run_review.md) | High | ✅ Complete | Human review of the Luna Medium PoC |
+| 18 | [Ecosystem operator dashboard](18_ecosystem_operator.md) | High | ✅ Complete | Useful human observation of an AE3 run |
 
 ## Status Key
 
