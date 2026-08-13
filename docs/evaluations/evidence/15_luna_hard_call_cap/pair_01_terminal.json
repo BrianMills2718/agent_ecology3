@@ -1,0 +1,59 @@
+{
+  "schema_version": "ae3_eval15_terminal_evidence.v1",
+  "status": "valid_mvp_matched_pair",
+  "evaluation_id": "15_luna_hard_call_cap",
+  "pair_id": "pair_01",
+  "source": {
+    "agent_ecology3_revision": "fdbd8aceda6393afb0067d9efb520086103c42c6",
+    "llm_client_revision": "286715784f1d535d6dfcd2c867ca678d666e27d5"
+  },
+  "contract": {
+    "model": "codex/gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "policy_seed": 24150,
+    "starting_llm_budget_per_principal": 0.033192,
+    "provider_calls_per_condition": 14,
+    "required_distribution": {"alpha_1": 7, "alpha_2": 7},
+    "maximum_provider_calls": 28,
+    "provider_retries": 0,
+    "fallback_models": [],
+    "mcp_servers": [],
+    "local_action_failure_policy": "fail_closed_no_substitute"
+  },
+  "prescribed": {
+    "provider_dispatch_count": 14,
+    "committed_attempts": 14,
+    "attempt_distribution": {"alpha_1": 7, "alpha_2": 7},
+    "lifecycle_state": "completed",
+    "terminal_reason": null,
+    "shared_client_receipts": 14,
+    "fallback_used_loop_decisions": 0,
+    "checkpoint_sha256": "b6f631d1a7f78d303a94121c66ec40c4b3646413a435461e7e6d5f175911e562",
+    "status_sha256": "d20199608ee9252d3c9556cac3738793fe6ba3dacf1f022f8f8a1f77d860f6a0",
+    "full_receipt_sha256": "cd78c5afbe5525fc0759ecabf563a64c87dffe80511b90663e08347d780c1379"
+  },
+  "minimal": {
+    "provider_dispatch_count": 14,
+    "committed_attempts": 14,
+    "attempt_distribution": {"alpha_1": 7, "alpha_2": 7},
+    "lifecycle_state": "stopped",
+    "terminal_reason": null,
+    "shared_client_receipts": 14,
+    "fallback_used_loop_decisions": 0,
+    "checkpoint_sha256": "bebca4196db0886c388b3aef8edefe5a000bea4320fd4dba534972f0365a7c50",
+    "status_sha256": "1d382f5b2adf3d0de9642eb43eaca0c060574697d2a22c98b9f720356aabe075",
+    "full_receipt_sha256": "bb35b874c2cecbdaa15187d637315b081f26e748af5c105f2ab57f5b7c524e4e"
+  },
+  "decision": {
+    "classification": "dashboard_visible_matched_pair_feasible",
+    "provider_calls_used": 28,
+    "behavioral_claim_permitted": false,
+    "additional_execution_permitted": false
+  },
+  "external_evidence_root": "$XDG_STATE_HOME/agent_ecology3/eval15/pair_01",
+  "non_claims": [
+    "This single pair does not establish a prescribed-versus-minimal effect.",
+    "Lifecycle label timing is not a production reliability claim.",
+    "No additional provider-backed run is authorized by this readout."
+  ]
+}
