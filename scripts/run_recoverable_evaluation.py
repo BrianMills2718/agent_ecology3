@@ -85,6 +85,45 @@ def _default_data_dir() -> Path:
     return state_root / "agent_ecology3" / "plan10_luna_dashboard_poc_v1"
 
 
+def _dashboard_launch_profile() -> dict[str, Any]:
+    return {
+        "model": LUNA_MODEL,
+        "reasoning_effort": "medium",
+        "cognition_mode": "minimal",
+        "principal_count": PLAN19_PRINCIPAL_COUNT,
+        "target_attempts": PLAN19_TARGET_ATTEMPTS,
+        "starting_llm_budget_per_principal": PLAN19_STARTING_BUDGET,
+        "billing": "subscription included",
+        "starts_paused": True,
+    }
+
+
+def _launch_dashboard_run(args: argparse.Namespace) -> dict[str, Any]:
+    """Launch the frozen MVP profile through the canonical paused worker path."""
+    timestamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+    run_id = f"plan21_luna_dashboard_{timestamp}"
+    state_root = Path(
+        os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state")
+    )
+    launch_args = argparse.Namespace(
+        acknowledgement=PLAN19_ACKNOWLEDGEMENT,
+        data_dir=str(state_root / "agent_ecology3" / run_id),
+        config=args.config,
+        run_id=run_id,
+        target_attempts=PLAN19_TARGET_ATTEMPTS,
+        starting_llm_budget=PLAN19_STARTING_BUDGET,
+        principal_count=PLAN19_PRINCIPAL_COUNT,
+        cognition_mode="minimal",
+        policy_seed=PLAN19_POLICY_SEED,
+        host=args.host,
+        port=args.launch_port,
+    )
+    return {
+        **_spawn(launch_args, start_running=False),
+        "profile": _dashboard_launch_profile(),
+    }
+
+
 def _paths(data_dir: Path) -> dict[str, Path]:
     return {
         "checkpoint": data_dir / "checkpoint.json",
@@ -667,7 +706,11 @@ async def _review(args: argparse.Namespace) -> None:
 
     review_root = Path(args.data_dir).expanduser().resolve()
     review_runs = _discover_review_runs(review_root)
-    app = create_app(review_runs=review_runs)
+    app = create_app(
+        review_runs=review_runs,
+        launch_profile=_dashboard_launch_profile(),
+        launch_provider=lambda: _launch_dashboard_run(args),
+    )
     server = uvicorn.Server(
         uvicorn.Config(app, host=args.host, port=args.port, log_level="warning")
     )
@@ -713,6 +756,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--policy-seed", type=int, default=0)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9000)
+    parser.add_argument("--launch-port", type=int, default=9021)
     parser.add_argument("--start-running", action="store_true")
     return parser
 

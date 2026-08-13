@@ -4,8 +4,9 @@ Track all implementation work here.
 
 **Current direction:** [Agent Ecology 3 Product Roadmap](../MVP_ROADMAP.md) is
 the canonical outcome and priority authority. Completed plans below are
-supporting history. Plans 19 and 20 completed the local MVP and durable reopen
-boundary; the roadmap now selects dashboard launch of another bounded run.
+supporting history. Plans 19–21 completed the local MVP, durable reopen, and
+paused dashboard-launch boundaries. The prepared repeat run awaits a separate
+Luna Resume authorization.
 
 ## Gap Summary
 
@@ -31,6 +32,7 @@ boundary; the roadmap now selects dashboard launch of another bounded run.
 | 18 | [Ecosystem operator dashboard](18_ecosystem_operator.md) | High | ✅ Complete | Useful human observation of an AE3 run |
 | 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | ✅ Complete — authentic run signed off | Repeatable local workbench |
 | 20 | [Single-run archive reopen](20_single_run_archive_reopen.md) | Critical | ✅ Complete | Dashboard launch |
+| 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
 
 ## Status Key
 

@@ -139,6 +139,11 @@ _DASHBOARD_HTML = """<!doctype html>
     .tab { color: var(--muted); background: transparent; }
     .tab.active { color: #06110e; background: var(--accent); }
     .condition-picker { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+    .launch-profile { display: grid; gap: 12px; margin: 16px 0; }
+    .launch-profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .launch-profile-item { padding: 11px; border-radius: 9px; background: rgba(255,255,255,.045); }
+    .launch-profile-item b { display: block; margin-bottom: 3px; }
+    .launch-error { min-height: 20px; color: #ffb19d; }
     .operator { display: none; gap: 16px; }
     .operator.visible { display: grid; }
     .replay {
@@ -261,6 +266,7 @@ _DASHBOARD_HTML = """<!doctype html>
       <label class=\"condition-picker\" id=\"conditionPicker\"><span id=\"runPickerLabel\">Condition</span>
         <select id=\"runSelect\" onchange=\"selectRun(this.value)\"></select>
       </label>
+      <button id=\"newRunButton\" style=\"display:none\" onclick=\"openLaunch()\">New paused run</button>
     </nav>
     <main class=\"operator\" id=\"operatorView\">
       <section class=\"replay\">
@@ -325,6 +331,14 @@ _DASHBOARD_HTML = """<!doctype html>
       <pre class=\"artifact-content\" id=\"artifactModalContent\"></pre>
     </article>
   </div>
+  <div class=\"modal-backdrop\" id=\"launchModal\" onclick=\"if(event.target === this) closeLaunch()\">
+    <article class=\"modal\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"launchModalTitle\">
+      <div class=\"modal-head\"><div><h2 id=\"launchModalTitle\">Start a new ecology</h2><p class=\"quiet\">This creates the run paused. No Luna call happens until you press Resume in the live workspace.</p></div><button class=\"secondary\" onclick=\"closeLaunch()\">Close</button></div>
+      <div class=\"launch-profile\" id=\"launchProfile\"></div>
+      <div class=\"launch-error\" id=\"launchError\"></div>
+      <div class=\"actions\"><button id=\"launchPausedButton\" onclick=\"launchPaused()\">Launch paused</button></div>
+    </article>
+  </div>
   <script>
     let selectedRun = null;
     let reviewMode = false;
@@ -337,12 +351,13 @@ _DASHBOARD_HTML = """<!doctype html>
       return await res.json();
     }
 
-    function renderStatus(state) {
+    function renderStatus(state, operator) {
       const status = [];
       const running = state.runner ? !!state.runner.running : null;
       const paused = state.runner ? !!state.runner.paused : null;
       const runDot = running ? '<span class="dot"></span>' : '<span class="dot warn"></span>';
-      status.push(`<span class="pill">${runDot}${running ? 'running' : 'not-running'}</span>`);
+      const workerLabel = running && paused ? 'worker ready' : (running ? 'running' : 'not-running');
+      status.push(`<span class="pill">${runDot}${workerLabel}</span>`);
       if (paused) status.push('<span class="pill"><span class="dot warn"></span>paused</span>');
       if (state.event_number !== undefined) status.push(`<span class="pill">events: ${state.event_number}</span>`);
       if (state.principal_count !== undefined) status.push(`<span class="pill">principals: ${state.principal_count}</span>`);
@@ -351,6 +366,15 @@ _DASHBOARD_HTML = """<!doctype html>
         status.push(`<span class="pill">run: ${state.recovery.run_id}</span>`);
         status.push(`<span class="pill">Luna attempts: ${state.recovery.committed_attempts}/${state.recovery.target_attempts}</span>`);
         status.push(`<span class="pill">custody: ${state.recovery.lifecycle_state}</span>`);
+      }
+      if (operator && operator.model) status.push(`<span class=\"pill\">model: ${escapeHtml(operator.model)}</span>`);
+      if (operator && operator.agents) {
+        const budgets = operator.agents.map(agent => agent.llm_budget).filter(value => typeof value === 'number');
+        if (budgets.length) {
+          const low = Math.min(...budgets).toFixed(6);
+          const high = Math.max(...budgets).toFixed(6);
+          status.push(`<span class=\"pill\">resource budget left: ${low === high ? low : `${low}–${high}`}/agent</span>`);
+        }
       }
       if (state.review && state.review.read_only) {
         status.push('<span class="pill"><span class="dot warn"></span>review only</span>');
@@ -492,6 +516,43 @@ _DASHBOARD_HTML = """<!doctype html>
       document.getElementById('artifactModal').classList.remove('visible');
     }
 
+    async function openLaunch() {
+      const payload = await fetchJson('/launch-profile');
+      if (!payload.success) return;
+      const profile = payload.profile;
+      document.getElementById('launchProfile').innerHTML = `<div class=\"launch-profile-grid\">
+        <div class=\"launch-profile-item\"><b>Luna Medium</b>${escapeHtml(profile.model)} · ${escapeHtml(profile.reasoning_effort)} reasoning</div>
+        <div class=\"launch-profile-item\"><b>${profile.principal_count} agents</b>${escapeHtml(profile.cognition_mode)} cognition</div>
+        <div class=\"launch-profile-item\"><b>${profile.target_attempts} calls maximum</b>Hard run ceiling</div>
+        <div class=\"launch-profile-item\"><b>${profile.starting_llm_budget_per_principal} per agent</b>Resource budget · ${escapeHtml(profile.billing)}</div>
+      </div>`;
+      document.getElementById('launchError').textContent = '';
+      document.getElementById('launchPausedButton').disabled = false;
+      document.getElementById('launchPausedButton').textContent = 'Launch paused';
+      document.getElementById('launchModal').classList.add('visible');
+    }
+
+    function closeLaunch() {
+      document.getElementById('launchModal').classList.remove('visible');
+    }
+
+    async function launchPaused() {
+      const button = document.getElementById('launchPausedButton');
+      button.disabled = true;
+      button.textContent = 'Launching…';
+      document.getElementById('launchError').textContent = '';
+      try {
+        const payload = await fetchJson('/launch', {method: 'POST'});
+        if (!payload.success) throw new Error(payload.error || 'launch failed');
+        button.textContent = 'Opening paused run…';
+        window.location.assign(payload.url);
+      } catch (err) {
+        document.getElementById('launchError').textContent = `Launch failed: ${err.message || err}`;
+        button.disabled = false;
+        button.textContent = 'Try launch again';
+      }
+    }
+
     async function loadOperator() {
       const query = selectedRun ? `?run=${encodeURIComponent(selectedRun)}` : '';
       operatorState = await fetchJson(`/operator-state${query}`);
@@ -550,6 +611,7 @@ _DASHBOARD_HTML = """<!doctype html>
       select.value = selectedRun;
       document.getElementById('runPickerLabel').textContent = payload.comparison_available ? 'Condition' : 'Run';
       document.getElementById('comparisonTab').style.display = payload.comparison_available ? '' : 'none';
+      document.getElementById('newRunButton').style.display = payload.launch_available ? '' : 'none';
       document.getElementById('eyebrow').textContent = 'Luna Medium ecology replay';
       document.getElementById('pageTitle').textContent = 'Agent Ecology 3';
       document.getElementById('pageSubtitle').textContent = 'Watch agents act, inspect what they create, and follow the ecology decision by decision.';
@@ -580,7 +642,7 @@ _DASHBOARD_HTML = """<!doctype html>
     async function refreshLive() {
       try {
         const [state, events, liveOperator] = await Promise.all([fetchJson('/state'), fetchJson('/events?limit=60'), fetchJson('/operator-state')]);
-        renderStatus(state);
+        renderStatus(state, liveOperator);
         operatorState = liveOperator;
         currentTurn = operatorState.max_turn;
         document.getElementById('turnSlider').max = currentTurn;
@@ -976,6 +1038,8 @@ def create_app(
     shutdown_provider: Callable[[], None] | None = None,
     jsonl_path: str | None = None,
     review_runs: dict[str, Path] | None = None,
+    launch_profile: dict[str, Any] | None = None,
+    launch_provider: Callable[[], dict[str, Any]] | None = None,
 ) -> FastAPI:
     """Create a minimal dashboard app for live run or log-only mode."""
 
@@ -1031,7 +1095,23 @@ def create_app(
             "default_run": next(iter(review_runs), None),
             "read_only": bool(review_runs),
             "comparison_available": set(review_runs) == {"prescribed", "minimal"},
+            "launch_available": launch_provider is not None,
         }
+
+    @app.get("/launch-profile")
+    async def get_launch_profile() -> dict[str, Any]:
+        if launch_provider is None or launch_profile is None:
+            return {"success": False, "error": "dashboard launch unavailable"}
+        return {"success": True, "profile": launch_profile}
+
+    @app.post("/launch")
+    async def launch() -> dict[str, Any]:
+        if launch_provider is None:
+            return {"success": False, "error": "dashboard launch unavailable"}
+        try:
+            return launch_provider()
+        except Exception as exc:  # noqa: BLE001 - surface local launch failure in UI
+            return {"success": False, "error": f"{type(exc).__name__}: {exc}"}
 
     @app.get("/review-summary")
     async def review_summary() -> dict[str, Any]:

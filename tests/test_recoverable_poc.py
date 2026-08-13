@@ -28,7 +28,9 @@ from agent_ecology3.simulation import (
 from scripts.run_recoverable_evaluation import (
     PLAN19_ACKNOWLEDGEMENT,
     _configure,
+    _dashboard_launch_profile,
     _discover_review_runs,
+    _launch_dashboard_run,
     _seed_mvp_opportunities,
     _terminal_lifecycle,
     _validate_start_contract,
@@ -671,6 +673,7 @@ def test_dashboard_reopens_one_preserved_run_without_fabricating_pair(
             "default_run": data_dir.name,
             "read_only": True,
             "comparison_available": False,
+            "launch_available": False,
         }
         assert client.get("/review-summary").json() == {
             "success": False,
@@ -693,6 +696,93 @@ def test_single_run_discovery_fails_loud_for_incomplete_custody(
     )
     with pytest.raises(RuntimeError, match="has no event log"):
         _discover_review_runs(tmp_path)
+
+
+def test_dashboard_launch_api_exposes_profile_and_visible_failure(
+    tmp_path: Path,
+) -> None:
+    launches: list[bool] = []
+
+    def launch() -> dict[str, object]:
+        launches.append(True)
+        return {
+            "success": True,
+            "url": "http://127.0.0.1:9021/",
+            "status": {"lifecycle_state": "paused", "provider_dispatch_count": 0},
+        }
+
+    app = create_app(
+        review_runs={"archived_run": tmp_path},
+        launch_profile=_dashboard_launch_profile(),
+        launch_provider=launch,
+    )
+    with TestClient(app) as client:
+        page = client.get("/")
+        assert "New paused run" in page.text
+        assert "No Luna call happens until you press Resume" in page.text
+        runs = client.get("/runs").json()
+        assert runs["launch_available"] is True
+        profile = client.get("/launch-profile").json()
+        assert profile == {"success": True, "profile": _dashboard_launch_profile()}
+        launched = client.post("/launch").json()
+        assert launched["success"] is True
+        assert launched["status"]["lifecycle_state"] == "paused"
+        assert launches == [True]
+
+    failed_app = create_app(
+        review_runs={"archived_run": tmp_path},
+        launch_profile=_dashboard_launch_profile(),
+        launch_provider=lambda: (_ for _ in ()).throw(RuntimeError("port busy")),
+    )
+    with TestClient(failed_app) as client:
+        assert client.post("/launch").json() == {
+            "success": False,
+            "error": "RuntimeError: port busy",
+        }
+
+
+def test_dashboard_launch_adopts_frozen_plan19_profile_paused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_spawn(args: object, *, start_running: bool) -> dict[str, object]:
+        captured["args"] = args
+        captured["start_running"] = start_running
+        return {
+            "success": True,
+            "url": "http://127.0.0.1:9021/",
+            "status": {
+                "lifecycle_state": "paused",
+                "committed_attempts": 0,
+                "target_attempts": 14,
+                "provider_dispatch_count": 0,
+            },
+        }
+
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+    monkeypatch.setattr(
+        "scripts.run_recoverable_evaluation._spawn", fake_spawn
+    )
+    result = _launch_dashboard_run(
+        SimpleNamespace(
+            config="config/config.yaml",
+            host="127.0.0.1",
+            launch_port=9021,
+        )
+    )
+    launch_args = captured["args"]
+    assert captured["start_running"] is False
+    assert getattr(launch_args, "acknowledgement") == PLAN19_ACKNOWLEDGEMENT
+    assert getattr(launch_args, "target_attempts") == 14
+    assert getattr(launch_args, "starting_llm_budget") == 0.033192
+    assert getattr(launch_args, "principal_count") == 2
+    assert getattr(launch_args, "cognition_mode") == "minimal"
+    assert getattr(launch_args, "policy_seed") == 24190
+    assert getattr(launch_args, "port") == 9021
+    assert Path(getattr(launch_args, "data_dir")).parent == tmp_path / "agent_ecology3"
+    assert result["profile"] == _dashboard_launch_profile()
+    assert result["status"]["provider_dispatch_count"] == 0  # type: ignore[index]
 
 
 def test_detached_status_fails_loud_when_no_worker_exists(tmp_path: Path) -> None:
