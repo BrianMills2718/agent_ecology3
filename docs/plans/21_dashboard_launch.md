@@ -1,6 +1,6 @@
 # Plan #21: Fixed-Profile Dashboard Launch
 
-**Status:** In Progress
+**Status:** Complete
 **Type:** prototype vertical
 **Priority:** Critical
 **Blocked By:** None
@@ -47,12 +47,12 @@ to a repeatable local workbench.
 
 ## Acceptance Criteria
 
-- [ ] The archive dashboard shows one `New paused run` action and the exact fixed profile.
-- [ ] Launch uses the canonical Plan 19 profile and creates a new durable run directory.
-- [ ] The browser reaches the existing live Ecosystem view without a CLI command.
-- [ ] The live view shows Luna Medium, 0/14 calls, the resource exposure, and paused custody.
-- [ ] Provider dispatch count remains zero until explicit Resume.
-- [ ] Archive replay and Evidence remain reachable; launch failure is visible.
+- [x] The archive dashboard shows one `New paused run` action and the exact fixed profile.
+- [x] Launch uses the canonical Plan 19 profile and creates a new durable run directory.
+- [x] The browser reaches the existing live Ecosystem view without a CLI command.
+- [x] The live view shows Luna Medium, 0/14 calls, the resource exposure, and paused custody.
+- [x] Provider dispatch count remains zero until explicit Resume.
+- [x] Archive replay and Evidence remain reachable; launch failure is visible.
 
 ## Non-goals
 
@@ -66,3 +66,19 @@ to a repeatable local workbench.
 - A port/preflight failure strands the button without an actionable message.
 - Navigation loses the existing live Ecosystem controls or hides model/exposure.
 - Archive replay, Evidence, or matched-pair Comparison becomes unreachable.
+
+## Completion Evidence
+
+- Pushed revision `648ea13` served the preserved Plan 19 archive on port 9020
+  with the fixed launch action enabled.
+- Fresh Chromium at 1440×900 opened the launch profile, preserved archive
+  Evidence, clicked `Launch paused`, and navigated automatically to the new
+  live worker on port 9021 without a CLI command.
+- Prepared run `plan21_luna_dashboard_20260813_183636` is paused with 0/14
+  committed attempts, zero provider dispatches, two agents, and 0.033192
+  resource budget per agent. Resume remains enabled and untouched.
+- The live header shows `worker ready`, paused custody, the exact Luna route,
+  call ceiling, and resource exposure. Refresh preserved the same state; the
+  browser reported no console errors or failed requests.
+- The complete pytest suite passed before the final label-only correction; the
+  focused dashboard, archive-continuity, and launch tests passed afterward.

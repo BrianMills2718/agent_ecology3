@@ -41,7 +41,7 @@ them.
 | Stakeholder reviewability | Brian reviewed the completed authentic run in the existing Ecosystem dashboard and said it looked fine |
 | Stakeholder outcome | **Local MVP complete**: two agents acted live, value crossed principals, reusable artifacts were created and consumed, and the run completed in the same interface |
 | Independent evidence | Plan 19 is independently signed off for this bounded local-MVP claim |
-| Operational state | A fresh model-free process can reopen the canonical completed run read-only; dashboard launch of another bounded run is the next missing boundary |
+| Operational state | The dashboard can reopen preserved runs and launch the frozen profile paused; `plan21_luna_dashboard_20260813_183636` is prepared at 0/14 with zero provider dispatches pending separate Resume authorization |
 | Claim boundary | One successful local run; no causal, comparative, population, or generalization claim |
 
 ## Canonical outcome exemplar
@@ -73,7 +73,7 @@ them.
 |---|---|---|---|---|
 | 0 | Authentic live economic MVP | vertical / **complete** | Brian can launch, watch, understand, and inspect one completed two-agent run without raw JSON | Satisfied by Plan 19 |
 | 1 | Reopen any preserved run | direct blocker / **complete** | After shutting down the original worker, a fresh process lists and opens the single Plan 19 receipt read-only with the same 14 actions, balances, artifacts, lifecycle, and evidence; zero model calls | Satisfied by Plan 20 |
-| 2 | Launch another bounded run from the existing dashboard | vertical / **selected** | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Run-library adoption is proven and new model spend is separately authorized |
+| 2 | Launch another bounded run from the existing dashboard | vertical / **complete** | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Satisfied by Plan 21 |
 | 3 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | A real run contains relationships that Brian finds hard to understand |
 | 4 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 5 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
@@ -98,37 +98,38 @@ controls activate only at capability 5.
    next concrete operator question—not because infrastructure exists.
 
 No work-unit graph or parallel program is justified for the current
-single-contributor sequence. The selected goal should receive a bounded design,
-then proceed as one reversible vertical.
+single-contributor sequence. Future implementation goals receive a bounded
+design; the current frontier is only the explicit Resume authorization and
+authentic observation of an already prepared run.
 
 ## Selected execution frontier
 
-**Goal:** Launch another bounded run from the existing dashboard.
+**Goal:** Observe the prepared dashboard-launched run after separate Luna authorization.
 
 Backward path:
 
 ```text
-Brian reaches a new paused ecology without using a CLI
-  <- dashboard offers one explicit fixed-profile launch action
-  <- launch creates durable custody and starts the existing worker paused
-  <- live Ecosystem opens with model, call ceiling, and exposure visible
-  <- Resume remains the only boundary that can dispatch Luna
+Brian judges whether the workbench repeats the useful ecology
+  <- prepared run is observed from 0/14 through terminal custody
+  <- Brian explicitly presses or authorizes Resume
+  <- fixed Luna Medium profile retains its 14-call hard ceiling
+  <- plan21_luna_dashboard_20260813_183636 remains paused with zero dispatches
 ```
 
-The first missing boundary is adopting the existing CLI launch path in the
-dashboard without weakening its paused spend boundary. Existing capabilities
-are adopted as follows:
+The product boundary is complete; the remaining frontier is a human spend
+decision followed by authentic observation. Existing capabilities apply as
+follows:
 
 | Capability | Canonical seam | Disposition | Adoption proof |
 |---|---|---|---|
-| Operator UI | existing Ecosystem dashboard and archive selector | extend | Launch reaches the live paused Ecosystem in the same workspace |
-| Worker lifecycle | existing `start` command and recoverable runner | adopt | The UI uses the canonical paused-by-default launch path |
-| Spend boundary | hard call cap, fixed Luna profile, explicit Resume | preserve | Launch alone produces zero provider dispatches |
+| Operator UI | live Ecosystem at port 9021 | reuse | Brian observes the prepared run and terminal replay |
+| Worker lifecycle | recoverable paused worker | reuse | Run begins at the preserved 0/14 checkpoint |
+| Spend boundary | hard call cap, fixed Luna profile, explicit Resume | preserve | No dispatch until separate authorization; never exceed 14 |
 
-**Next planning handoff:** `company-planning:bounded-design` should define only
-one fixed-profile launch action, its paused handoff into the live Ecosystem, and
-the zero-dispatch-before-Resume acceptance. It must not absorb configuration
-authoring, scenarios, graphs, deployment, or hardening.
+**Next decision handoff:** Brian may authorize Resume for exactly the prepared
+Luna Medium run above under the existing 14-call ceiling and Plan 19 profile.
+Until then, keep it paused. No new design, scenario work, graph, deployment, or
+hardening is required before that observation.
 
 ## YAGNI guardrails
 
@@ -171,5 +172,5 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
   AE1/AE2/AE3 lineage and restart failure history.
 - [Plan 20](plans/20_single_run_archive_reopen.md) owns the completed archive
   implementation and focused browser evidence.
-- A later numbered plan may own the selected dashboard-launch implementation
-  only after bounded design; it must not silently redefine this roadmap.
+- [Plan 21](plans/21_dashboard_launch.md) owns the completed paused dashboard
+  launch and zero-dispatch browser evidence.
