@@ -1,6 +1,6 @@
 # Plan #11: Luna Scarcity Calibration
 
-**Status:** Manipulation separation passed and independently signed off
+**Status:** Complete — manipulation separation passed and independently signed off
 **Type:** evaluation design and instrument
 **Priority:** High
 **Blocked By:** Plan #10 complete

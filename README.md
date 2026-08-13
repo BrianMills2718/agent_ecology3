@@ -6,7 +6,7 @@ Agent Ecology 3 is a clean-room rewrite of `agent_ecology2` focused on:
 - Explicit resource accounting (scrip, llm_budget, disk quota, rolling rate limits)
 - Contract-driven artifact access control
 - Autonomous artifact loops (`has_loop=True`)
-- JSONL-first observability with a minimal FastAPI dashboard
+- JSONL-first observability with a bounded FastAPI operator dashboard
 
 All six approved removals from AE2 are applied as AE3 design constraints:
 - no compat-shim sprawl
@@ -89,12 +89,11 @@ manifest and `interruption.json` preserve its integrity.
 - Agent SDK loop-call options can be forwarded from config with `llm.agent_cwd`, `llm.agent_max_turns`, and `llm.agent_permission_mode`.
 - Subscription-billed agent models can still deplete `llm_budget` via `llm.subscription_budget_charge_mode` (`estimated` by default) so budget scarcity stays binding even when provider-reported USD marginal cost is zero.
 - For `claude-code/*` loop calls, AE3 now injects an MCP stdio `ae3_action` tool bridge so agent-mode tool calls are captured and parsed symmetrically with non-agent tool calls.
-- The opt-in Plan 10 `luna_structured_v1` path instead uses the exact
+- The opt-in Plan 10 `luna_structured_v1` path uses the exact
   `codex/gpt-5.6-luna` medium/CLI profile and a strict six-action structured
-  envelope with no tools or MCP. Its provider-free Slice A preflight passes
-  against the accepted public `llm_client.codex_events` contract, including
-  observable command/file/web fixtures. Recovery and detached-worker slices
-  remain incomplete, and no Luna call is authorized or qualified yet.
+  envelope with no tools or MCP. Recovery, detached lifecycle, and a hard call
+  cap have passed authentic bounded runs. The current MVP frontier is one live,
+  economically meaningful Minimal-mode run; see `docs/MVP_ROADMAP.md`.
 - Agent-SDK syscalls now pass `max_retries=0` explicitly for `claude-code/*`, `codex/*`, and `openai-agents/*` models, matching side-effect-safe no-retry semantics while avoiding repeated retry-disabled warning spam.
 - Each principal boots with persistent cognitive artifacts (`*_strategy`, `*_state`, `*_notebook`). `llm.loop_cognition_mode=prescribed` retains assigned roles and the discover->read->produce->trade->mint objective cycle; `minimal` removes those prescriptions while retaining outcome history and resource state.
 - LLM syscall and loop-decision events retain the deterministic `llm_client` trace ID. `llm.provider_max_budget_usd`, `llm.provider_budget_reservation_usd`, `llm.num_retries`, and `llm.max_output_tokens` provide bounded evaluation controls without changing the default unlimited provider budget.
@@ -182,12 +181,17 @@ agent_ecology3/
   src/agent_ecology3/
     world/        # kernel primitives, ledger, contracts, executor
     simulation/   # autonomous loop runner
-    dashboard/    # minimal API + lightweight status UI
+    dashboard/    # bounded live/replay operator UI and API
   tests/
 ```
 
 ## Docs
 
+- `docs/MVP_ROADMAP.md` - canonical current MVP outcome, observation status,
+  critical path, implementation order, acceptance criteria, and failure
+  dispositions.
+- `docs/plans/19_live_economic_mvp.md` - selected active prototype vertical;
+  live operator adoption, economic scenario, and separately authorized run.
 - `docs/LINEAGE_AND_RESTARTS.md` - canonical comparison of AE1, AE2, and AE3; restart evidence, recurring failure modes, and the unresolved lifecycle decision.
 - `docs/evaluations/04_prescription_ablation.md` - preregistered matched-control test and its inconclusive result, provider/runtime failure analysis, evidence bundle, and rerun prerequisites.
 - `docs/evaluations/05_provider_tool_qualification.md` - async/provider/tool
