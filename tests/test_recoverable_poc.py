@@ -301,10 +301,12 @@ def test_dashboard_preserves_controls_and_exposes_recovery_state(tmp_path: Path)
     )
     runner = SimulationRunner(world)
     coordinator.publish_status("paused", pid=123)
+    shutdown_requested: list[bool] = []
     app = create_app(
         world_provider=lambda: world,
         runner_provider=lambda: runner,
         recovery_provider=coordinator.status,
+        shutdown_provider=lambda: shutdown_requested.append(True),
     )
 
     with TestClient(app) as client:
@@ -320,6 +322,11 @@ def test_dashboard_preserves_controls_and_exposes_recovery_state(tmp_path: Path)
         assert client.post("/control/resume").json()["success"] is True
         assert runner.is_paused is False
         assert client.post("/control/stop").json()["success"] is True
+        assert client.post("/control/shutdown").json() == {
+            "success": True,
+            "shutting_down": True,
+        }
+        assert shutdown_requested == [True]
 
 
 def test_live_economic_vertical_is_discoverable_and_operator_visible(

@@ -8,7 +8,6 @@ import asyncio
 import json
 import math
 import os
-import signal
 import subprocess
 import sys
 import time
@@ -551,10 +550,18 @@ async def _serve(args: argparse.Namespace) -> None:
         "running" if args.start_running else "paused",
         pid=os.getpid(),
     )
+    server: uvicorn.Server | None = None
+
+    def request_shutdown() -> None:
+        if server is None:
+            raise RuntimeError("server unavailable during shutdown")
+        server.should_exit = True
+
     app = create_app(
         world_provider=lambda: world,
         runner_provider=lambda: runner,
         recovery_provider=coordinator.status,
+        shutdown_provider=request_shutdown,
         jsonl_path=str(world.logger.output_path),
     )
     server = uvicorn.Server(
@@ -707,8 +714,8 @@ def main() -> int:
         if not status.get("worker_alive") or not isinstance(pid, int):
             payload = {**status, "success": False, "error": "worker is not alive"}
         else:
-            os.kill(pid, signal.SIGTERM)
-            payload = {"success": True, "shutdown_pid": pid}
+            payload = _post_json(f"http://{args.host}:{args.port}/control/shutdown")
+            payload["shutdown_pid"] = pid
     print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
     return 0 if payload.get("success") else 1
 

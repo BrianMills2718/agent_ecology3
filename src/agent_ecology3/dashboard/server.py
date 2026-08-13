@@ -971,6 +971,7 @@ def create_app(
     world_provider: Callable[[], Any | None] | None = None,
     runner_provider: Callable[[], Any | None] | None = None,
     recovery_provider: Callable[[], dict[str, Any] | None] | None = None,
+    shutdown_provider: Callable[[], None] | None = None,
     jsonl_path: str | None = None,
     review_runs: dict[str, Path] | None = None,
 ) -> FastAPI:
@@ -1123,5 +1124,12 @@ def create_app(
             return {"success": False, "error": "runner unavailable"}
         runner.stop()
         return {"success": True, "stopping": True}
+
+    @app.post("/control/shutdown")
+    async def control_shutdown() -> dict[str, Any]:
+        if shutdown_provider is None:
+            return {"success": False, "error": "shutdown unavailable"}
+        shutdown_provider()
+        return {"success": True, "shutting_down": True}
 
     return app

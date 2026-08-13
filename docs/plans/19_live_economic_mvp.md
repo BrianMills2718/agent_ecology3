@@ -126,6 +126,11 @@ MVP observation.
   race could relabel a fully committed run as stopped. Active runtime now
   excludes paused time, and terminal custody is derived from durable committed
   attempts with `invalid` remaining authoritative.
+- The canonical pushed-revision launch was also exercised in its default paused
+  state: it stayed at 0/14 attempts and zero provider dispatches while exposing
+  both opportunities. Its first shutdown probe found that raw `SIGTERM` skipped
+  terminal receipt custody, so shutdown now requests graceful server exit over
+  the local control API before terminal status and receipt publication.
 - The remaining Slice C gate is an authentic Luna Medium run. Its counted
   actions must be model-selected; the provider-free scripted purchase cannot
   satisfy MVP acceptance.
