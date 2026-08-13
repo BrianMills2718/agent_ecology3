@@ -1,7 +1,7 @@
 # Evaluation 14: Luna Behavioral Feasibility Repair
 
 **Stage:** Proposed new-number exploratory feasibility probe
-**Execution:** Authorized 2026-08-13; live evidence pending
+**Execution:** Completed 2026-08-13; pair invalid
 **Predecessor:** Evaluation 12 terminal invalid; no inputs or cells are reused
 
 ## Outcome and decision
@@ -90,3 +90,30 @@ Partial evidence is preserved; an invalid first cell suppresses the second.
 Implementation and zero-provider preflight merged before Brian authorized the
 exact 28-call ceiling on 2026-08-13. Any result-driven decision requires independent
 `eval-decision-signoff`.
+
+## Execution readout
+
+The prescribed cell met the frozen contract: fourteen committed calls balanced
+7/7, followed by a trace-free affordability rejection before call fifteen.
+All fourteen selected actions used `fail_closed_no_substitute`; one private
+cross-principal read failed visibly and no substitute action executed.
+
+The minimal cell did not hit the registered scarcity boundary. It committed a
+fifteenth provider call, producing an 8/7 distribution and a completed
+lifecycle. The pair therefore used 29 provider calls, one above the authorized
+28-call ceiling, and is invalid. No more calls were made after this was
+observed.
+
+The class-level failure is condition-dependent budget consumption combined
+with a missing independent dispatch ceiling. Prescribed calls were expensive
+enough to bind after fourteen; the shorter minimal cognition package was not.
+`target_attempts=15` allowed the fifteenth dispatch instead of enforcing a
+separate fourteen-call provider cap. Fixed budget therefore cannot guarantee
+both equal call count and an authentic scarcity boundary across prompt
+conditions.
+
+The compact terminal record is
+`evidence/14_luna_behavioral_feasibility/pair_01_terminal.json`; full receipts,
+checkpoints, statuses, logs, and dashboard state remain under
+`$XDG_STATE_HOME/agent_ecology3/eval14/pair_01`. No behavioral comparison,
+restart, or replacement evaluation is authorized by this readout.
