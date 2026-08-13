@@ -28,6 +28,7 @@ from agent_ecology3.simulation import (
 )
 from scripts.run_recoverable_evaluation import (
     PLAN19_ACKNOWLEDGEMENT,
+    PLAN22_CANARY_ACKNOWLEDGEMENT,
     _configure,
     _dashboard_launch_profile,
     _discover_review_runs,
@@ -1004,6 +1005,28 @@ def test_plan19_acknowledgement_freezes_mvp_cell() -> None:
         {"policy_seed": 24191},
     ):
         with pytest.raises(RuntimeError, match="Plan 19 requires exactly 14"):
+            _validate_start_contract(SimpleNamespace(**{**vars(valid), **mutation}))
+
+
+def test_plan22_acknowledgement_freezes_one_call_dashboard_canary() -> None:
+    valid = SimpleNamespace(
+        acknowledgement=PLAN22_CANARY_ACKNOWLEDGEMENT,
+        target_attempts=1,
+        starting_llm_budget=0.033192,
+        principal_count=2,
+        cognition_mode="minimal",
+        policy_seed=24190,
+    )
+    _validate_start_contract(valid)
+
+    for mutation in (
+        {"target_attempts": 2},
+        {"starting_llm_budget": 0.04},
+        {"principal_count": 1},
+        {"cognition_mode": "prescribed"},
+        {"policy_seed": 24191},
+    ):
+        with pytest.raises(RuntimeError, match="Plan 22 canary requires exactly one"):
             _validate_start_contract(SimpleNamespace(**{**vars(valid), **mutation}))
 
 

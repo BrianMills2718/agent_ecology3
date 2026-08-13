@@ -77,6 +77,11 @@ PLAN19_STARTING_BUDGET = 0.033192
 PLAN19_TARGET_ATTEMPTS = 14
 PLAN19_PRINCIPAL_COUNT = 2
 PLAN19_POLICY_SEED = 24190
+PLAN22_CANARY_ACKNOWLEDGEMENT = "plan22/luna-medium/fail-loud-canary/v1"
+PLAN22_CANARY_STARTING_BUDGET = PLAN19_STARTING_BUDGET
+PLAN22_CANARY_TARGET_ATTEMPTS = 1
+PLAN22_CANARY_PRINCIPAL_COUNT = PLAN19_PRINCIPAL_COUNT
+PLAN22_CANARY_POLICY_SEED = PLAN19_POLICY_SEED
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -256,6 +261,25 @@ def _post_json(url: str) -> dict[str, Any]:
 
 
 def _validate_start_contract(args: argparse.Namespace) -> None:
+    if args.acknowledgement == PLAN22_CANARY_ACKNOWLEDGEMENT:
+        if (
+            args.target_attempts != PLAN22_CANARY_TARGET_ATTEMPTS
+            or args.principal_count != PLAN22_CANARY_PRINCIPAL_COUNT
+            or args.cognition_mode != "minimal"
+            or args.policy_seed != PLAN22_CANARY_POLICY_SEED
+            or not math.isclose(
+                float(args.starting_llm_budget or -1),
+                PLAN22_CANARY_STARTING_BUDGET,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ):
+            raise RuntimeError(
+                "Plan 22 canary requires exactly one attempt, two principals, "
+                "Minimal cognition, seed 24190, and "
+                "starting_llm_budget=0.033192"
+            )
+        return
     if args.acknowledgement == PLAN19_ACKNOWLEDGEMENT:
         if (
             args.target_attempts != PLAN19_TARGET_ATTEMPTS
@@ -362,7 +386,7 @@ def _validate_start_contract(args: argparse.Namespace) -> None:
     raise RuntimeError(
         "start requires an exact Plan 10, Plan 11, or Evaluation 12 acknowledgement, "
         "an exact Evaluation 14 or Evaluation 15 acknowledgement, or the exact "
-        "Plan 19 MVP acknowledgement"
+        "Plan 19 MVP acknowledgement, or the exact Plan 22 canary acknowledgement"
     )
 
 
@@ -562,6 +586,7 @@ async def _serve(args: argparse.Namespace) -> None:
         *EVAL14_ACKNOWLEDGEMENTS.values(),
         *EVAL15_ACKNOWLEDGEMENTS.values(),
         PLAN19_ACKNOWLEDGEMENT,
+        PLAN22_CANARY_ACKNOWLEDGEMENT,
     }
     config = _configure(
         Path(args.config).resolve(),
@@ -585,7 +610,10 @@ async def _serve(args: argparse.Namespace) -> None:
         checkpoint_path=_paths(data_dir)["checkpoint"],
         status_path=_paths(data_dir)["status"],
     )
-    if args.acknowledgement == PLAN19_ACKNOWLEDGEMENT:
+    if args.acknowledgement in {
+        PLAN19_ACKNOWLEDGEMENT,
+        PLAN22_CANARY_ACKNOWLEDGEMENT,
+    }:
         _seed_mvp_opportunities(world)
     runner = SimulationRunner(world)
     coordinator.publish_status(

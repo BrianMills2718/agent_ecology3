@@ -76,6 +76,39 @@ as ecology behavior.
 - Running another 14-call ecology before a separately authorized one-call
   canary proves the repaired authentic boundary.
 
+## One-Call Canary Contract
+
+The canary uses the same recoverable dashboard worker and Plan 19 scenario, not
+the older standalone provider probe:
+
+- acknowledgement: `plan22/luna-medium/fail-loud-canary/v1`;
+- Luna Medium, Minimal cognition, two principals, seed `24190`;
+- `starting_llm_budget=0.033192` per principal and a global hard target of
+  exactly one attempt;
+- paused launch with zero dispatch until explicit Resume;
+- `fail_closed_no_substitute`, the two economic opportunity artifacts, receipt
+  custody, and the existing live Ecosystem dashboard.
+
+Success requires exactly one provider-confirmed settlement, one committed
+model-selected action, zero fallbacks, one shared-client receipt, and completed
+custody. Any transport, schema, decision, or action failure must instead stop
+invalid after that first attempt with zero committed substitute actions. Only a
+passing canary authorizes preparation of the next 14-call run.
+
+Provider-free paused launch command after the canary revision is merged:
+
+```bash
+LLM_CLIENT_REPO=/path/to/llm_client
+PYTHONPATH=.:src:"$LLM_CLIENT_REPO" .venv/bin/python \
+  scripts/run_recoverable_evaluation.py start \
+  --acknowledgement plan22/luna-medium/fail-loud-canary/v1 \
+  --data-dir "${XDG_STATE_HOME:-$HOME/.local/state}/agent_ecology3/plan22_luna_canary_v1" \
+  --config config/config.yaml --run-id plan22_luna_canary_v1 \
+  --target-attempts 1 --starting-llm-budget 0.033192 \
+  --principal-count 2 --cognition-mode minimal --policy-seed 24190 \
+  --host 127.0.0.1 --port 9032
+```
+
 ## Preserved Incident Evidence
 
 `/home/brian/.local/state/agent_ecology3/plan21_luna_dashboard_20260813_183636/`
