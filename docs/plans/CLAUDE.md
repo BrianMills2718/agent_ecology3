@@ -16,7 +16,7 @@ Track all implementation work here.
 | 8 | [Behavioral comparison runner](08_behavioral_comparison_runner.md) | High | ✅ Complete | Separately authorized Evaluation 07 execution |
 | 9 | [Behavioral comparison execution](09_behavioral_comparison_execution.md) | High | ✅ Complete (invalid) | New-number evaluation only |
 | 10 | [Luna Medium compatibility and recovery gate](10_luna_medium_recovery_gate.md) | High | ✅ Complete | Luna-specific qualification and scarcity calibration |
-| 11 | [Luna scarcity calibration](11_luna_scarcity_calibration.md) | High | ⏸ Control designed; 8-call authorization pending | New-number Luna behavioral comparison |
+| 11 | [Luna scarcity calibration](11_luna_scarcity_calibration.md) | High | ✅ Calibration complete | New-number Luna behavioral comparison |
 
 ## Status Key
 

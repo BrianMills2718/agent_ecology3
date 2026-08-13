@@ -11,6 +11,15 @@ from agent_ecology3.analysis.scarcity_calibration import (
 def _midpoint_evidence() -> dict[str, object]:
     return {
         "status": "pass",
+        "route": {
+            "model": "codex/gpt-5.6-luna",
+            "reasoning_effort": "medium",
+            "transport": "cli",
+            "mcp_servers": [],
+            "retry_count": 0,
+            "fallback_models": [],
+        },
+        "source": {"llm_client_revision": "accepted-client"},
         "frozen_setting": {"starting_llm_budget": 0.033192},
         "readout": {
             "terminal_reason": "scarcity_binding_pre_dispatch",
@@ -24,6 +33,13 @@ def _midpoint_evidence() -> dict[str, object]:
 def _control_receipt() -> dict[str, object]:
     return {
         "acknowledgement": "plan11/luna-medium/scarcity-control/v1",
+        "model": "codex/gpt-5.6-luna",
+        "reasoning_effort": "medium",
+        "transport": "cli",
+        "mcp_servers": [],
+        "retry_count": 0,
+        "fallback_models": [],
+        "source": {"llm_client_revision": "accepted-client"},
         "starting_llm_budget": 0.066384,
         "recovery": {
             "lifecycle_state": "completed",
@@ -59,7 +75,13 @@ def test_control_comparison_requires_midpoint_binding_and_control_completion() -
 
 @pytest.mark.parametrize(
     "mutation",
-    ("control_bound", "control_short", "midpoint_not_bound", "control_wrong_budget"),
+    (
+        "control_bound",
+        "control_short",
+        "midpoint_not_bound",
+        "control_wrong_budget",
+        "route_mismatch",
+    ),
 )
 def test_control_comparison_invalidates_failed_separation(mutation: str) -> None:
     midpoint = _midpoint_evidence()
@@ -71,8 +93,10 @@ def test_control_comparison_invalidates_failed_separation(mutation: str) -> None
         control["recovery"]["provider_dispatch_count"] = 7  # type: ignore[index]
     elif mutation == "midpoint_not_bound":
         midpoint["readout"]["terminal_reason"] = None  # type: ignore[index]
-    else:
+    elif mutation == "control_wrong_budget":
         control["starting_llm_budget"] = 0.25
+    else:
+        control["model"] = "different/model"
     assert build_control_comparison_readout(midpoint, control)["status"] == "invalid"
 
 

@@ -22,8 +22,22 @@ def build_control_comparison_readout(
     """Validate manipulation separation without claiming a behavioral effect."""
     midpoint_readout = _require_mapping(midpoint.get("readout"), "midpoint.readout")
     midpoint_setting = _require_mapping(midpoint.get("frozen_setting"), "midpoint.frozen_setting")
+    midpoint_route = _require_mapping(midpoint.get("route"), "midpoint.route")
+    midpoint_source = _require_mapping(midpoint.get("source"), "midpoint.source")
     control_recovery = _require_mapping(control.get("recovery"), "control.recovery")
     control_checkpoint = _require_mapping(control.get("checkpoint"), "control.checkpoint")
+    control_source = _require_mapping(control.get("source"), "control.source")
+
+    route_parity = (
+        midpoint_route.get("model") == control.get("model") == "codex/gpt-5.6-luna"
+        and midpoint_route.get("reasoning_effort") == control.get("reasoning_effort") == "medium"
+        and midpoint_route.get("transport") == control.get("transport") == "cli"
+        and midpoint_route.get("mcp_servers") == control.get("mcp_servers") == []
+        and midpoint_route.get("retry_count") == control.get("retry_count") == 0
+        and midpoint_route.get("fallback_models") == control.get("fallback_models") == []
+        and midpoint_source.get("llm_client_revision")
+        == control_source.get("llm_client_revision")
+    )
 
     midpoint_pass = (
         midpoint.get("status") == "pass"
@@ -58,7 +72,7 @@ def build_control_comparison_readout(
             for attempt in attempts
         )
     )
-    valid = midpoint_pass and control_pass
+    valid = midpoint_pass and control_pass and route_parity
     return {
         "schema_version": "ae3_scarcity_control_comparison.v1",
         "status": "pass" if valid else "invalid",
@@ -78,6 +92,7 @@ def build_control_comparison_readout(
             "completed_horizon": control_pass,
             "action_types": control_actions,
         },
+        "route_parity": route_parity,
         "non_claims": [
             "One matched pair does not estimate a behavioral effect.",
             "Action differences are descriptive and cannot establish causality.",

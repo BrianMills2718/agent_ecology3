@@ -1,6 +1,6 @@
 # Plan #11: Luna Scarcity Calibration
 
-**Status:** Authentic midpoint probe passed — control comparison designed
+**Status:** Manipulation separation passed and independently signed off
 **Type:** evaluation design and instrument
 **Priority:** High
 **Blocked By:** Plan #10 complete
@@ -151,6 +151,21 @@ under `docs/evaluations/evidence/11_luna_scarcity_calibration/`.
 reliability, optimal scarcity, a production parameter, or readiness to rerun
 the earlier prescribed-versus-minimal evaluation. Any consequential follow-on
 decision requires fresh `eval-decision-signoff`.
+
+### Control result (2026-08-12)
+
+The control completed exactly 8/8 committed Luna attempts from clean pushed
+revision `c17f729`, with `0.029697` budget remaining. All eight shared-client
+receipts succeeded; there was no retry, fallback, MCP, ambiguity, or terminal
+error. The dashboard showed `8/8` and `completed` with no console errors or
+failed requests.
+
+The provider-free matched readout passed: the accepted midpoint bound before
+dispatch eight while the doubled-budget control completed dispatch eight. A
+fresh adversarial verifier reproduced the readout and signed off on the narrow
+decision. Therefore these two settings are eligible for a later preregistered
+behavioral comparison. No behavioral-effect or production-parameter claim is
+made.
 
 ## Files Affected
 
