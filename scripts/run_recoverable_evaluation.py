@@ -65,6 +65,14 @@ EVAL14_STARTING_BUDGET = 0.033192
 EVAL14_TARGET_ATTEMPTS = 15
 EVAL14_PRINCIPAL_COUNT = 2
 EVAL14_POLICY_SEED = 24140
+EVAL15_ACKNOWLEDGEMENTS = {
+    "prescribed": "eval15/luna-medium/prescribed/pair-01/v1",
+    "minimal": "eval15/luna-medium/minimal/pair-01/v1",
+}
+EVAL15_STARTING_BUDGET = 0.033192
+EVAL15_TARGET_ATTEMPTS = 14
+EVAL15_PRINCIPAL_COUNT = 2
+EVAL15_POLICY_SEED = 24150
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -205,6 +213,26 @@ def _post_json(url: str) -> dict[str, Any]:
 
 
 def _validate_start_contract(args: argparse.Namespace) -> None:
+    expected_eval15_ack = EVAL15_ACKNOWLEDGEMENTS.get(
+        getattr(args, "cognition_mode", None)
+    )
+    if args.acknowledgement == expected_eval15_ack:
+        if (
+            args.target_attempts != EVAL15_TARGET_ATTEMPTS
+            or args.principal_count != EVAL15_PRINCIPAL_COUNT
+            or args.policy_seed != EVAL15_POLICY_SEED
+            or not math.isclose(
+                float(args.starting_llm_budget or -1),
+                EVAL15_STARTING_BUDGET,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ):
+            raise RuntimeError(
+                "Evaluation 15 requires exactly 14 attempts, two principals, "
+                "seed 24150, and starting_llm_budget=0.033192"
+            )
+        return
     expected_eval14_ack = EVAL14_ACKNOWLEDGEMENTS.get(
         getattr(args, "cognition_mode", None)
     )
@@ -272,7 +300,7 @@ def _validate_start_contract(args: argparse.Namespace) -> None:
         return
     raise RuntimeError(
         "start requires an exact Plan 10, Plan 11, or Evaluation 12 acknowledgement, "
-        "or an exact Evaluation 14 acknowledgement"
+        "or an exact Evaluation 14 or Evaluation 15 acknowledgement"
     )
 
 
@@ -410,7 +438,10 @@ async def _serve(args: argparse.Namespace) -> None:
     data_dir = Path(args.data_dir).expanduser().resolve()
     data_dir.mkdir(parents=True, exist_ok=True)
     source = _preflight()
-    is_eval14 = args.acknowledgement in EVAL14_ACKNOWLEDGEMENTS.values()
+    is_fail_closed_evaluation = args.acknowledgement in {
+        *EVAL14_ACKNOWLEDGEMENTS.values(),
+        *EVAL15_ACKNOWLEDGEMENTS.values(),
+    }
     config = _configure(
         Path(args.config).resolve(),
         data_dir,
@@ -419,10 +450,12 @@ async def _serve(args: argparse.Namespace) -> None:
         cognition_mode=args.cognition_mode,
         policy_seed=args.policy_seed,
         action_failure_policy=(
-            "fail_closed_no_substitute" if is_eval14 else "recovery_fallback"
+            "fail_closed_no_substitute"
+            if is_fail_closed_evaluation
+            else "recovery_fallback"
         ),
-        mint_enabled=is_eval14,
-        mint_auction_after_horizon=is_eval14,
+        mint_enabled=is_fail_closed_evaluation,
+        mint_auction_after_horizon=is_fail_closed_evaluation,
     )
     world, coordinator = build_recoverable_world(
         config,

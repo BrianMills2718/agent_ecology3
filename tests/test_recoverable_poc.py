@@ -14,6 +14,7 @@ from agent_ecology3.analysis.behavioral_feasibility_repair import (
     validate_cell_evidence,
     validate_design_file,
 )
+from agent_ecology3.analysis.hard_call_cap import validate_capped_cell
 from agent_ecology3.config import AppConfig
 from agent_ecology3.dashboard import create_app
 from agent_ecology3.simulation import (
@@ -463,3 +464,73 @@ def test_eval14_cell_validator_suppresses_invalid_pair() -> None:
     )
     assert invalid["status"] == "invalid"
     assert invalid["failed_checks"] == ["dispatch_ceiling"]
+
+
+@pytest.mark.parametrize("mode", ["prescribed", "minimal"])
+def test_eval15_acknowledgement_freezes_hard_call_cap(mode: str) -> None:
+    args = SimpleNamespace(
+        acknowledgement=f"eval15/luna-medium/{mode}/pair-01/v1",
+        target_attempts=14,
+        starting_llm_budget=0.033192,
+        principal_count=2,
+        cognition_mode=mode,
+        policy_seed=24150,
+    )
+    _validate_start_contract(args)
+
+    with pytest.raises(RuntimeError, match="requires exactly 14 attempts"):
+        _validate_start_contract(SimpleNamespace(**{**vars(args), "target_attempts": 15}))
+
+
+def test_eval15_validator_rejects_fifteenth_dispatch() -> None:
+    attempts = [
+        {
+            "ordinal": ordinal,
+            "phase": "committed",
+            "payer_id": f"alpha_{1 if ordinal % 2 else 2}",
+            "trace_id": f"trace-{ordinal}",
+        }
+        for ordinal in range(1, 15)
+    ]
+    checkpoint = {
+        "attempts": attempts,
+        "provider_dispatch_count": 14,
+        "terminal_state": None,
+        "terminal_reason": None,
+    }
+    status = {"lifecycle_state": "completed", "terminal_reason": None}
+    receipt = {
+        "acknowledgement": "eval15/luna-medium/prescribed/pair-01/v1",
+        "recovery": status,
+        "checkpoint": checkpoint,
+        "shared_client_receipts": [{} for _ in range(14)],
+        "local_action_failure_policy": "fail_closed_no_substitute",
+        "mint": {"enabled": True, "scoring_max_budget": 0.0},
+    }
+    valid = validate_capped_cell(
+        condition="prescribed",
+        checkpoint=checkpoint,
+        status=status,
+        receipt=receipt,
+    )
+    assert valid["status"] == "valid"
+
+    attempt_15 = {
+        "ordinal": 15,
+        "phase": "committed",
+        "payer_id": "alpha_1",
+        "trace_id": "trace-15",
+    }
+    invalid_checkpoint = {
+        **checkpoint,
+        "attempts": [*attempts, attempt_15],
+        "provider_dispatch_count": 15,
+    }
+    invalid = validate_capped_cell(
+        condition="prescribed",
+        checkpoint=invalid_checkpoint,
+        status=status,
+        receipt=receipt,
+    )
+    assert invalid["status"] == "invalid"
+    assert "hard_fourteen_call_cap" in invalid["failed_checks"]

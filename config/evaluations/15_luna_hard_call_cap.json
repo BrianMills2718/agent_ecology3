@@ -1,0 +1,24 @@
+{
+  "schema_version": "ae3_eval15_design.v1",
+  "evaluation_id": "15_luna_hard_call_cap",
+  "model": "codex/gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "conditions": ["prescribed", "minimal"],
+  "acknowledgements": {
+    "prescribed": "eval15/luna-medium/prescribed/pair-01/v1",
+    "minimal": "eval15/luna-medium/minimal/pair-01/v1"
+  },
+  "principal_count": 2,
+  "policy_seed": 24150,
+  "starting_llm_budget_per_principal": 0.033192,
+  "committed_calls_per_condition": 14,
+  "required_attempt_distribution": {"alpha_1": 7, "alpha_2": 7},
+  "maximum_provider_attempts": 28,
+  "stopping_rule": "hard_pre_dispatch_call_cap",
+  "provider_retries": 0,
+  "fallback_models": [],
+  "mcp_servers": [],
+  "local_action_failure_policy": "fail_closed_no_substitute",
+  "mint": {"enabled": true, "auction_after_horizon": true, "scoring_max_budget": 0.0},
+  "decision": "dashboard_visible_matched_pair_feasibility_only"
+}

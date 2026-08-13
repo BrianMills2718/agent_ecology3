@@ -19,7 +19,8 @@ Track all implementation work here.
 | 11 | [Luna scarcity calibration](11_luna_scarcity_calibration.md) | High | ✅ Calibration complete | New-number Luna behavioral comparison |
 | 12 | [Luna behavioral feasibility probe](12_luna_behavioral_feasibility.md) | High | ✅ Complete (invalid at prescribed 14/16) | New-number design only |
 | 13 | [Receipt and fallback contract repair](13_receipt_and_fallback_contract.md) | High | ✅ Complete | New behavioral evaluation |
-| 14 | [Luna behavioral feasibility repair](14_luna_behavioral_feasibility_repair.md) | High | ⏸ Proposed; implementation not authorized | Replicated Luna cognition comparison |
+| 14 | [Luna behavioral feasibility repair](14_luna_behavioral_feasibility_repair.md) | High | ✅ Complete (invalid pair) | New-number design only |
+| 15 | [Hard call cap](15_hard_call_cap.md) | High | 🚧 Provider-free implementation | Dashboard-visible matched pair |
 
 ## Status Key
 
