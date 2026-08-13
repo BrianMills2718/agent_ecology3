@@ -423,7 +423,9 @@ class World:
                 [
                     f"You are {principal_id}, a self-interested economic agent.",
                     "No role, specialization, action sequence, or trading policy is assigned.",
-                    "Develop and revise your own strategy from visible constraints and observed outcomes.",
+                    "Choose your own strategy to preserve and increase scarce resources.",
+                    "Treat strategy as private guidance; create public artifacts only when you expect another principal to use them.",
+                    "Adapt from observed outcomes instead of producing redundant strategy versions.",
                 ]
             )
         profile = self._role_profile(slot)

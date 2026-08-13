@@ -29,11 +29,13 @@ from agent_ecology3.simulation import (
 from scripts.run_recoverable_evaluation import (
     PLAN19_ACKNOWLEDGEMENT,
     PLAN22_CANARY_ACKNOWLEDGEMENT,
+    PLAN23_ACKNOWLEDGEMENT,
     _configure,
     _dashboard_launch_profile,
     _discover_review_runs,
     _launch_dashboard_run,
     _seed_mvp_opportunities,
+    _seed_emergent_opportunities,
     _terminal_lifecycle,
     _validate_start_contract,
 )
@@ -1028,6 +1030,55 @@ def test_plan22_acknowledgement_freezes_one_call_dashboard_canary() -> None:
     ):
         with pytest.raises(RuntimeError, match="Plan 22 canary requires exactly one"):
             _validate_start_contract(SimpleNamespace(**{**vars(valid), **mutation}))
+
+
+def test_plan23_acknowledgement_freezes_emergent_interaction_cell() -> None:
+    valid = SimpleNamespace(
+        acknowledgement=PLAN23_ACKNOWLEDGEMENT,
+        target_attempts=14,
+        starting_llm_budget=0.033192,
+        principal_count=2,
+        cognition_mode="minimal",
+        policy_seed=24230,
+    )
+    _validate_start_contract(valid)
+
+    for mutation in (
+        {"target_attempts": 15},
+        {"starting_llm_budget": 0.04},
+        {"principal_count": 1},
+        {"cognition_mode": "prescribed"},
+        {"policy_seed": 24231},
+    ):
+        with pytest.raises(RuntimeError, match="Plan 23 requires exactly 14"):
+            _validate_start_contract(SimpleNamespace(**{**vars(valid), **mutation}))
+
+
+def test_plan23_opportunities_are_complementary_without_selecting_actions(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    config.principals.count = 2
+    world, _ = build_recoverable_world(
+        config,
+        run_id="plan23_provider_free_fixture",
+        target_attempts=14,
+        checkpoint_path=tmp_path / "checkpoint.json",
+        status_path=tmp_path / "status.json",
+    )
+
+    assert _seed_emergent_opportunities(world) == [
+        "alpha_1_market_signal",
+        "alpha_2_validation_guide",
+    ]
+    signal = world.artifacts.get("alpha_1_market_signal")
+    method = world.artifacts.get("alpha_2_validation_guide")
+    assert signal is not None and method is not None
+    assert signal.read_price == method.read_price == 2
+    assert "no external use" in signal.content
+    assert "counter-signal" in method.content
+    assert signal.metadata["fixture_not_agent_action"] is True
+    assert method.metadata["plan23_complementary_evidence"] is True
 
 
 def test_terminal_lifecycle_uses_durable_attempt_progress() -> None:

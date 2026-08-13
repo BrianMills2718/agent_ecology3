@@ -82,6 +82,11 @@ PLAN22_CANARY_STARTING_BUDGET = PLAN19_STARTING_BUDGET
 PLAN22_CANARY_TARGET_ATTEMPTS = 1
 PLAN22_CANARY_PRINCIPAL_COUNT = PLAN19_PRINCIPAL_COUNT
 PLAN22_CANARY_POLICY_SEED = PLAN19_POLICY_SEED
+PLAN23_ACKNOWLEDGEMENT = "plan23/luna-medium/emergent-interaction/v1"
+PLAN23_STARTING_BUDGET = PLAN19_STARTING_BUDGET
+PLAN23_TARGET_ATTEMPTS = 14
+PLAN23_PRINCIPAL_COUNT = 2
+PLAN23_POLICY_SEED = 24230
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -169,6 +174,7 @@ def _configure(
     ] = "recovery_fallback",
     mint_enabled: bool = False,
     mint_auction_after_horizon: bool = False,
+    loop_prompt_template_path: Path | None = None,
 ) -> AppConfig:
     config = load_config(config_path)
     config.principals.count = principal_count
@@ -200,6 +206,11 @@ def _configure(
         Literal["prescribed", "minimal"], cognition_mode
     )
     config.llm.loop_policy_seed = policy_seed
+    config.llm.loop_prompt_template_path = (
+        str(loop_prompt_template_path.resolve())
+        if loop_prompt_template_path is not None
+        else None
+    )
     config.llm.loop_action_failure_policy = action_failure_policy
     config.llm.decision_output_mode = "luna_structured_v1"
     config.llm.reasoning_effort = "medium"
@@ -261,6 +272,24 @@ def _post_json(url: str) -> dict[str, Any]:
 
 
 def _validate_start_contract(args: argparse.Namespace) -> None:
+    if args.acknowledgement == PLAN23_ACKNOWLEDGEMENT:
+        if (
+            args.target_attempts != PLAN23_TARGET_ATTEMPTS
+            or args.principal_count != PLAN23_PRINCIPAL_COUNT
+            or args.cognition_mode != "minimal"
+            or args.policy_seed != PLAN23_POLICY_SEED
+            or not math.isclose(
+                float(args.starting_llm_budget or -1),
+                PLAN23_STARTING_BUDGET,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ):
+            raise RuntimeError(
+                "Plan 23 requires exactly 14 attempts, two principals, Minimal "
+                "cognition, seed 24230, and starting_llm_budget=0.033192"
+            )
+        return
     if args.acknowledgement == PLAN22_CANARY_ACKNOWLEDGEMENT:
         if (
             args.target_attempts != PLAN22_CANARY_TARGET_ATTEMPTS
@@ -386,7 +415,8 @@ def _validate_start_contract(args: argparse.Namespace) -> None:
     raise RuntimeError(
         "start requires an exact Plan 10, Plan 11, or Evaluation 12 acknowledgement, "
         "an exact Evaluation 14 or Evaluation 15 acknowledgement, or the exact "
-        "Plan 19 MVP acknowledgement, or the exact Plan 22 canary acknowledgement"
+        "Plan 19 MVP acknowledgement, the exact Plan 22 canary acknowledgement, "
+        "or the exact Plan 23 emergent-interaction acknowledgement"
     )
 
 
@@ -422,6 +452,48 @@ def _seed_mvp_opportunities(world: RecoverableLoopWorld) -> list[str]:
             metadata={
                 "mvp_scenario_opportunity": True,
                 "fixture_not_agent_action": True,
+            },
+        )
+    return [item[0] for item in opportunities]
+
+
+def _seed_emergent_opportunities(world: RecoverableLoopWorld) -> list[str]:
+    """Seed complementary evidence without assigning roles or actions."""
+    if world.principal_ids != ["alpha_1", "alpha_2"]:
+        raise RuntimeError("Plan 23 scenario requires exactly alpha_1 and alpha_2")
+    opportunities = (
+        (
+            "alpha_1_market_signal",
+            "market_signal",
+            "alpha_1",
+            "Observed local demand: generic strategy notes have attracted no "
+            "external use. A concise opportunity forecast with explicit evidence, "
+            "uncertainty, and a falsifiable prediction may be useful to another "
+            "principal. This observation is not a guaranteed buyer or reward.",
+        ),
+        (
+            "alpha_2_validation_guide",
+            "validation_method",
+            "alpha_2",
+            "Independent validation method: identify an artifact's key claim, "
+            "test it against one counter-signal, state confidence, and name the "
+            "next observation that would change the conclusion. Applying this "
+            "method can make another principal's forecast more decision-useful.",
+        ),
+    )
+    for artifact_id, artifact_type, owner, content in opportunities:
+        world.artifacts.write(
+            artifact_id,
+            artifact_type,
+            content,
+            created_by=owner,
+            owner=owner,
+            read_price=2,
+            access_contract_id="kernel_contract_freeware",
+            metadata={
+                "mvp_scenario_opportunity": True,
+                "fixture_not_agent_action": True,
+                "plan23_complementary_evidence": True,
             },
         )
     return [item[0] for item in opportunities]
@@ -587,6 +659,7 @@ async def _serve(args: argparse.Namespace) -> None:
         *EVAL15_ACKNOWLEDGEMENTS.values(),
         PLAN19_ACKNOWLEDGEMENT,
         PLAN22_CANARY_ACKNOWLEDGEMENT,
+        PLAN23_ACKNOWLEDGEMENT,
     }
     config = _configure(
         Path(args.config).resolve(),
@@ -602,6 +675,11 @@ async def _serve(args: argparse.Namespace) -> None:
         ),
         mint_enabled=is_fail_closed_evaluation,
         mint_auction_after_horizon=is_fail_closed_evaluation,
+        loop_prompt_template_path=(
+            REPO_ROOT / "config" / "prompts" / "loop_prompt_emergent_v1.txt"
+            if args.acknowledgement == PLAN23_ACKNOWLEDGEMENT
+            else None
+        ),
     )
     world, coordinator = build_recoverable_world(
         config,
@@ -615,6 +693,8 @@ async def _serve(args: argparse.Namespace) -> None:
         PLAN22_CANARY_ACKNOWLEDGEMENT,
     }:
         _seed_mvp_opportunities(world)
+    elif args.acknowledgement == PLAN23_ACKNOWLEDGEMENT:
+        _seed_emergent_opportunities(world)
     runner = SimulationRunner(world)
     coordinator.publish_status(
         "running" if args.start_running else "paused",
