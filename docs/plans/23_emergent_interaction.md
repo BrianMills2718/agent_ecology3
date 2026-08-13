@@ -1,6 +1,6 @@
 # Plan #23: Emergent Economic Interaction
 
-**Status:** In Progress
+**Status:** Candidate Passed — independent sign-off and Brian review pending
 **Type:** exploratory PoC iteration
 **Priority:** Critical
 **Blocked By:** None
@@ -141,3 +141,35 @@ Use versioned acknowledgement `plan23/luna-medium/emergent-interaction/v2` with
 `0.066384` LLM budget per principal. Keep the model, prompt, scenario, seed,
 actions, memory, fail-loud policy, rubric, and 14-call ceiling unchanged. This
 is exposure correction, not behavioral tuning.
+
+### Development run 3 — all pre-registered technical criteria passed
+
+`plan23_emergent_v2_run3` completed from merged revision `68dc440` with exact
+14/14 provider-settled and committed Luna decisions, 14 shared-client receipts,
+zero retries, zero fallback models, and zero fallback, gate-fallback,
+recovery-fallback, substitute, or failed actions.
+
+The run passed the unchanged behavioral gate:
+
+- five cross-principal paid reads moved 12 scrip;
+- three action types appeared: six reads, five event queries, and three writes;
+- the largest action share was `42.9%`, below the `60%` ceiling, and loop action
+  entropy was `1.531`;
+- both principals bought complementary seed evidence, independently produced
+  priced outputs, and bought each other's run-created outputs;
+- after purchasing `alpha_2_opportunity_forecast`, `alpha_1` received its exact
+  content in the next prompt, later wrote `alpha_1_opportunity_forecast`
+  explicitly incorporating that evidence, and `alpha_2` bought it for 3 scrip;
+- final balances were `alpha_1=104` and `alpha_2=96`.
+
+Fresh Chromium at 1440x900 showed completed custody, all 14 activity rows, five
+visible economic artifacts, working artifact-content inspection, and the raw
+Evidence view after refresh with zero console errors or failed requests. After
+the worker exited, a separate read-only process reopened the durable run with
+the same 14 decisions and artifacts. The authoritative run directory is
+`/home/brian/.local/state/agent_ecology3/plan23_emergent_v2_run3/`.
+
+This is a technically passing exploratory candidate, not a general emergence
+claim. The mandatory independent eval-decision sign-off remains pending because
+this session was not authorized to spawn the required fresh verifier. Brian's
+judgment of whether the behavior is actually interesting also remains pending.

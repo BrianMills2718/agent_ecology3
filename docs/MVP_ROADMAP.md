@@ -37,12 +37,12 @@ them.
 
 | Dimension | Current truth |
 |---|---|
-| Technical execution | Plan 22 passed a one-call Luna canary and a fresh 14-call Luna Medium run through the repaired fail-loud worker |
-| Stakeholder reviewability | Brian reviewed the completed authentic run in the existing Ecosystem dashboard and said it looked fine |
-| Stakeholder outcome | **Local MVP complete**: two agents acted live, value crossed principals, reusable artifacts were created and consumed, and the run completed in the same interface |
-| Independent evidence | Plan 19 is independently signed off for this bounded local-MVP claim |
-| Operational state | The dashboard launches paused, resumes explicitly, reaches truthful 14/14 custody, and reopens the new durable run after worker shutdown; the invalid Plan 21 incident remains preserved negative evidence |
-| Claim boundary | Repeatable local workbench demonstrated by the Plan 19 and Plan 22 runs; no causal, comparative, population, or generalization claim |
+| Technical execution | Plan 23 run 3 passed its frozen 14-call reciprocal-interaction rubric with authentic Luna actions and bounded purchased-content memory |
+| Stakeholder reviewability | The Plan 23 candidate reopens read-only in the existing Ecosystem dashboard with its reciprocal read-create-buy chain and artifact contents visible |
+| Stakeholder outcome | **Local MVP complete; interesting-behavior candidate pending review**: the workbench is repeatable, while Brian has not yet accepted Plan 23 as interesting |
+| Independent evidence | Plan 19 is independently signed off for the bounded local-MVP claim; Plan 23 independent eval-decision sign-off remains pending |
+| Operational state | Plan 23 run 3 completed 14/14, survived worker shutdown, and reopens from its durable receipt; Plan 21 remains preserved negative evidence |
+| Claim boundary | One trace-grounded reciprocal-interaction candidate; no causal, comparative, population, seed-robustness, or general emergence claim |
 
 ## Canonical outcome exemplar
 
@@ -75,11 +75,12 @@ them.
 | 1 | Reopen any preserved run | direct blocker / **complete** | After shutting down the original worker, a fresh process lists and opens the single Plan 19 receipt read-only with the same 14 actions, balances, artifacts, lifecycle, and evidence; zero model calls | Satisfied by Plan 20 |
 | 2 | Launch another bounded run from the existing dashboard | vertical / **complete** | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Satisfied by Plan 21 |
 | 3 | Fail-loud repeat-run boundary | direct blocker / **complete** | A durable worker stops invalid on the first authentic-boundary failure and never presents a substitute as model behavior | Satisfied by Plan 22 canary and fresh 14-call run |
-| 4 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | A real run contains relationships that Brian finds hard to understand |
-| 5 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
-| 6 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
-| 7 | Expand ecology size and dynamics | conditional | A 4–8 agent run remains legible, bounded, and economically active; scaling work addresses only reproduced limits | Two-agent runs are repeatable and the next uncertainty is network behavior |
-| 8 | Internal pilot or external release | deliberately deferred | Deployment target, users, data, access, uptime, and release authority are explicit before production controls enter scope | A real remote or multi-user consumer exists |
+| 4 | Interesting emergent interaction | candidate / **human decision required** | A valid run contains endogenous paid use, a trace-grounded adaptation chain, at least three action types, no action above 60%, and behavior Brian finds interesting | Plan 23 passes technically; independent sign-off and Brian review remain |
+| 5 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | Brian cannot follow Plan 23 or a richer run from the list |
+| 6 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
+| 7 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
+| 8 | Expand ecology size and dynamics | conditional | A 4–8 agent run remains legible, bounded, and economically active; scaling work addresses only reproduced limits | Two-agent runs are repeatable and the next uncertainty is network behavior |
+| 9 | Internal pilot or external release | deliberately deferred | Deployment target, users, data, access, uptime, and release authority are explicit before production controls enter scope | A real remote or multi-user consumer exists |
 
 Success criteria derive from the explicit user outcome and the observed current
 boundary. Release-only controls activate only at capability 7; evaluation
@@ -96,47 +97,50 @@ controls activate only at capability 5.
    provider-free fail-loud vertical.
 5. After separate authorization, prove the boundary with one Luna call before
    exposing another 14-call run. **Complete.**
-6. Observe one newly launched valid run through the same screen. **Technically
-   complete; Brian's usefulness judgment remains.**
-7. Select scenario exploration, comparison, or larger ecologies based on the
+6. Observe one newly launched valid run through the same screen. **Complete.**
+7. Repair the reproduced repetitive-strategy and missing-read-memory defects,
+   then obtain one rubric-passing reciprocal-interaction candidate. **Complete.**
+8. Obtain independent sign-off and Brian's interesting-behavior judgment.
+9. Select scenario exploration, comparison, or larger ecologies based on the
    next concrete operator question—not because infrastructure exists.
 
 No work-unit graph or parallel program is justified for the current
 single-contributor sequence. Future implementation goals receive a bounded
-design. The technical repeat-run frontier is complete; the current frontier is
-Brian's review of the preserved Plan 22 run before selecting any conditional
-capability.
+design. The technical repeat-run and reciprocal-interaction probes are complete;
+the current frontier is independent verification plus Brian's review of the
+preserved Plan 23 candidate.
 
 ## Selected execution frontier
 
-**Goal:** Have Brian judge whether the repaired, repeatable dashboard run is
-understandable and useful enough to accept the local MVP.
+**Goal:** Have Brian judge whether the trace-grounded reciprocal market behavior
+in the Plan 23 candidate is interesting enough to accept as the next exemplar.
 
 Backward path:
 
 ```text
-Brian accepts the repeatable local MVP
-  <- Brian reviews the reopened Plan 22 run in the existing dashboard
-  <- a fresh 14-call run completes with authentic actions and zero substitutes
-  <- one Luna canary proves durable cwd and fail-loud custody
-  <- provider-free checks prove the first failure stops after one attempt
+Brian accepts the interesting-behavior exemplar
+  <- Brian reviews the reopened Plan 23 activity and artifact contents
+  <- an independent verifier fails to break the frozen evaluation signal
+  <- run 3 passes authentic custody, endogenous use, adaptation, and diversity
+  <- purchased content reaches bounded private memory for the next Luna turn
 ```
 
-The implementation boundary is complete; the remaining frontier is stakeholder
-acceptance. Existing capabilities apply as follows:
+The implementation boundary is complete; the remaining frontier is independent
+verification and stakeholder acceptance. Existing capabilities apply as follows:
 
 | Capability | Canonical seam | Disposition | Adoption proof |
 |---|---|---|---|
 | Operator UI | existing Ecosystem dashboard | accepted implementation | Completed run shows 14 readable decisions and preserves raw Evidence |
 | Worker lifecycle | recoverable paused worker | accepted implementation | Durable run reopens after the original worker exits |
 | Spend boundary | hard call cap, fixed Luna profile, explicit Resume | preserved | Canary passed before exactly 14 repeat-run dispatches |
+| Cognitive feedback | existing private state/notebook | extended | Purchased content appears in the buyer's next prompt and affects later output |
 
-**Next decision handoff:** Brian reviews
-`plan22_luna_mvp_20260813_193248` and decides whether the activity is
-understandable and useful. If accepted, choose the next conditional capability
-from a concrete operator question. If rejected, repair only the specific
-comprehension or behavior defect observed. No scenario work, graph, deployment,
-or production hardening is required first.
+**Next decision handoff:** Independently verify the frozen Plan 23 readout, then
+Brian reviews `plan23_emergent_v2_run3` and decides whether the behavior is
+interesting. If accepted, adopt it as the current outcome exemplar and select
+the next conditional capability from a concrete operator question. If rejected,
+repair only the specific behavior or comprehension defect observed. No graph,
+deployment, or production hardening is required first.
 
 ## YAGNI guardrails
 
@@ -183,3 +187,5 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
   launch and zero-dispatch browser evidence.
 - [Plan 22](plans/22_fail_loud_authentic_runs.md) owns the fail-loud repair,
   authentic canary, repeat-run receipt, and durable reopen evidence.
+- [Plan 23](plans/23_emergent_interaction.md) owns the reciprocal-interaction
+  rubric, read-memory repair, candidate receipt, and pending acceptance gates.
