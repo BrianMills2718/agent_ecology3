@@ -1,0 +1,23 @@
+{
+  "schema_version": "ae3_scarcity_control_comparison.v1",
+  "status": "pass",
+  "decision": "manipulation_separates_within_eight_attempt_horizon",
+  "midpoint": {
+    "starting_llm_budget": 0.033192,
+    "provider_dispatch_count": 7,
+    "scarcity_binding": true
+  },
+  "control": {
+    "starting_llm_budget": 0.066384,
+    "provider_dispatch_count": 8,
+    "completed_horizon": true,
+    "action_types": ["query_kernel", "query_kernel", "query_kernel", "write_artifact", "query_kernel", "query_kernel", "query_kernel", "query_kernel"]
+  },
+  "route_parity": true,
+  "independent_signoff": "signed_off",
+  "non_claims": [
+    "One matched pair does not estimate a behavioral effect.",
+    "Action differences are descriptive and cannot establish causality.",
+    "A passing result selects settings for a later preregistered comparison only."
+  ]
+}

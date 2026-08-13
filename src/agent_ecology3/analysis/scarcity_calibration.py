@@ -9,6 +9,98 @@ from pathlib import Path
 from typing import Any
 
 
+def _require_mapping(value: Any, label: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise TypeError(f"{label} must be an object")
+    return value
+
+
+def build_control_comparison_readout(
+    midpoint: dict[str, Any],
+    control: dict[str, Any],
+) -> dict[str, Any]:
+    """Validate manipulation separation without claiming a behavioral effect."""
+    midpoint_readout = _require_mapping(midpoint.get("readout"), "midpoint.readout")
+    midpoint_setting = _require_mapping(midpoint.get("frozen_setting"), "midpoint.frozen_setting")
+    midpoint_route = _require_mapping(midpoint.get("route"), "midpoint.route")
+    midpoint_source = _require_mapping(midpoint.get("source"), "midpoint.source")
+    control_recovery = _require_mapping(control.get("recovery"), "control.recovery")
+    control_checkpoint = _require_mapping(control.get("checkpoint"), "control.checkpoint")
+    control_source = _require_mapping(control.get("source"), "control.source")
+
+    route_parity = (
+        midpoint_route.get("model") == control.get("model") == "codex/gpt-5.6-luna"
+        and midpoint_route.get("reasoning_effort") == control.get("reasoning_effort") == "medium"
+        and midpoint_route.get("transport") == control.get("transport") == "cli"
+        and midpoint_route.get("mcp_servers") == control.get("mcp_servers") == []
+        and midpoint_route.get("retry_count") == control.get("retry_count") == 0
+        and midpoint_route.get("fallback_models") == control.get("fallback_models") == []
+        and midpoint_source.get("llm_client_revision")
+        == control_source.get("llm_client_revision")
+    )
+
+    midpoint_pass = (
+        midpoint.get("status") == "pass"
+        and midpoint_readout.get("terminal_reason") == "scarcity_binding_pre_dispatch"
+        and midpoint_readout.get("boundary_attempt_phase") == "pre_dispatch_rejected"
+        and midpoint_readout.get("boundary_trace_id") is None
+        and midpoint_readout.get("provider_dispatch_count") == 7
+        and midpoint_setting.get("starting_llm_budget") == 0.033192
+    )
+    attempts = control_checkpoint.get("attempts")
+    if not isinstance(attempts, list):
+        raise TypeError("control.checkpoint.attempts must be a list")
+    control_actions = [
+        attempt.get("syscall_result", {}).get("structured_action", {}).get("action_type")
+        for attempt in attempts
+        if isinstance(attempt, dict)
+        and isinstance(attempt.get("syscall_result"), dict)
+        and isinstance(attempt["syscall_result"].get("structured_action"), dict)
+    ]
+    control_pass = (
+        control.get("acknowledgement") == "plan11/luna-medium/scarcity-control/v1"
+        and control.get("starting_llm_budget") == 0.066384
+        and control_recovery.get("lifecycle_state") == "completed"
+        and control_recovery.get("provider_dispatch_count") == 8
+        and control_recovery.get("committed_attempts") == 8
+        and control_recovery.get("terminal_reason") is None
+        and len(attempts) == 8
+        and all(
+            isinstance(attempt, dict)
+            and attempt.get("phase") == "committed"
+            and isinstance(attempt.get("trace_id"), str)
+            for attempt in attempts
+        )
+    )
+    valid = midpoint_pass and control_pass and route_parity
+    return {
+        "schema_version": "ae3_scarcity_control_comparison.v1",
+        "status": "pass" if valid else "invalid",
+        "decision": (
+            "manipulation_separates_within_eight_attempt_horizon"
+            if valid
+            else "no_calibration_decision"
+        ),
+        "midpoint": {
+            "starting_llm_budget": 0.033192,
+            "provider_dispatch_count": midpoint_readout.get("provider_dispatch_count"),
+            "scarcity_binding": midpoint_pass,
+        },
+        "control": {
+            "starting_llm_budget": 0.066384,
+            "provider_dispatch_count": control_recovery.get("provider_dispatch_count"),
+            "completed_horizon": control_pass,
+            "action_types": control_actions,
+        },
+        "route_parity": route_parity,
+        "non_claims": [
+            "One matched pair does not estimate a behavioral effect.",
+            "Action differences are descriptive and cannot establish causality.",
+            "A passing result selects settings for a later preregistered comparison only.",
+        ],
+    }
+
+
 def _positive_charges(receipt: dict[str, Any]) -> list[float]:
     attempts = receipt.get("attempts")
     if not isinstance(attempts, list):

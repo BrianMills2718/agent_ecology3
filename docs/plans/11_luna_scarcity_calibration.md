@@ -1,6 +1,6 @@
 # Plan #11: Luna Scarcity Calibration
 
-**Status:** Authentic midpoint probe passed — control design pending
+**Status:** Manipulation separation passed and independently signed off
 **Type:** evaluation design and instrument
 **Priority:** High
 **Blocked By:** Plan #10 complete
@@ -102,6 +102,71 @@ This makes the midpoint eligible for a later calibration/control design. It
 does not yet establish that scarcity changes behavior or select a production
 parameter.
 
+## Minimal Midpoint-versus-Control Comparison
+
+**Claim:** Holding the complete Luna execution contract and initial world
+constant, the accepted `0.033192` midpoint binds before attempt eight while a
+`0.066384` full-horizon control completes exactly eight provider dispatches.
+
+**Decision:** If the existing midpoint evidence remains valid and the control
+completes 8/8 without scarcity, the manipulation separates within this horizon
+and both settings become eligible for a later preregistered behavioral
+comparison. If the control also binds, the settings do not separate and must be
+revised. Any route, custody, action, or source failure is invalid, not a failed
+scarcity result.
+
+**Unit and population:** one matched pair of one-principal AE3 runs. The
+midpoint member is the already accepted `plan11_luna_scarcity_midpoint_v1`; only
+the control member is new. This is an exploratory manipulation check, not an
+effect estimate.
+
+**Held constant:** exact Luna model and medium reasoning, CLI transport,
+structured schema, prompt, one-principal bootstrap world, runner, shared-client
+revision, eight-attempt comparison horizon, serial execution, and zero retries,
+repair, fallback, or MCP. The only intended difference is starting LLM budget.
+
+**Positive control:** the accepted midpoint binds trace-free after seven
+dispatches. **Negative control:** the full-horizon budget must complete exactly
+eight committed, traced attempts with no scarcity terminal. Corrupt, short,
+wrong-budget, or control-binding receipts are rejected provider-free before a
+decision.
+
+**Primary readout:** midpoint scarcity binding `true` and control horizon
+completion `true`. Concrete action sequences, charges, tokens, and latency are
+secondary descriptive readouts only. One pair has no sampling-based uncertainty
+estimate and cannot support a causal behavioral claim.
+
+**External-call budget:** eight new serial Luna calls maximum, all for the one
+control cell; zero retry, repair, or fallback. The immutable acknowledgement is
+`plan11/luna-medium/scarcity-control/v1`. The cell begins paused from clean
+pushed source and stops after exactly eight settled attempts or immediately on
+any invalid boundary. Provider cost is expected to remain subscription-included
+but is recorded rather than assumed.
+
+**Artifacts:** full checkpoint and receipt remain in the runtime state store;
+compact source-controlled evidence and a reproducible comparison readout live
+under `docs/evaluations/evidence/11_luna_scarcity_calibration/`.
+
+**Non-claims:** the comparison does not establish behavioral effect,
+reliability, optimal scarcity, a production parameter, or readiness to rerun
+the earlier prescribed-versus-minimal evaluation. Any consequential follow-on
+decision requires fresh `eval-decision-signoff`.
+
+### Control result (2026-08-12)
+
+The control completed exactly 8/8 committed Luna attempts from clean pushed
+revision `c17f729`, with `0.029697` budget remaining. All eight shared-client
+receipts succeeded; there was no retry, fallback, MCP, ambiguity, or terminal
+error. The dashboard showed `8/8` and `completed` with no console errors or
+failed requests.
+
+The provider-free matched readout passed: the accepted midpoint bound before
+dispatch eight while the doubled-budget control completed dispatch eight. A
+fresh adversarial verifier reproduced the readout and signed off on the narrow
+decision. Therefore these two settings are eligible for a later preregistered
+behavioral comparison. No behavioral-effect or production-parameter claim is
+made.
+
 ## Files Affected
 
 - `src/agent_ecology3/analysis/scarcity_calibration.py` (create)
@@ -121,6 +186,8 @@ parameter.
 | Invalid receipt | Missing or non-positive settlement evidence fails loud |
 | Invalid horizon | A non-calibrating horizon is rejected |
 | CLI receipt path | Durable JSON readout reproduces from retained Plan 10 evidence |
+| Control comparison | Accepts only midpoint binding plus an exact 8/8 control receipt |
+| Corruption controls | Rejects short, binding, and wrong-budget control evidence |
 
 ## Acceptance Criteria
 

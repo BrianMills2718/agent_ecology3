@@ -20,6 +20,7 @@ from agent_ecology3.simulation import (
     SimulationRunner,
     build_recoverable_world,
 )
+from scripts.run_recoverable_evaluation import _validate_start_contract
 
 
 def _config(tmp_path: Path) -> AppConfig:
@@ -277,3 +278,21 @@ def test_detached_status_fails_loud_when_no_worker_exists(tmp_path: Path) -> Non
     assert completed.returncode == 1
     assert payload["worker_alive"] is False
     assert payload["error"] == "no durable status"
+
+
+def test_control_acknowledgement_freezes_budget_and_horizon() -> None:
+    valid = SimpleNamespace(
+        acknowledgement="plan11/luna-medium/scarcity-control/v1",
+        target_attempts=8,
+        starting_llm_budget=0.066384,
+    )
+    _validate_start_contract(valid)
+
+    for attempts, budget in ((7, 0.066384), (8, 0.033192), (9, 0.066384)):
+        invalid = SimpleNamespace(
+            acknowledgement="plan11/luna-medium/scarcity-control/v1",
+            target_attempts=attempts,
+            starting_llm_budget=budget,
+        )
+        with pytest.raises(RuntimeError, match="control requires exactly 8"):
+            _validate_start_contract(invalid)
