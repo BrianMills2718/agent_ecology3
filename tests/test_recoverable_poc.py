@@ -21,6 +21,7 @@ from agent_ecology3.simulation import (
     build_recoverable_world,
 )
 from scripts.run_recoverable_evaluation import _validate_start_contract
+from scripts.run_recoverable_evaluation import _write_receipt as write_run_receipt
 
 
 def _config(tmp_path: Path) -> AppConfig:
@@ -332,3 +333,33 @@ def test_eval12_acknowledgements_freeze_matched_cell(
     )
     with pytest.raises(RuntimeError, match="exact Plan 10, Plan 11, or Evaluation 12"):
         _validate_start_contract(crossed)
+
+
+def test_receipt_snapshots_terminal_status_published_before_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = _config(tmp_path)
+    world, coordinator = build_recoverable_world(
+        config,
+        run_id="terminal_receipt_fixture",
+        target_attempts=2,
+        checkpoint_path=_paths(tmp_path)[0],
+        status_path=_paths(tmp_path)[1],
+    )
+    coordinator.publish_status("stopped", terminal_reason="fixture_stop", pid=123)
+    monkeypatch.setattr(
+        "llm_client.get_llm_call_receipts", lambda **_kwargs: []
+    )
+
+    data_dir = tmp_path / "custody"
+    write_run_receipt(
+        data_dir=data_dir,
+        coordinator=coordinator,
+        world=world,
+        source={"agent_ecology3_revision": "fixture"},
+        acknowledgement="fixture",
+    )
+
+    receipt = json.loads((data_dir / "run_receipt.json").read_text(encoding="utf-8"))
+    assert receipt["recovery"]["lifecycle_state"] == "stopped"
+    assert receipt["recovery"]["terminal_reason"] == "fixture_stop"

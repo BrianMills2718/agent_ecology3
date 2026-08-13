@@ -410,6 +410,7 @@ async def _serve(args: argparse.Namespace) -> None:
                     lifecycle = "invalid"
                 else:
                     lifecycle = "completed" if state == "completed" else "stopped"
+                coordinator.publish_status(lifecycle, pid=os.getpid())
                 if not receipt_written:
                     _write_receipt(
                         data_dir=data_dir,
@@ -421,7 +422,7 @@ async def _serve(args: argparse.Namespace) -> None:
                     receipt_written = True
             else:
                 lifecycle = "paused" if runner.is_paused else "running"
-            coordinator.publish_status(lifecycle, pid=os.getpid())
+                coordinator.publish_status(lifecycle, pid=os.getpid())
             await asyncio.sleep(1)
 
     heartbeat_task = asyncio.create_task(heartbeat())
@@ -432,6 +433,15 @@ async def _serve(args: argparse.Namespace) -> None:
         await asyncio.gather(run_task, return_exceptions=True)
         heartbeat_task.cancel()
         await asyncio.gather(heartbeat_task, return_exceptions=True)
+        terminal_state = coordinator.status().get("lifecycle_state")
+        final_lifecycle: Literal["completed", "stopped", "invalid"]
+        if terminal_state == "completed":
+            final_lifecycle = "completed"
+        elif terminal_state == "invalid":
+            final_lifecycle = "invalid"
+        else:
+            final_lifecycle = "stopped"
+        coordinator.publish_status(final_lifecycle, pid=os.getpid())
         _write_receipt(
             data_dir=data_dir,
             coordinator=coordinator,
