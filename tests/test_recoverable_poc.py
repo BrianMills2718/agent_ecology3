@@ -515,6 +515,16 @@ def test_eval15_validator_rejects_fifteenth_dispatch() -> None:
     )
     assert valid["status"] == "valid"
 
+    stopped_status = {"lifecycle_state": "stopped", "terminal_reason": None}
+    stopped_receipt = {**receipt, "recovery": stopped_status}
+    stopped = validate_capped_cell(
+        condition="prescribed",
+        checkpoint=checkpoint,
+        status=stopped_status,
+        receipt=stopped_receipt,
+    )
+    assert stopped["status"] == "valid"
+
     attempt_15 = {
         "ordinal": 15,
         "phase": "committed",

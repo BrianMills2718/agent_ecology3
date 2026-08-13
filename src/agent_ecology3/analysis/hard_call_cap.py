@@ -40,12 +40,13 @@ def validate_capped_cell(
         and len(committed) == 14
         and checkpoint.get("provider_dispatch_count") == 14,
         "balanced_distribution": distribution == {"alpha_1": 7, "alpha_2": 7},
-        "completed_custody": checkpoint.get("terminal_state") is None
+        "target_reached_custody": checkpoint.get("terminal_state") is None
         and checkpoint.get("terminal_reason") is None
-        and status.get("lifecycle_state") == "completed"
+        and status.get("lifecycle_state") in {"completed", "stopped"}
         and status.get("terminal_reason") is None
         and isinstance(receipt_recovery, dict)
-        and receipt_recovery.get("lifecycle_state") == "completed"
+        and receipt_recovery.get("lifecycle_state") == status.get("lifecycle_state")
+        and receipt_recovery.get("terminal_reason") is None
         and isinstance(receipt_checkpoint, dict)
         and receipt_checkpoint.get("provider_dispatch_count") == 14,
         "receipt_custody": isinstance(shared_receipts, list)
