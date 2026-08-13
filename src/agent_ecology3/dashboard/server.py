@@ -356,7 +356,8 @@ _DASHBOARD_HTML = """<!doctype html>
       const running = state.runner ? !!state.runner.running : null;
       const paused = state.runner ? !!state.runner.paused : null;
       const runDot = running ? '<span class="dot"></span>' : '<span class="dot warn"></span>';
-      status.push(`<span class="pill">${runDot}${running ? 'running' : 'not-running'}</span>`);
+      const workerLabel = running && paused ? 'worker ready' : (running ? 'running' : 'not-running');
+      status.push(`<span class="pill">${runDot}${workerLabel}</span>`);
       if (paused) status.push('<span class="pill"><span class="dot warn"></span>paused</span>');
       if (state.event_number !== undefined) status.push(`<span class="pill">events: ${state.event_number}</span>`);
       if (state.principal_count !== undefined) status.push(`<span class="pill">principals: ${state.principal_count}</span>`);
