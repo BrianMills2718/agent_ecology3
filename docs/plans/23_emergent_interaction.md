@@ -115,3 +115,29 @@ a successful authorized read, also retain a bounded 600-character observation
 with artifact ID, type, owner, and content in the principal's state/notebook.
 This reuses the current memory seam and does not add a memory service, action
 policy, role, or forced exploration. Run 2 must satisfy the unchanged rubric.
+
+### Development run 2 — promising behavior, invalid exposure
+
+`plan23_emergent_v1_run2` made the purchased content available in each buyer's
+next rendered Luna prompt and produced the intended reciprocal chain:
+
+1. each principal bought the other's complementary seed evidence;
+2. `alpha_1` created a priced validation framework from the validation method;
+3. `alpha_2` created a priced opportunity forecast from the market signal;
+4. both principals bought the other's run-created output;
+5. after reading `alpha_2`'s forecast, `alpha_1` created its own falsifiable
+   forecast, which `alpha_2` then bought.
+
+At 11 committed decisions the partial metrics met the behavioral thresholds:
+three action types, read dominance `54.5%`, entropy `1.435`, five cross-paid
+events, and 11 scrip of cross-paid consumption. The run is nevertheless invalid
+for promotion: richer memory increased prompt cost and `alpha_1` reached only
+`0.000492` LLM budget, causing attempt 12 to stop pre-dispatch with
+`scarcity_binding_pre_dispatch` before the fixed 14-call horizon.
+
+### Development intervention 3
+
+Use versioned acknowledgement `plan23/luna-medium/emergent-interaction/v2` with
+`0.066384` LLM budget per principal. Keep the model, prompt, scenario, seed,
+actions, memory, fail-loud policy, rubric, and 14-call ceiling unchanged. This
+is exposure correction, not behavioral tuning.

@@ -87,6 +87,8 @@ PLAN23_STARTING_BUDGET = PLAN19_STARTING_BUDGET
 PLAN23_TARGET_ATTEMPTS = 14
 PLAN23_PRINCIPAL_COUNT = 2
 PLAN23_POLICY_SEED = 24230
+PLAN23_V2_ACKNOWLEDGEMENT = "plan23/luna-medium/emergent-interaction/v2"
+PLAN23_V2_STARTING_BUDGET = 0.066384
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -272,7 +274,15 @@ def _post_json(url: str) -> dict[str, Any]:
 
 
 def _validate_start_contract(args: argparse.Namespace) -> None:
-    if args.acknowledgement == PLAN23_ACKNOWLEDGEMENT:
+    if args.acknowledgement in {
+        PLAN23_ACKNOWLEDGEMENT,
+        PLAN23_V2_ACKNOWLEDGEMENT,
+    }:
+        expected_budget = (
+            PLAN23_V2_STARTING_BUDGET
+            if args.acknowledgement == PLAN23_V2_ACKNOWLEDGEMENT
+            else PLAN23_STARTING_BUDGET
+        )
         if (
             args.target_attempts != PLAN23_TARGET_ATTEMPTS
             or args.principal_count != PLAN23_PRINCIPAL_COUNT
@@ -280,14 +290,14 @@ def _validate_start_contract(args: argparse.Namespace) -> None:
             or args.policy_seed != PLAN23_POLICY_SEED
             or not math.isclose(
                 float(args.starting_llm_budget or -1),
-                PLAN23_STARTING_BUDGET,
+                expected_budget,
                 rel_tol=0.0,
                 abs_tol=1e-12,
             )
         ):
             raise RuntimeError(
                 "Plan 23 requires exactly 14 attempts, two principals, Minimal "
-                "cognition, seed 24230, and starting_llm_budget=0.033192"
+                "cognition, seed 24230, and the acknowledgement's exact budget"
             )
         return
     if args.acknowledgement == PLAN22_CANARY_ACKNOWLEDGEMENT:
@@ -660,6 +670,7 @@ async def _serve(args: argparse.Namespace) -> None:
         PLAN19_ACKNOWLEDGEMENT,
         PLAN22_CANARY_ACKNOWLEDGEMENT,
         PLAN23_ACKNOWLEDGEMENT,
+        PLAN23_V2_ACKNOWLEDGEMENT,
     }
     config = _configure(
         Path(args.config).resolve(),
@@ -677,7 +688,10 @@ async def _serve(args: argparse.Namespace) -> None:
         mint_auction_after_horizon=is_fail_closed_evaluation,
         loop_prompt_template_path=(
             REPO_ROOT / "config" / "prompts" / "loop_prompt_emergent_v1.txt"
-            if args.acknowledgement == PLAN23_ACKNOWLEDGEMENT
+            if args.acknowledgement in {
+                PLAN23_ACKNOWLEDGEMENT,
+                PLAN23_V2_ACKNOWLEDGEMENT,
+            }
             else None
         ),
     )
@@ -693,7 +707,10 @@ async def _serve(args: argparse.Namespace) -> None:
         PLAN22_CANARY_ACKNOWLEDGEMENT,
     }:
         _seed_mvp_opportunities(world)
-    elif args.acknowledgement == PLAN23_ACKNOWLEDGEMENT:
+    elif args.acknowledgement in {
+        PLAN23_ACKNOWLEDGEMENT,
+        PLAN23_V2_ACKNOWLEDGEMENT,
+    }:
         _seed_emergent_opportunities(world)
     runner = SimulationRunner(world)
     coordinator.publish_status(

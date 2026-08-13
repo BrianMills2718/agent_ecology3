@@ -30,6 +30,7 @@ from scripts.run_recoverable_evaluation import (
     PLAN19_ACKNOWLEDGEMENT,
     PLAN22_CANARY_ACKNOWLEDGEMENT,
     PLAN23_ACKNOWLEDGEMENT,
+    PLAN23_V2_ACKNOWLEDGEMENT,
     _configure,
     _dashboard_launch_profile,
     _discover_review_runs,
@@ -1052,6 +1053,19 @@ def test_plan23_acknowledgement_freezes_emergent_interaction_cell() -> None:
     ):
         with pytest.raises(RuntimeError, match="Plan 23 requires exactly 14"):
             _validate_start_contract(SimpleNamespace(**{**vars(valid), **mutation}))
+
+    v2 = SimpleNamespace(
+        **{
+            **vars(valid),
+            "acknowledgement": PLAN23_V2_ACKNOWLEDGEMENT,
+            "starting_llm_budget": 0.066384,
+        }
+    )
+    _validate_start_contract(v2)
+    with pytest.raises(RuntimeError, match="Plan 23 requires exactly 14"):
+        _validate_start_contract(
+            SimpleNamespace(**{**vars(v2), "starting_llm_budget": 0.033192})
+        )
 
 
 def test_plan23_opportunities_are_complementary_without_selecting_actions(
