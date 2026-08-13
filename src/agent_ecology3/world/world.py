@@ -1701,6 +1701,23 @@ async def run():
     if gate_reason is not None:
         decision_meta["gate_fallback_used"] = True
         decision_meta["gate_reason"] = gate_reason
+        if decision_meta["action_failure_policy"] == "fail_closed_no_substitute":
+            failure = {{
+                "success": False,
+                "error": "model decision rejected: " + str(gate_reason),
+                "error_code": "model_decision_rejected",
+            }}
+            if "kernel_actions" in globals() and hasattr(kernel_actions._world, "_recovery_mark_invalid"):
+                kernel_actions._world._recovery_mark_invalid(
+                    decision_meta.get("llm_trace_id"),
+                    failure["error"],
+                )
+            return {{
+                "raw_decision": raw_decision if isinstance(raw_decision, dict) else None,
+                "decision": decision,
+                "result": failure,
+                "decision_meta": decision_meta,
+            }}
 
     result = invoke("kernel_act", decision)
     if not result.get("success"):
@@ -2099,6 +2116,8 @@ async def run():
                 )
             )
             return self._settle_llm_syscall(context, llm_result)
+        except FileNotFoundError as exc:
+            return self._fail_llm_syscall(context, exc)
         except Exception as exc:  # noqa: BLE001 - the shared client boundary may raise provider-specific errors
             if luna_call and provider_boundary_entered:
                 return self._record_luna_dispatch_ambiguous(context, exc)
@@ -2194,6 +2213,8 @@ async def run():
             else:
                 self._fail_llm_syscall(context, cancellation)
             raise
+        except FileNotFoundError as exc:
+            return self._fail_llm_syscall(context, exc)
         except Exception as exc:  # noqa: BLE001 - the shared client boundary may raise provider-specific errors
             if luna_call and provider_boundary_entered:
                 return self._record_luna_dispatch_ambiguous(context, exc)
@@ -2745,6 +2766,10 @@ async def run():
                 "payer_id": context.payer_id,
                 "model": context.model,
                 "error": str(exc),
+                "error_code": "llm_error",
+                "settlement_status": "pre_dispatch_failed",
+                "reservation_retained": False,
+                "provider_dispatch_confirmed": False,
                 "duration_ms": duration_ms,
             },
         )
@@ -2753,6 +2778,9 @@ async def run():
             "trace_id": context.trace_id,
             "error": f"llm call failed: {exc}",
             "error_code": "llm_error",
+            "settlement_status": "pre_dispatch_failed",
+            "reservation_retained": False,
+            "provider_dispatch_confirmed": False,
             "duration_ms": duration_ms,
         }
 

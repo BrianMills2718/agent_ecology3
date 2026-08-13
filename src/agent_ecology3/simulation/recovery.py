@@ -169,8 +169,11 @@ class RecoverableLoopWorld(World):
             '    if "kernel_actions" in globals() and hasattr(kernel_actions._world, "_recovery_mark_applying"):\n'
             '        kernel_actions._world._recovery_mark_applying(decision_meta.get("llm_trace_id"))\n'
             '    result = invoke("kernel_act", decision)\n'
-            '    if "kernel_actions" in globals() and hasattr(kernel_actions._world, "_recovery_mark_committed"):\n'
-            '        kernel_actions._world._recovery_mark_committed(decision_meta.get("llm_trace_id"))\n'
+            '    if result.get("success") or decision_meta["action_failure_policy"] != "fail_closed_no_substitute":\n'
+            '        if "kernel_actions" in globals() and hasattr(kernel_actions._world, "_recovery_mark_committed"):\n'
+            '            kernel_actions._world._recovery_mark_committed(decision_meta.get("llm_trace_id"))\n'
+            '    elif "kernel_actions" in globals() and hasattr(kernel_actions._world, "_recovery_mark_invalid"):\n'
+            '        kernel_actions._world._recovery_mark_invalid(decision_meta.get("llm_trace_id"), "model-selected action failed: " + str(result.get("error_code") or result.get("error") or "unknown"))\n'
         )
         if code.count(needle) != 1:
             raise RuntimeError("recoverable loop could not locate the canonical action boundary")
@@ -330,6 +333,7 @@ class RecoveryCoordinator:
         target = cast(Any, world)
         target._recovery_mark_applying = self.mark_applying
         target._recovery_mark_committed = self.mark_committed
+        target._recovery_mark_invalid = self.mark_invalid
 
     def _replay_settlement(
         self,
@@ -409,6 +413,14 @@ class RecoveryCoordinator:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
+        if self._checkpoint.terminal_state == "invalid":
+            raise RecoveryTerminalError(
+                self._checkpoint.terminal_reason or "recovery checkpoint is invalid"
+            )
+        if self._checkpoint.terminal_state == "stopped":
+            raise RecoveryScarcityBoundary(
+                self._checkpoint.terminal_reason or "recovery checkpoint is stopped"
+            )
         self._call_ordinal += 1
         ordinal = self._call_ordinal
         request = {
@@ -500,7 +512,16 @@ class RecoveryCoordinator:
             self._persist()
             self._write_status("stopped", terminal_reason=self._checkpoint.terminal_reason)
             raise RecoveryScarcityBoundary(self._checkpoint.terminal_reason)
-        if result.get("error_code") == "llm_dispatch_ambiguous":
+        if result.get("settlement_status") == "pre_dispatch_failed":
+            self._checkpoint.provider_dispatch_count -= 1
+            self._invalidate(
+                attempt,
+                str(result.get("error") or "local failure before provider dispatch"),
+            )
+        if result.get("error_code") in {
+            "llm_dispatch_ambiguous",
+            "luna_dispatch_ambiguous",
+        }:
             attempt.phase = "dispatch_ambiguous"
             attempt.error = str(result.get("error") or "provider dispatch is ambiguous")
             self._checkpoint.terminal_state = "invalid"
@@ -508,6 +529,23 @@ class RecoveryCoordinator:
             self._persist()
             self._write_status("invalid", terminal_reason=attempt.error)
             raise RecoveryTerminalError(attempt.error)
+        fail_closed = (
+            self._world is not None
+            and self._world.config.llm.loop_action_failure_policy
+            == "fail_closed_no_substitute"
+        )
+        if fail_closed and result.get("success") is not True:
+            self._invalidate(
+                attempt,
+                str(result.get("error") or "LLM decision failed without a substitute"),
+            )
+        if (
+            fail_closed
+            and self._world is not None
+            and self._world.config.llm.decision_output_mode == "luna_structured_v1"
+            and not isinstance(result.get("structured_action"), dict)
+        ):
+            self._invalidate(attempt, "Luna settlement did not contain a structured action")
         attempt.phase = "provider_settled"
         self._persist()
         self._write_status("running", pid=os.getpid())
@@ -525,6 +563,10 @@ class RecoveryCoordinator:
         raise RecoveryTerminalError(reason)
 
     def mark_applying(self, trace_id: str | None) -> None:
+        if self._checkpoint.terminal_state == "invalid":
+            raise RecoveryTerminalError(
+                self._checkpoint.terminal_reason or "recovery checkpoint is invalid"
+            )
         attempt = self._attempt_for_trace(trace_id)
         if attempt is None or attempt.phase == "committed":
             return
@@ -538,6 +580,10 @@ class RecoveryCoordinator:
             )
 
     def mark_committed(self, trace_id: str | None) -> None:
+        if self._checkpoint.terminal_state == "invalid":
+            raise RecoveryTerminalError(
+                self._checkpoint.terminal_reason or "recovery checkpoint is invalid"
+            )
         attempt = self._attempt_for_trace(trace_id)
         if attempt is None or attempt.phase == "committed":
             return
@@ -550,6 +596,12 @@ class RecoveryCoordinator:
             "completed" if committed >= self.target_attempts else "running"
         )
         self._write_status(lifecycle, pid=os.getpid())
+
+    def mark_invalid(self, trace_id: str | None, reason: str) -> NoReturn:
+        attempt = self._attempt_for_trace(trace_id)
+        if attempt is None:
+            raise RecoveryTerminalError(reason)
+        self._invalidate(attempt, reason)
 
 
 def build_recoverable_world(

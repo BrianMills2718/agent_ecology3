@@ -458,10 +458,13 @@ def _spawn(args: argparse.Namespace, *, start_running: bool) -> dict[str, Any]:
     )
     if start_running:
         command.append("--start-running")
+    worker_env = os.environ.copy()
+    worker_env["LLM_CLIENT_PROJECT"] = "agent_ecology3"
     with paths["worker_log"].open("a", encoding="utf-8") as output:
         process = subprocess.Popen(
             command,
-            cwd=REPO_ROOT,
+            cwd=data_dir,
+            env=worker_env,
             stdin=subprocess.DEVNULL,
             stdout=output,
             stderr=subprocess.STDOUT,

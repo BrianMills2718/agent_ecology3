@@ -51,14 +51,20 @@ class SimulationRunner:
 
     def _settled_llm_attempt_count(self) -> int:
         # The stop boundary must not depend on the dashboard retention window.
-        # Read the complete bounded run log so an older settled attempt cannot
-        # fall out of the count before the target is reached.
+        # Read the complete bounded run log and count unique trace custody so a
+        # replayed settlement cannot consume another attempt slot.
         limit = max(1, int(self.world.logger.sequence))
-        return sum(
-            1
-            for event in self.world.logger.read_recent(limit)
-            if event.get("event_type") in {"llm_syscall", "llm_syscall_error"}
-        )
+        attempts: set[str] = set()
+        for event in self.world.logger.read_recent(limit):
+            if event.get("event_type") not in {"llm_syscall", "llm_syscall_error"}:
+                continue
+            trace_id = event.get("trace_id")
+            attempts.add(
+                str(trace_id)
+                if isinstance(trace_id, str) and trace_id
+                else f"event-sequence:{event.get('sequence')}"
+            )
+        return len(attempts)
 
     @property
     def is_running(self) -> bool:
@@ -254,6 +260,7 @@ class SimulationRunner:
         )
 
         next_summary_at = self.elapsed_seconds + summary_interval
+        loop_failures: list[BaseException] = []
         try:
             while not self._stop_requested:
                 for task in self._loop_tasks.values():
@@ -274,7 +281,11 @@ class SimulationRunner:
                         },
                     )
                     break
-                if target_duration > 0 and elapsed >= target_duration:
+                if (
+                    self._target_llm_attempts is None
+                    and target_duration > 0
+                    and elapsed >= target_duration
+                ):
                     break
 
                 # A provider await may hold the serial world-execution lane.
@@ -287,7 +298,7 @@ class SimulationRunner:
                             next_summary_at = elapsed + summary_interval
 
                 remaining = 1.0
-                if target_duration > 0:
+                if self._target_llm_attempts is None and target_duration > 0:
                     remaining = min(remaining, max(0.01, target_duration - elapsed))
                 if max_runtime > 0:
                     remaining = min(remaining, max(0.01, max_runtime - elapsed))
@@ -298,7 +309,15 @@ class SimulationRunner:
             self._stop_event.set()
             self._pause_event.set()
             if self._loop_tasks:
-                await asyncio.gather(*self._loop_tasks.values(), return_exceptions=True)
+                outcomes = await asyncio.gather(
+                    *self._loop_tasks.values(), return_exceptions=True
+                )
+                loop_failures = [
+                    outcome
+                    for outcome in outcomes
+                    if isinstance(outcome, BaseException)
+                    and not isinstance(outcome, asyncio.CancelledError)
+                ]
 
             self._running = False
             self._target_llm_attempts = None
@@ -320,5 +339,8 @@ class SimulationRunner:
                     },
                 },
             )
+
+        if loop_failures:
+            raise loop_failures[0]
 
         return self.world

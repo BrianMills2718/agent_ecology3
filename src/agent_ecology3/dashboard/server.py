@@ -368,6 +368,9 @@ _DASHBOARD_HTML = """<!doctype html>
         status.push(`<span class="pill">custody: ${state.recovery.lifecycle_state}</span>`);
       }
       if (operator && operator.model) status.push(`<span class=\"pill\">model: ${escapeHtml(operator.model)}</span>`);
+      if (operator && operator.fallback_count) {
+        status.push(`<span class=\"pill\"><span class=\"dot danger\"></span>invalid evidence: ${operator.fallback_count} substitute decisions</span>`);
+      }
       if (operator && operator.agents) {
         const budgets = operator.agents.map(agent => agent.llm_budget).filter(value => typeof value === 'number');
         if (budgets.length) {
@@ -404,9 +407,10 @@ _DASHBOARD_HTML = """<!doctype html>
 
     function actionCell(action) {
       if (!action) return '<span class=\"quiet\">—</span>';
-      const failure = action.success ? '' : ' fail';
+      const failure = action.success && !action.fallback_used ? '' : ' fail';
       const error = action.error_code ? ` · ${escapeHtml(action.error_code)}` : '';
-      return `<span class=\"actor\">${escapeHtml(action.principal_id)}</span><span class=\"chip${failure}\">${escapeHtml(action.action)}${error}</span>`;
+      const provenance = action.fallback_used ? ' · substitute' : '';
+      return `<span class=\"actor\">${escapeHtml(action.principal_id)}</span><span class=\"chip${failure}\">${escapeHtml(action.action)}${provenance}${error}</span>`;
     }
 
     function showView(view) {
@@ -466,7 +470,7 @@ _DASHBOARD_HTML = """<!doctype html>
       document.getElementById('agentCount').textContent = `${operatorState.agents.length} principals`;
       document.getElementById('agentList').innerHTML = operatorState.agents.map(agent => {
         const actions = visibleActions.filter(action => action.principal_id === agent.id);
-        const failures = actions.filter(action => !action.success).length;
+        const failures = actions.filter(action => !action.success || action.fallback_used).length;
         const mix = {};
         actions.forEach(action => mix[action.action] = (mix[action.action] || 0) + 1);
         return `<article class=\"agent-card\">
@@ -481,11 +485,11 @@ _DASHBOARD_HTML = """<!doctype html>
       }).join('');
       document.getElementById('activityCount').textContent = `${visibleActions.length} of ${operatorState.max_turn} decisions`;
       document.getElementById('activityList').innerHTML = visibleActions.length ? visibleActions.map(action => `
-        <div class=\"activity-item${action.success ? '' : ' failed'}\">
+        <div class=\"activity-item${action.success && !action.fallback_used ? '' : ' failed'}\">
           <span class=\"activity-turn\">#${action.turn}</span>
           <span class=\"activity-agent\">${escapeHtml(action.principal_id)}</span>
           <span class=\"activity-text\">${actionDescription(action)}</span>
-          <span class=\"result${action.success ? '' : ' failed'}\">${action.success ? (action.value_amount ? `${action.value_amount} ${escapeHtml(action.value_unit)}` : 'success') : escapeHtml(action.error_code || 'failed')}</span>
+          <span class=\"result${action.success && !action.fallback_used ? '' : ' failed'}\">${action.fallback_used ? 'substitute — not model-selected' : (action.success ? (action.value_amount ? `${action.value_amount} ${escapeHtml(action.value_unit)}` : 'success') : escapeHtml(action.error_code || 'failed'))}</span>
         </div>`).join('') : `<div class=\"empty\">${operatorState.read_only ? 'Press Play to watch the agents begin.' : 'Waiting for the first agent decision.'}</div>`;
       const query = document.getElementById('artifactSearch').value.trim().toLowerCase();
       const scope = document.getElementById('artifactScope').value;
@@ -564,7 +568,8 @@ _DASHBOARD_HTML = """<!doctype html>
       document.getElementById('playButton').disabled = !operatorState.read_only;
       document.getElementById('turnLabel').textContent = operatorState.read_only ? `Decision ${currentTurn} / ${operatorState.max_turn}` : `Live · ${currentTurn} decisions`;
       if (operatorState.read_only) {
-        document.getElementById('statusLine').innerHTML = `<span class=\"pill\"><span class=\"dot\"></span>${escapeHtml(operatorState.condition)}</span><span class=\"pill\">${operatorState.agents.length} agents</span><span class=\"pill\">${operatorState.artifacts.length} final artifacts</span><span class=\"pill\">${escapeHtml(operatorState.lifecycle_state)}</span><span class=\"pill\">read only replay</span>`;
+        const invalidEvidence = operatorState.fallback_count ? `<span class=\"pill\"><span class=\"dot danger\"></span>invalid evidence: ${operatorState.fallback_count} substitute decisions</span>` : '';
+        document.getElementById('statusLine').innerHTML = `<span class=\"pill\"><span class=\"dot\"></span>${escapeHtml(operatorState.condition)}</span><span class=\"pill\">${operatorState.agents.length} agents</span><span class=\"pill\">${operatorState.artifacts.length} final artifacts</span><span class=\"pill\">${escapeHtml(operatorState.lifecycle_state)}</span>${invalidEvidence}<span class=\"pill\">read only replay</span>`;
       }
       renderOperator();
     }
@@ -726,6 +731,8 @@ def _summarize_review_run(run_id: str, data_dir: Path) -> dict[str, Any]:
     for event in decisions:
         action = str(event.get("decision_action") or "unknown")
         action_counts[action] += 1
+        fallback_used = bool(event.get("fallback_used"))
+        local_action_success = event.get("result_success") is True
         decision = event.get("decision")
         if (
             action.startswith("transfer")
@@ -739,9 +746,10 @@ def _summarize_review_run(run_id: str, data_dir: Path) -> dict[str, Any]:
             {
                 "principal_id": event.get("principal_id"),
                 "action": action,
-                "success": event.get("result_success") is True,
+                "success": local_action_success and not fallback_used,
+                "local_action_success": local_action_success,
                 "error_code": event.get("result_error_code"),
-                "fallback_used": bool(event.get("fallback_used")),
+                "fallback_used": fallback_used,
             }
         )
     created = [
@@ -908,7 +916,9 @@ def _operator_state(
         raw_decision = event.get("decision")
         decision = cast(dict[str, Any], raw_decision) if isinstance(raw_decision, dict) else {}
         target_artifact_id = decision.get("artifact_id")
-        success = event.get("result_success") is True
+        local_action_success = event.get("result_success") is True
+        fallback_used = bool(event.get("fallback_used"))
+        success = local_action_success and not fallback_used
         value_amount: int | float = 0
         value_unit: str | None = None
         counterparty: str | None = None
@@ -959,8 +969,9 @@ def _operator_state(
                 if target_artifact_id
                 else None,
                 "success": success,
+                "local_action_success": local_action_success,
                 "error_code": event.get("result_error_code"),
-                "fallback_used": bool(event.get("fallback_used")),
+                "fallback_used": fallback_used,
                 "value_amount": value_amount,
                 "value_unit": value_unit,
                 "counterparty": counterparty,
@@ -1000,6 +1011,7 @@ def _operator_state(
         "lifecycle_state": recovery.get("lifecycle_state"),
         "read_only": read_only,
         "max_turn": len(action_rows),
+        "fallback_count": sum(row["fallback_used"] for row in action_rows),
         "agents": agents,
         "artifacts": artifacts,
         "actions": action_rows,

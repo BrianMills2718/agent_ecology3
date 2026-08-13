@@ -5,8 +5,9 @@ Track all implementation work here.
 **Current direction:** [Agent Ecology 3 Product Roadmap](../MVP_ROADMAP.md) is
 the canonical outcome and priority authority. Completed plans below are
 supporting history. Plans 19–21 completed the local MVP, durable reopen, and
-paused dashboard-launch boundaries. The prepared repeat run awaits a separate
-Luna Resume authorization.
+paused dashboard-launch boundaries. The resumed Plan 21 run was invalidated by
+a deleted-worker-cwd failure concealed by substitute actions. Plan 22 is the
+active repair frontier.
 
 ## Gap Summary
 
@@ -33,6 +34,7 @@ Luna Resume authorization.
 | 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | ✅ Complete — authentic run signed off | Repeatable local workbench |
 | 20 | [Single-run archive reopen](20_single_run_archive_reopen.md) | Critical | ✅ Complete | Dashboard launch |
 | 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
+| 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | Implementation complete; browser + canary pending | One-call Luna canary authorization |
 
 ## Status Key
 
