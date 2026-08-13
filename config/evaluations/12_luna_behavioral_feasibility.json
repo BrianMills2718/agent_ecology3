@@ -1,0 +1,23 @@
+{
+  "schema_version": "ae3_eval12_design.v1",
+  "evaluation_id": "12_luna_behavioral_feasibility",
+  "stage": "exploratory_behavioral_feasibility",
+  "model": "codex/gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "conditions": ["prescribed", "minimal"],
+  "principal_count": 2,
+  "starting_llm_budget_per_principal": 0.033192,
+  "provider_attempts_per_condition": 16,
+  "matched_pairs": [
+    {
+      "pair_id": "pair_01",
+      "seed": 24120,
+      "first_condition": "prescribed"
+    }
+  ],
+  "maximum_provider_attempts": 32,
+  "provider_retries": 0,
+  "fallback_models": [],
+  "mcp_servers": [],
+  "decision": "behavioral_instrument_feasibility_only"
+}
