@@ -528,6 +528,54 @@ def test_loop_updates_cognitive_state_and_notebook(tmp_path) -> None:
     assert len(notebook_after["journal"]) >= len(notebook_before.get("journal", []))
 
 
+def test_loop_memory_retains_successful_read_target_and_bounded_content(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.principals.count = 2
+    world = World(cfg, run_id="test_loop_read_memory")
+    content = "counter-signal and validation evidence " * 30
+    written = world.execute_action_data(
+        "alpha_2",
+        {
+            "action_type": "write_artifact",
+            "artifact_id": "alpha_2_evidence",
+            "artifact_type": "validation_method",
+            "content": content,
+            "read_price": 2,
+        },
+    )
+    assert written.success
+    read = world.execute_action_data(
+        "alpha_1",
+        {"action_type": "read_artifact", "artifact_id": "alpha_2_evidence"},
+    )
+    assert read.success
+
+    world.record_loop_cognitive_state(
+        principal_id="alpha_1",
+        decision={"action_type": "read_artifact", "artifact_id": "alpha_2_evidence"},
+        action_type="read_artifact",
+        result_success=True,
+        result_error_code=None,
+        decision_source="llm",
+        fallback_used=False,
+    )
+
+    state = json.loads(world.artifacts.get("alpha_1_state").content)  # type: ignore[union-attr]
+    recent = state["recent_actions"][-1]
+    assert recent["target"] == "alpha_2_evidence"
+    assert recent["observation"] == {
+        "artifact_id": "alpha_2_evidence",
+        "artifact_type": "validation_method",
+        "owner": "alpha_2",
+        "content": content[:600],
+    }
+    notebook = json.loads(world.artifacts.get("alpha_1_notebook").content)  # type: ignore[union-attr]
+    assert notebook["key_facts"]["last_read_artifact"] == "alpha_2_evidence"
+    assert notebook["key_facts"]["last_read_owner"] == "alpha_2"
+    assert notebook["key_facts"]["last_read_content"] == content[:600]
+    assert "target=alpha_2_evidence" in notebook["journal"][-1]
+
+
 
 def test_loop_action_gate_rewrites_disallowed_llm_action(tmp_path) -> None:
     cfg = _make_config(tmp_path)
