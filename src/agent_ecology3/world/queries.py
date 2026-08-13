@@ -74,6 +74,8 @@ class KernelQueryHandler:
                 "owner": artifact.owner,
                 "created_by": artifact.created_by,
                 "executable": artifact.executable,
+                "read_price": artifact.read_price,
+                "invoke_price": artifact.invoke_price,
                 "content_size": len(artifact.content),
                 "code_preview": artifact.code[:220] if artifact.code else "",
             }

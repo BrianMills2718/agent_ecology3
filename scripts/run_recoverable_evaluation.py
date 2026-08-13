@@ -8,7 +8,6 @@ import asyncio
 import json
 import math
 import os
-import signal
 import subprocess
 import sys
 import time
@@ -73,6 +72,11 @@ EVAL15_STARTING_BUDGET = 0.033192
 EVAL15_TARGET_ATTEMPTS = 14
 EVAL15_PRINCIPAL_COUNT = 2
 EVAL15_POLICY_SEED = 24150
+PLAN19_ACKNOWLEDGEMENT = "plan19/luna-medium/live-economic-mvp/v1"
+PLAN19_STARTING_BUDGET = 0.033192
+PLAN19_TARGET_ATTEMPTS = 14
+PLAN19_PRINCIPAL_COUNT = 2
+PLAN19_POLICY_SEED = 24190
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -213,6 +217,24 @@ def _post_json(url: str) -> dict[str, Any]:
 
 
 def _validate_start_contract(args: argparse.Namespace) -> None:
+    if args.acknowledgement == PLAN19_ACKNOWLEDGEMENT:
+        if (
+            args.target_attempts != PLAN19_TARGET_ATTEMPTS
+            or args.principal_count != PLAN19_PRINCIPAL_COUNT
+            or args.cognition_mode != "minimal"
+            or args.policy_seed != PLAN19_POLICY_SEED
+            or not math.isclose(
+                float(args.starting_llm_budget or -1),
+                PLAN19_STARTING_BUDGET,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ):
+            raise RuntimeError(
+                "Plan 19 requires exactly 14 attempts, two principals, Minimal "
+                "cognition, seed 24190, and starting_llm_budget=0.033192"
+            )
+        return
     expected_eval15_ack = EVAL15_ACKNOWLEDGEMENTS.get(
         getattr(args, "cognition_mode", None)
     )
@@ -300,8 +322,59 @@ def _validate_start_contract(args: argparse.Namespace) -> None:
         return
     raise RuntimeError(
         "start requires an exact Plan 10, Plan 11, or Evaluation 12 acknowledgement, "
-        "or an exact Evaluation 14 or Evaluation 15 acknowledgement"
+        "an exact Evaluation 14 or Evaluation 15 acknowledgement, or the exact "
+        "Plan 19 MVP acknowledgement"
     )
+
+
+def _seed_mvp_opportunities(world: RecoverableLoopWorld) -> list[str]:
+    """Seed legal priced opportunities without selecting any agent action."""
+    if world.principal_ids != ["alpha_1", "alpha_2"]:
+        raise RuntimeError("Plan 19 scenario requires exactly alpha_1 and alpha_2")
+    opportunities = (
+        (
+            "alpha_1_market_signal",
+            "market_signal",
+            "alpha_1",
+            "A concise market signal: priced cross-agent knowledge can be purchased "
+            "when its expected future value exceeds its scrip cost.",
+        ),
+        (
+            "alpha_2_validation_guide",
+            "validation_guide",
+            "alpha_2",
+            "A reusable validation guide: inspect provenance, affordability, and "
+            "downstream usefulness before relying on an artifact.",
+        ),
+    )
+    for artifact_id, artifact_type, owner, content in opportunities:
+        world.artifacts.write(
+            artifact_id,
+            artifact_type,
+            content,
+            created_by=owner,
+            owner=owner,
+            read_price=2,
+            access_contract_id="kernel_contract_freeware",
+            metadata={
+                "mvp_scenario_opportunity": True,
+                "fixture_not_agent_action": True,
+            },
+        )
+    return [item[0] for item in opportunities]
+
+
+def _terminal_lifecycle(
+    recovery: dict[str, Any],
+) -> Literal["completed", "stopped", "invalid"]:
+    """Classify terminal custody from durable progress, not a transient heartbeat."""
+    if recovery.get("lifecycle_state") == "invalid":
+        return "invalid"
+    committed = int(recovery.get("committed_attempts", 0) or 0)
+    target = int(recovery.get("target_attempts", 0) or 0)
+    if target > 0 and committed >= target:
+        return "completed"
+    return "stopped"
 
 
 def _spawn(args: argparse.Namespace, *, start_running: bool) -> dict[str, Any]:
@@ -417,6 +490,11 @@ def _write_receipt(
         "cognition_mode": world.config.llm.loop_cognition_mode,
         "policy_seed": world.config.llm.loop_policy_seed,
         "local_action_failure_policy": world.config.llm.loop_action_failure_policy,
+        "mvp_scenario_opportunities": [
+            artifact.id
+            for artifact in world.artifacts.artifacts.values()
+            if artifact.metadata.get("mvp_scenario_opportunity") is True
+        ],
         "mint": {
             "enabled": world.config.mint.enabled,
             "first_auction_delay_seconds": world.config.mint.first_auction_delay_seconds,
@@ -441,6 +519,7 @@ async def _serve(args: argparse.Namespace) -> None:
     is_fail_closed_evaluation = args.acknowledgement in {
         *EVAL14_ACKNOWLEDGEMENTS.values(),
         *EVAL15_ACKNOWLEDGEMENTS.values(),
+        PLAN19_ACKNOWLEDGEMENT,
     }
     config = _configure(
         Path(args.config).resolve(),
@@ -464,15 +543,25 @@ async def _serve(args: argparse.Namespace) -> None:
         checkpoint_path=_paths(data_dir)["checkpoint"],
         status_path=_paths(data_dir)["status"],
     )
+    if args.acknowledgement == PLAN19_ACKNOWLEDGEMENT:
+        _seed_mvp_opportunities(world)
     runner = SimulationRunner(world)
     coordinator.publish_status(
         "running" if args.start_running else "paused",
         pid=os.getpid(),
     )
+    server: uvicorn.Server | None = None
+
+    def request_shutdown() -> None:
+        if server is None:
+            raise RuntimeError("server unavailable during shutdown")
+        server.should_exit = True
+
     app = create_app(
         world_provider=lambda: world,
         runner_provider=lambda: runner,
         recovery_provider=coordinator.status,
+        shutdown_provider=request_shutdown,
         jsonl_path=str(world.logger.output_path),
     )
     server = uvicorn.Server(
@@ -491,12 +580,7 @@ async def _serve(args: argparse.Namespace) -> None:
         nonlocal receipt_written
         while not server.should_exit:
             if run_task.done():
-                state = coordinator.status().get("lifecycle_state")
-                lifecycle: Literal["running", "paused", "completed", "stopped", "invalid"]
-                if state == "invalid":
-                    lifecycle = "invalid"
-                else:
-                    lifecycle = "completed" if state == "completed" else "stopped"
+                lifecycle = _terminal_lifecycle(coordinator.status())
                 coordinator.publish_status(lifecycle, pid=os.getpid())
                 if not receipt_written:
                     _write_receipt(
@@ -520,14 +604,7 @@ async def _serve(args: argparse.Namespace) -> None:
         await asyncio.gather(run_task, return_exceptions=True)
         heartbeat_task.cancel()
         await asyncio.gather(heartbeat_task, return_exceptions=True)
-        terminal_state = coordinator.status().get("lifecycle_state")
-        final_lifecycle: Literal["completed", "stopped", "invalid"]
-        if terminal_state == "completed":
-            final_lifecycle = "completed"
-        elif terminal_state == "invalid":
-            final_lifecycle = "invalid"
-        else:
-            final_lifecycle = "stopped"
+        final_lifecycle = _terminal_lifecycle(coordinator.status())
         coordinator.publish_status(final_lifecycle, pid=os.getpid())
         _write_receipt(
             data_dir=data_dir,
@@ -637,8 +714,8 @@ def main() -> int:
         if not status.get("worker_alive") or not isinstance(pid, int):
             payload = {**status, "success": False, "error": "worker is not alive"}
         else:
-            os.kill(pid, signal.SIGTERM)
-            payload = {"success": True, "shutdown_pid": pid}
+            payload = _post_json(f"http://{args.host}:{args.port}/control/shutdown")
+            payload["shutdown_pid"] = pid
     print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
     return 0 if payload.get("success") else 1
 

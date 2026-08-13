@@ -25,7 +25,13 @@ from agent_ecology3.simulation import (
     SimulationRunner,
     build_recoverable_world,
 )
-from scripts.run_recoverable_evaluation import _configure, _validate_start_contract
+from scripts.run_recoverable_evaluation import (
+    PLAN19_ACKNOWLEDGEMENT,
+    _configure,
+    _seed_mvp_opportunities,
+    _terminal_lifecycle,
+    _validate_start_contract,
+)
 from scripts.run_recoverable_evaluation import _write_receipt as write_run_receipt
 
 
@@ -67,6 +73,50 @@ def _fake_provider(world, dispatches: list[str]):
             "query_type": "resources",
             "params": {},
         }
+        return world._settle_llm_syscall(
+            context,
+            SimpleNamespace(
+                content="",
+                tool_calls=[],
+                usage={"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110},
+                cache_hit=False,
+                marginal_cost=0.0,
+                cost=0.0,
+                cost_source="fixture",
+                billing_mode="subscription_included",
+                codex_events=[{"type": "agent_message"}],
+            ),
+            structured_action=action,
+            structured_schema_sha256="fixture",
+        )
+
+    return call
+
+
+def _fake_economic_provider(world, dispatches: list[str]):
+    """Exercise the real structured-action path without a provider call."""
+
+    async def call(*, payer_id, model, messages, tools=None):
+        prepared, context = world._prepare_llm_syscall(
+            payer_id=payer_id,
+            model=model,
+            messages=messages,
+        )
+        assert prepared is None
+        assert context is not None
+        dispatches.append(context.trace_id)
+        action = (
+            {
+                "action_type": "query_kernel",
+                "query_type": "artifacts",
+                "params": {"readable_only": True},
+            }
+            if payer_id == "alpha_1"
+            else {
+                "action_type": "read_artifact",
+                "artifact_id": "alpha_1_market_signal",
+            }
+        )
         return world._settle_llm_syscall(
             context,
             SimpleNamespace(
@@ -227,10 +277,11 @@ def test_runner_can_start_paused_and_resume(tmp_path: Path) -> None:
             status_path=_paths(tmp_path)[1],
         )
         runner = SimulationRunner(world)
-        task = asyncio.create_task(runner.run(duration=0.2, start_paused=True))
-        await asyncio.sleep(0.03)
+        task = asyncio.create_task(runner.run(duration=0.05, start_paused=True))
+        await asyncio.sleep(0.08)
         assert runner.is_paused is True
         assert world.event_number == 0
+        assert runner.elapsed_seconds == pytest.approx(0.0, abs=0.01)
         runner.resume()
         await task
         assert world.event_number > 0
@@ -250,10 +301,12 @@ def test_dashboard_preserves_controls_and_exposes_recovery_state(tmp_path: Path)
     )
     runner = SimulationRunner(world)
     coordinator.publish_status("paused", pid=123)
+    shutdown_requested: list[bool] = []
     app = create_app(
         world_provider=lambda: world,
         runner_provider=lambda: runner,
         recovery_provider=coordinator.status,
+        shutdown_provider=lambda: shutdown_requested.append(True),
     )
 
     with TestClient(app) as client:
@@ -269,6 +322,104 @@ def test_dashboard_preserves_controls_and_exposes_recovery_state(tmp_path: Path)
         assert client.post("/control/resume").json()["success"] is True
         assert runner.is_paused is False
         assert client.post("/control/stop").json()["success"] is True
+        assert client.post("/control/shutdown").json() == {
+            "success": True,
+            "shutting_down": True,
+        }
+        assert shutdown_requested == [True]
+
+
+def test_live_economic_vertical_is_discoverable_and_operator_visible(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    config.principals.count = 2
+    config.llm.loop_action_failure_policy = "fail_closed_no_substitute"
+    checkpoint, status = _paths(tmp_path)
+    dispatches: list[str] = []
+    world, coordinator = build_recoverable_world(
+        config,
+        run_id="plan19_provider_free_fixture",
+        target_attempts=2,
+        checkpoint_path=checkpoint,
+        status_path=status,
+    )
+    assert _seed_mvp_opportunities(world) == [
+        "alpha_1_market_signal",
+        "alpha_2_validation_guide",
+    ]
+
+    discovery = world.execute_action_data(
+        "alpha_2",
+        {
+            "action_type": "query_kernel",
+            "query_type": "artifacts",
+            "params": {"readable_only": True, "limit": 200},
+        },
+    )
+    assert discovery.success
+    opportunity = next(
+        row
+        for row in discovery.data["results"]
+        if row["id"] == "alpha_1_market_signal"
+    )
+    assert opportunity["readable"] is True
+    assert opportunity["read_price"] == 2
+    assert not any(
+        event.get("event_type") == "artifact_written"
+        and event.get("artifact_id") in {
+            "alpha_1_market_signal",
+            "alpha_2_validation_guide",
+        }
+        for event in world.logger.read_recent(100)
+    )
+
+    coordinator._original_syscall = _fake_economic_provider(world, dispatches)
+    asyncio.run(SimulationRunner(world).run(duration=2, target_llm_attempts=2))
+
+    assert len(dispatches) == 2
+    assert coordinator.status()["lifecycle_state"] == "completed"
+    assert world.ledger.get_scrip("alpha_1") == 102
+    assert world.ledger.get_scrip("alpha_2") == 98
+    read_events = [
+        event
+        for event in world.logger.read_recent(200)
+        if event.get("event_type") == "artifact_read"
+        and event.get("artifact_id") == "alpha_1_market_signal"
+    ]
+    assert len(read_events) == 1
+    assert read_events[0]["read_price_paid"] == 2
+    assert read_events[0]["recipient"] == "alpha_1"
+
+    app = create_app(
+        world_provider=lambda: world,
+        runner_provider=lambda: SimulationRunner(world),
+        recovery_provider=coordinator.status,
+    )
+    with TestClient(app) as client:
+        page = client.get("/")
+        assert page.status_code == 200
+        assert "Live Luna Medium ecology" in page.text
+        operator = client.get("/operator-state").json()
+        assert operator["read_only"] is False
+        assert operator["lifecycle_state"] == "completed"
+        assert operator["max_turn"] == 2
+        assert [agent["scrip"] for agent in operator["agents"]] == [102, 98]
+        paid_action = next(
+            action for action in operator["actions"] if action["action"] == "read_artifact"
+        )
+        assert paid_action["description"] == (
+            "bought alpha_1_market_signal from alpha_1"
+        )
+        assert paid_action["value_amount"] == 2
+        assert paid_action["value_unit"] == "scrip"
+        assert paid_action["counterparty"] == "alpha_1"
+        economic_artifacts = [
+            artifact
+            for artifact in operator["artifacts"]
+            if artifact["scenario_opportunity"]
+        ]
+        assert len(economic_artifacts) == 2
 
 
 def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
@@ -409,6 +560,9 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
             "success": True,
             "error_code": None,
             "fallback_used": False,
+            "value_amount": 0,
+            "value_unit": None,
+            "counterparty": None,
         }
         assert operator["artifacts"][0]["created_turn"] == 1
         assert operator["artifacts"][0]["agent_created"] is True
@@ -463,6 +617,43 @@ def test_control_acknowledgement_freezes_budget_and_horizon() -> None:
         )
         with pytest.raises(RuntimeError, match="control requires exactly 8"):
             _validate_start_contract(invalid)
+
+
+def test_plan19_acknowledgement_freezes_mvp_cell() -> None:
+    valid = SimpleNamespace(
+        acknowledgement=PLAN19_ACKNOWLEDGEMENT,
+        target_attempts=14,
+        starting_llm_budget=0.033192,
+        principal_count=2,
+        cognition_mode="minimal",
+        policy_seed=24190,
+    )
+    _validate_start_contract(valid)
+
+    for mutation in (
+        {"target_attempts": 15},
+        {"starting_llm_budget": 0.04},
+        {"principal_count": 1},
+        {"cognition_mode": "prescribed"},
+        {"policy_seed": 24191},
+    ):
+        with pytest.raises(RuntimeError, match="Plan 19 requires exactly 14"):
+            _validate_start_contract(SimpleNamespace(**{**vars(valid), **mutation}))
+
+
+def test_terminal_lifecycle_uses_durable_attempt_progress() -> None:
+    complete_but_heartbeat_raced = {
+        "lifecycle_state": "running",
+        "committed_attempts": 2,
+        "target_attempts": 2,
+    }
+    assert _terminal_lifecycle(complete_but_heartbeat_raced) == "completed"
+    assert _terminal_lifecycle(
+        {**complete_but_heartbeat_raced, "lifecycle_state": "invalid"}
+    ) == "invalid"
+    assert _terminal_lifecycle(
+        {**complete_but_heartbeat_raced, "committed_attempts": 1}
+    ) == "stopped"
 
 
 @pytest.mark.parametrize(

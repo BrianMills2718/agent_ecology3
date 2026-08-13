@@ -258,7 +258,7 @@ _DASHBOARD_HTML = """<!doctype html>
         <button class=\"tab\" id=\"comparisonTab\" onclick=\"showView('comparison')\">Comparison</button>
         <button class=\"tab\" id=\"evidenceTab\" onclick=\"showView('evidence')\">Evidence</button>
       </div>
-      <label class=\"condition-picker\">Condition
+      <label class=\"condition-picker\" id=\"conditionPicker\">Condition
         <select id=\"runSelect\" onchange=\"selectRun(this.value)\"></select>
       </label>
     </nav>
@@ -282,7 +282,7 @@ _DASHBOARD_HTML = """<!doctype html>
         <div class=\"panel-heading\"><h2>Artifacts</h2><span class=\"count\" id=\"artifactCount\"></span></div>
         <div class=\"artifact-toolbar\">
           <input class=\"search\" id=\"artifactSearch\" type=\"search\" placeholder=\"Search artifact ID, type, or owner\" oninput=\"renderOperator()\" />
-          <select id=\"artifactScope\" onchange=\"renderOperator()\"><option value=\"created\">Agent-created</option><option value=\"all\">All artifacts</option></select>
+          <select id=\"artifactScope\" onchange=\"renderOperator()\"><option value=\"created\">Agent-created</option><option value=\"economy\">Economic artifacts</option><option value=\"all\">All artifacts</option></select>
         </div>
         <div style=\"overflow-x:auto\"><table class=\"artifact-table\"><thead><tr><th>Artifact</th><th>Type</th><th>Owner</th><th>Price</th><th>Created</th></tr></thead><tbody id=\"artifactRows\"></tbody></table></div>
       </section>
@@ -304,7 +304,7 @@ _DASHBOARD_HTML = """<!doctype html>
     <main class=\"review\" id=\"evidenceView\">
       <section class=\"review-section\">
         <h2>Raw evidence</h2>
-        <p class=\"quiet\">Preserved state and event records for the selected condition. This completed run is read-only.</p>
+        <p class=\"quiet\" id=\"evidenceDescription\">Preserved state and event records for the selected condition. This completed run is read-only.</p>
         <section class=\"grid\">
           <article class=\"panel\"><h2>State receipt</h2><pre id=\"state\">loading...</pre></article>
           <article class=\"panel\"><h2>Event records</h2><pre id=\"events\">loading...</pre></article>
@@ -357,9 +357,11 @@ _DASHBOARD_HTML = """<!doctype html>
       }
       document.getElementById('statusLine').innerHTML = status.join(' ');
       const readOnly = !!(state.review && state.review.read_only);
-      for (const id of ['resumeButton', 'pauseButton', 'stopButton']) {
-        document.getElementById(id).disabled = readOnly;
-      }
+      const lifecycle = state.recovery ? state.recovery.lifecycle_state : null;
+      const terminal = ['completed', 'stopped', 'invalid'].includes(lifecycle);
+      document.getElementById('resumeButton').disabled = readOnly || terminal || (running && !paused);
+      document.getElementById('pauseButton').disabled = readOnly || terminal || !running || paused;
+      document.getElementById('stopButton').disabled = readOnly || terminal;
     }
 
     function runQuery() {
@@ -446,7 +448,7 @@ _DASHBOARD_HTML = """<!doctype html>
         return `<article class=\"agent-card\">
           <div class=\"agent-head\"><strong>${escapeHtml(agent.id)}</strong><span class=\"pill\"><span class=\"dot${agent.frozen ? ' danger' : ''}\"></span>${agent.frozen ? 'frozen' : 'active'}</span></div>
           <div class=\"agent-stats\">
-            <div class=\"agent-stat\"><b>${agent.scrip ?? '—'}</b>final scrip</div>
+            <div class=\"agent-stat\"><b>${agent.scrip ?? '—'}</b>${operatorState.read_only ? 'final' : 'current'} scrip</div>
             <div class=\"agent-stat\"><b>${formatMoney(agent.llm_budget)}</b>budget left</div>
             <div class=\"agent-stat\"><b>${actions.length}</b>decisions so far</div>
           </div>
@@ -459,13 +461,13 @@ _DASHBOARD_HTML = """<!doctype html>
           <span class=\"activity-turn\">#${action.turn}</span>
           <span class=\"activity-agent\">${escapeHtml(action.principal_id)}</span>
           <span class=\"activity-text\">${actionDescription(action)}</span>
-          <span class=\"result${action.success ? '' : ' failed'}\">${action.success ? 'success' : escapeHtml(action.error_code || 'failed')}</span>
-        </div>`).join('') : '<div class=\"empty\">Press Play to watch the agents begin.</div>';
+          <span class=\"result${action.success ? '' : ' failed'}\">${action.success ? (action.value_amount ? `${action.value_amount} ${escapeHtml(action.value_unit)}` : 'success') : escapeHtml(action.error_code || 'failed')}</span>
+        </div>`).join('') : `<div class=\"empty\">${operatorState.read_only ? 'Press Play to watch the agents begin.' : 'Waiting for the first agent decision.'}</div>`;
       const query = document.getElementById('artifactSearch').value.trim().toLowerCase();
       const scope = document.getElementById('artifactScope').value;
       const artifacts = operatorState.artifacts.filter(artifact =>
         artifact.created_turn <= currentTurn &&
-        (scope === 'all' || artifact.agent_created) &&
+        (scope === 'all' || artifact.agent_created || (scope === 'economy' && artifact.scenario_opportunity)) &&
         (!query || `${artifact.id} ${artifact.type} ${artifact.owner}`.toLowerCase().includes(query))
       );
       document.getElementById('artifactCount').textContent = `${artifacts.length} visible`;
@@ -491,13 +493,18 @@ _DASHBOARD_HTML = """<!doctype html>
     }
 
     async function loadOperator() {
-      operatorState = await fetchJson(`/operator-state?run=${encodeURIComponent(selectedRun)}`);
+      const query = selectedRun ? `?run=${encodeURIComponent(selectedRun)}` : '';
+      operatorState = await fetchJson(`/operator-state${query}`);
       currentTurn = operatorState.max_turn;
       const slider = document.getElementById('turnSlider');
       slider.max = operatorState.max_turn;
       slider.value = currentTurn;
-      document.getElementById('turnLabel').textContent = `Decision ${currentTurn} / ${operatorState.max_turn}`;
-      document.getElementById('statusLine').innerHTML = `<span class=\"pill\"><span class=\"dot\"></span>${escapeHtml(operatorState.condition)}</span><span class=\"pill\">${operatorState.agents.length} agents</span><span class=\"pill\">${operatorState.artifacts.length} final artifacts</span><span class=\"pill\">${escapeHtml(operatorState.lifecycle_state)}</span><span class=\"pill\">read only replay</span>`;
+      slider.disabled = !operatorState.read_only;
+      document.getElementById('playButton').disabled = !operatorState.read_only;
+      document.getElementById('turnLabel').textContent = operatorState.read_only ? `Decision ${currentTurn} / ${operatorState.max_turn}` : `Live · ${currentTurn} decisions`;
+      if (operatorState.read_only) {
+        document.getElementById('statusLine').innerHTML = `<span class=\"pill\"><span class=\"dot\"></span>${escapeHtml(operatorState.condition)}</span><span class=\"pill\">${operatorState.agents.length} agents</span><span class=\"pill\">${operatorState.artifacts.length} final artifacts</span><span class=\"pill\">${escapeHtml(operatorState.lifecycle_state)}</span><span class=\"pill\">read only replay</span>`;
+      }
       renderOperator();
     }
 
@@ -570,10 +577,18 @@ _DASHBOARD_HTML = """<!doctype html>
 
     async function refreshLive() {
       try {
-        const [state, events] = await Promise.all([fetchJson('/state'), fetchJson('/events?limit=60')]);
+        const [state, events, liveOperator] = await Promise.all([fetchJson('/state'), fetchJson('/events?limit=60'), fetchJson('/operator-state')]);
         renderStatus(state);
+        operatorState = liveOperator;
+        currentTurn = operatorState.max_turn;
+        document.getElementById('turnSlider').max = currentTurn;
+        document.getElementById('turnSlider').value = currentTurn;
+        document.getElementById('turnLabel').textContent = `Live · ${currentTurn} decisions`;
+        renderOperator();
         document.getElementById('liveState').textContent = JSON.stringify(state, null, 2);
         document.getElementById('liveEvents').textContent = JSON.stringify(events, null, 2);
+        document.getElementById('state').textContent = JSON.stringify(state, null, 2);
+        document.getElementById('events').textContent = JSON.stringify(events, null, 2);
       } catch (err) {
         document.getElementById('liveState').textContent = `dashboard error: ${err}`;
       }
@@ -587,7 +602,23 @@ _DASHBOARD_HTML = """<!doctype html>
       }
     }
 
-    loadRuns().then(hasRuns => hasRuns ? refreshEvidence() : refreshLive());
+    async function initializeLive() {
+      selectedRun = null;
+      document.getElementById('eyebrow').textContent = 'Live Luna Medium ecology';
+      document.getElementById('pageSubtitle').textContent = 'Watch agents act, inspect resources and artifacts, and control the run from one workspace.';
+      document.getElementById('workspaceNav').classList.add('visible');
+      document.getElementById('conditionPicker').style.display = 'none';
+      document.getElementById('comparisonTab').style.display = 'none';
+      document.getElementById('liveView').classList.add('hidden');
+      document.getElementById('playButton').disabled = true;
+      document.getElementById('playButton').textContent = '● Live';
+      document.getElementById('evidenceDescription').textContent = 'Current canonical state and recent event records from the live run.';
+      document.getElementById('artifactScope').value = 'economy';
+      showView('ecosystem');
+      await refreshLive();
+    }
+
+    loadRuns().then(hasRuns => hasRuns ? refreshEvidence() : initializeLive());
     setInterval(() => { if (!reviewMode) refreshLive(); }, 1500);
   </script>
 </body>
@@ -747,20 +778,16 @@ def _summarize_review_pair(review_runs: dict[str, Path]) -> dict[str, Any]:
     }
 
 
-def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
-    """Project a completed receipt into the human operator workflow."""
-    receipt = cast(
-        dict[str, Any],
-        json.loads((data_dir / "run_receipt.json").read_text(encoding="utf-8")),
-    )
-    world_state = receipt.get("world_state")
-    recovery = receipt.get("recovery")
-    if not isinstance(world_state, dict) or not isinstance(recovery, dict):
-        raise TypeError(f"review receipt for {run_id} is missing run state")
-    raw_log_path = world_state.get("log_path")
-    if not isinstance(raw_log_path, str) or not raw_log_path:
-        raise RuntimeError(f"review receipt for {run_id} has no log_path")
-    events = _read_jsonl_tail(Path(raw_log_path), 100_000)
+def _operator_state(
+    *,
+    condition: str,
+    world_state: dict[str, Any],
+    recovery: dict[str, Any],
+    model: str | None,
+    events: list[dict[str, Any]],
+    read_only: bool,
+) -> dict[str, Any]:
+    """Project canonical world state and events into the operator workflow."""
     decisions = [event for event in events if event.get("event_type") == "loop_decision"]
     event_turn = {
         int(event.get("event_number", 0) or 0): turn
@@ -795,11 +822,20 @@ def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
                     "invoke_price": raw.get("invoke_price", 0),
                     "executable": bool(raw.get("executable")),
                     "access_contract_id": raw.get("access_contract_id"),
+                    "scenario_opportunity": bool(
+                        isinstance(raw.get("metadata"), dict)
+                        and raw["metadata"].get("mvp_scenario_opportunity") is True
+                    ),
                     "created_turn": created_turn.get(artifact_id, 0),
                     "agent_created": artifact_id in created_turn,
                 }
             )
     action_rows: list[dict[str, Any]] = []
+    paid_reads = {
+        (int(event.get("event_number", 0) or 0), str(event.get("artifact_id") or "")): event
+        for event in events
+        if event.get("event_type") == "artifact_read"
+    }
     agent_counts: dict[str, Counter[str]] = {}
     agent_failures: Counter[str] = Counter()
     for turn, event in enumerate(decisions, start=1):
@@ -809,13 +845,36 @@ def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
         decision = cast(dict[str, Any], raw_decision) if isinstance(raw_decision, dict) else {}
         target_artifact_id = decision.get("artifact_id")
         success = event.get("result_success") is True
+        value_amount: int | float = 0
+        value_unit: str | None = None
+        counterparty: str | None = None
         agent_counts.setdefault(principal_id, Counter())[action] += 1
         if not success:
             agent_failures[principal_id] += 1
         if action == "query_kernel":
             description = f"searched {decision.get('query_type', 'the kernel')}"
         elif action == "read_artifact":
-            description = f"read {target_artifact_id or 'an artifact'}"
+            read_event = paid_reads.get(
+                (
+                    int(event.get("event_number", 0) or 0),
+                    str(target_artifact_id or ""),
+                )
+            )
+            if read_event is not None:
+                raw_amount = read_event.get("read_price_paid", 0)
+                if isinstance(raw_amount, (int, float)):
+                    value_amount = raw_amount
+                raw_counterparty = read_event.get("recipient")
+                if isinstance(raw_counterparty, str):
+                    counterparty = raw_counterparty
+            if value_amount > 0:
+                value_unit = "scrip"
+                description = (
+                    f"bought {target_artifact_id or 'an artifact'} from "
+                    f"{counterparty or 'its owner'}"
+                )
+            else:
+                description = f"read {target_artifact_id or 'an artifact'}"
         elif action == "write_artifact":
             description = f"created {target_artifact_id or 'an artifact'}"
         elif action.startswith("transfer"):
@@ -838,6 +897,9 @@ def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
                 "success": success,
                 "error_code": event.get("result_error_code"),
                 "fallback_used": bool(event.get("fallback_used")),
+                "value_amount": value_amount,
+                "value_unit": value_unit,
+                "counterparty": counterparty,
             }
         )
     balances = world_state.get("balances")
@@ -868,11 +930,11 @@ def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
             )
     return {
         "schema_version": "ae3_operator_state.v1",
-        "condition": run_id,
+        "condition": condition,
         "run_id": world_state.get("run_id"),
-        "model": receipt.get("model"),
+        "model": model,
         "lifecycle_state": recovery.get("lifecycle_state"),
-        "read_only": True,
+        "read_only": read_only,
         "max_turn": len(action_rows),
         "agents": agents,
         "artifacts": artifacts,
@@ -880,11 +942,36 @@ def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
     }
 
 
+def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
+    """Project a completed receipt into the human operator workflow."""
+    receipt = cast(
+        dict[str, Any],
+        json.loads((data_dir / "run_receipt.json").read_text(encoding="utf-8")),
+    )
+    world_state = receipt.get("world_state")
+    recovery = receipt.get("recovery")
+    if not isinstance(world_state, dict) or not isinstance(recovery, dict):
+        raise TypeError(f"review receipt for {run_id} is missing run state")
+    raw_log_path = world_state.get("log_path")
+    if not isinstance(raw_log_path, str) or not raw_log_path:
+        raise RuntimeError(f"review receipt for {run_id} has no log_path")
+    model = receipt.get("model")
+    return _operator_state(
+        condition=run_id,
+        world_state=world_state,
+        recovery=recovery,
+        model=model if isinstance(model, str) else None,
+        events=_read_jsonl_tail(Path(raw_log_path), 100_000),
+        read_only=True,
+    )
+
+
 def create_app(
     *,
     world_provider: Callable[[], Any | None] | None = None,
     runner_provider: Callable[[], Any | None] | None = None,
     recovery_provider: Callable[[], dict[str, Any] | None] | None = None,
+    shutdown_provider: Callable[[], None] | None = None,
     jsonl_path: str | None = None,
     review_runs: dict[str, Path] | None = None,
 ) -> FastAPI:
@@ -951,10 +1038,26 @@ def create_app(
 
     @app.get("/operator-state")
     async def operator_state(run: str | None = None) -> dict[str, Any]:
-        if not review_runs:
-            return {"success": False, "error": "completed replay unavailable"}
-        run_id = run if run in review_runs else next(iter(review_runs))
-        return _operator_review_state(run_id, review_runs[run_id])
+        if review_runs:
+            run_id = run if run in review_runs else next(iter(review_runs))
+            return _operator_review_state(run_id, review_runs[run_id])
+        world = world_provider()
+        if world is None:
+            return {"success": False, "error": "live operator unavailable"}
+        world_state = cast(dict[str, Any], world.get_state_summary(event_limit=2000))
+        recovery = recovery_provider() or {}
+        config = getattr(world, "config", None)
+        llm_config = getattr(config, "llm", None)
+        model = getattr(llm_config, "default_model", None)
+        condition = getattr(llm_config, "loop_cognition_mode", "live")
+        return _operator_state(
+            condition=str(condition),
+            world_state=world_state,
+            recovery=recovery,
+            model=model if isinstance(model, str) else None,
+            events=world.logger.read_recent(2000),
+            read_only=False,
+        )
 
     @app.get("/state")
     async def state(run: str | None = None) -> dict[str, Any]:
@@ -1021,5 +1124,12 @@ def create_app(
             return {"success": False, "error": "runner unavailable"}
         runner.stop()
         return {"success": True, "stopping": True}
+
+    @app.post("/control/shutdown")
+    async def control_shutdown() -> dict[str, Any]:
+        if shutdown_provider is None:
+            return {"success": False, "error": "shutdown unavailable"}
+        shutdown_provider()
+        return {"success": True, "shutting_down": True}
 
     return app

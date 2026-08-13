@@ -41,7 +41,8 @@ class SimulationRunner:
         self._stop_event = asyncio.Event()
         self._pause_event = asyncio.Event()
         self._pause_event.set()
-        self._start_monotonic: float | None = None
+        self._active_started_monotonic: float | None = None
+        self._active_elapsed_seconds = 0.0
 
         self._loop_states: dict[str, LoopRuntimeState] = {}
         self._loop_tasks: dict[str, asyncio.Task[None]] = {}
@@ -69,15 +70,28 @@ class SimulationRunner:
 
     @property
     def elapsed_seconds(self) -> float:
-        if self._start_monotonic is None:
-            return 0.0
-        return max(0.0, time.monotonic() - self._start_monotonic)
+        elapsed = self._active_elapsed_seconds
+        if self._active_started_monotonic is not None:
+            elapsed += time.monotonic() - self._active_started_monotonic
+        return max(0.0, elapsed)
+
+    def _settle_active_time(self) -> None:
+        if self._active_started_monotonic is None:
+            return
+        self._active_elapsed_seconds += (
+            time.monotonic() - self._active_started_monotonic
+        )
+        self._active_started_monotonic = None
 
     def pause(self) -> None:
+        if not self._paused:
+            self._settle_active_time()
         self._paused = True
         self._pause_event.clear()
 
     def resume(self) -> None:
+        if self._paused and self._running:
+            self._active_started_monotonic = time.monotonic()
         self._paused = False
         self._pause_event.set()
 
@@ -211,7 +225,10 @@ class SimulationRunner:
             self._pause_event.clear()
         else:
             self._pause_event.set()
-        self._start_monotonic = time.monotonic()
+        self._active_elapsed_seconds = 0.0
+        self._active_started_monotonic = (
+            None if start_paused else time.monotonic()
+        )
         self._target_llm_attempts = (
             int(target_llm_attempts) if target_llm_attempts is not None else None
         )
@@ -276,6 +293,7 @@ class SimulationRunner:
                     remaining = min(remaining, max(0.01, max_runtime - elapsed))
                 await self._sleep_until_stop(remaining)
         finally:
+            self._settle_active_time()
             self._stop_requested = True
             self._stop_event.set()
             self._pause_event.set()
