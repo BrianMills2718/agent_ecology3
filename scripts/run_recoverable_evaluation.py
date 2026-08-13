@@ -15,7 +15,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC = REPO_ROOT / "src"
@@ -49,6 +49,14 @@ SCARCITY_TARGET_ATTEMPTS = 16
 SCARCITY_CONTROL_ACKNOWLEDGEMENT = "plan11/luna-medium/scarcity-control/v1"
 SCARCITY_CONTROL_STARTING_BUDGET = 0.066384
 SCARCITY_CONTROL_TARGET_ATTEMPTS = 8
+EVAL12_ACKNOWLEDGEMENTS = {
+    "prescribed": "eval12/luna-medium/prescribed/pair-01/v1",
+    "minimal": "eval12/luna-medium/minimal/pair-01/v1",
+}
+EVAL12_STARTING_BUDGET = 0.033192
+EVAL12_TARGET_ATTEMPTS = 16
+EVAL12_PRINCIPAL_COUNT = 2
+EVAL12_POLICY_SEED = 24120
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -89,9 +97,12 @@ def _configure(
     data_dir: Path,
     *,
     starting_llm_budget: float | None = None,
+    principal_count: int = 1,
+    cognition_mode: str = "prescribed",
+    policy_seed: int = 0,
 ) -> AppConfig:
     config = load_config(config_path)
-    config.principals.count = 1
+    config.principals.count = principal_count
     config.principals.starting_llm_budget = (
         max(1.0, float(config.principals.starting_llm_budget))
         if starting_llm_budget is None
@@ -111,6 +122,10 @@ def _configure(
     config.llm.enable_bootstrap_loop_llm = True
     config.llm.loop_llm_cooldown_seconds = 0.0
     config.llm.loop_forced_explore_mode = "off"
+    config.llm.loop_cognition_mode = cast(
+        Literal["prescribed", "minimal"], cognition_mode
+    )
+    config.llm.loop_policy_seed = policy_seed
     config.llm.decision_output_mode = "luna_structured_v1"
     config.llm.reasoning_effort = "medium"
     config.llm.codex_transport = "cli"
@@ -198,7 +213,25 @@ def _validate_start_contract(args: argparse.Namespace) -> None:
                 "starting_llm_budget=0.066384"
             )
         return
-    raise RuntimeError("start requires an exact Plan 10 or Plan 11 acknowledgement")
+    expected_eval12_ack = EVAL12_ACKNOWLEDGEMENTS.get(args.cognition_mode)
+    if args.acknowledgement == expected_eval12_ack:
+        if (
+            args.target_attempts != EVAL12_TARGET_ATTEMPTS
+            or args.principal_count != EVAL12_PRINCIPAL_COUNT
+            or args.policy_seed != EVAL12_POLICY_SEED
+            or not math.isclose(
+                float(args.starting_llm_budget or -1),
+                EVAL12_STARTING_BUDGET,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ):
+            raise RuntimeError(
+                "Evaluation 12 requires exactly 16 attempts, two principals, "
+                "seed 24120, and starting_llm_budget=0.033192"
+            )
+        return
+    raise RuntimeError("start requires an exact Plan 10, Plan 11, or Evaluation 12 acknowledgement")
 
 
 def _spawn(args: argparse.Namespace, *, start_running: bool) -> dict[str, Any]:
@@ -231,6 +264,16 @@ def _spawn(args: argparse.Namespace, *, start_running: bool) -> dict[str, Any]:
     ]
     if args.starting_llm_budget is not None:
         command.extend(["--starting-llm-budget", str(args.starting_llm_budget)])
+    command.extend(
+        [
+            "--principal-count",
+            str(args.principal_count),
+            "--cognition-mode",
+            args.cognition_mode,
+            "--policy-seed",
+            str(args.policy_seed),
+        ]
+    )
     if start_running:
         command.append("--start-running")
     with paths["worker_log"].open("a", encoding="utf-8") as output:
@@ -300,6 +343,9 @@ def _write_receipt(
         "fallback_models": [],
         "source": source,
         "starting_llm_budget": world.config.principals.starting_llm_budget,
+        "principal_count": world.config.principals.count,
+        "cognition_mode": world.config.llm.loop_cognition_mode,
+        "policy_seed": world.config.llm.loop_policy_seed,
         "recovery": coordinator.status(),
         "checkpoint": checkpoint,
         "shared_client_receipts": shared_receipts,
@@ -320,6 +366,9 @@ async def _serve(args: argparse.Namespace) -> None:
         Path(args.config).resolve(),
         data_dir,
         starting_llm_budget=args.starting_llm_budget,
+        principal_count=args.principal_count,
+        cognition_mode=args.cognition_mode,
+        policy_seed=args.policy_seed,
     )
     world, coordinator = build_recoverable_world(
         config,
@@ -414,6 +463,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", default=DEFAULT_RUN_ID)
     parser.add_argument("--target-attempts", type=int, default=2)
     parser.add_argument("--starting-llm-budget", type=float)
+    parser.add_argument("--principal-count", type=int, default=1)
+    parser.add_argument("--cognition-mode", choices=("prescribed", "minimal"), default="prescribed")
+    parser.add_argument("--policy-seed", type=int, default=0)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9000)
     parser.add_argument("--start-running", action="store_true")
