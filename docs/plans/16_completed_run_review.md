@@ -1,6 +1,6 @@
 # Plan #16: Completed Run Review
 
-**Status:** In progress
+**Status:** Complete — merged and browser-observed
 **Type:** MVP UI continuity
 **Priority:** High
 **Blocked By:** Evaluation 15 complete
@@ -23,3 +23,14 @@ calls.
 
 No new dashboard, analytics redesign, comparison scoring, database, upload,
 authentication, production hardening, or Luna call.
+
+## Development receipt
+
+- Existing dashboard served from merged AE3 revision `3f0f0d8` at
+  `http://127.0.0.1:9018/` using the preserved Eval 15 pair.
+- Fresh Chromium at 1280×900 opened prescribed directly, switched to minimal,
+  and observed condition-matched state and event panels.
+- Resume, Pause, and Stop remained visible but disabled; `review only`, 14/14
+  attempts, and preserved custody were visible.
+- Browser console errors, failed requests, and HTTP errors: zero.
+- No Luna or other provider call occurred during review.
