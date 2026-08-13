@@ -538,6 +538,28 @@ async def _serve(args: argparse.Namespace) -> None:
         )
 
 
+async def _review(args: argparse.Namespace) -> None:
+    """Serve preserved prescribed/minimal cells without reconstructing a world."""
+    import uvicorn
+
+    pair_dir = Path(args.data_dir).expanduser().resolve()
+    review_runs = {
+        condition: pair_dir / condition for condition in ("prescribed", "minimal")
+    }
+    missing = [
+        str(data_dir / "run_receipt.json")
+        for data_dir in review_runs.values()
+        if not (data_dir / "run_receipt.json").is_file()
+    ]
+    if missing:
+        raise RuntimeError("completed-run review requires receipts: " + ", ".join(missing))
+    app = create_app(review_runs=review_runs)
+    server = uvicorn.Server(
+        uvicorn.Config(app, host=args.host, port=args.port, log_level="warning")
+    )
+    await server.serve()
+
+
 def _status(args: argparse.Namespace) -> dict[str, Any]:
     data_dir = Path(args.data_dir).expanduser().resolve()
     status = _read_json(_paths(data_dir)["status"])
@@ -553,7 +575,19 @@ def _status(args: argparse.Namespace) -> dict[str, Any]:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("start", "serve", "status", "resume", "pause", "stop", "shutdown"))
+    parser.add_argument(
+        "command",
+        choices=(
+            "start",
+            "serve",
+            "review",
+            "status",
+            "resume",
+            "pause",
+            "stop",
+            "shutdown",
+        ),
+    )
     parser.add_argument("--acknowledgement", default="")
     parser.add_argument("--data-dir", default=str(_default_data_dir()))
     parser.add_argument("--config", default=str(REPO_ROOT / "config" / "config.yaml"))
@@ -571,6 +605,9 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _parser().parse_args()
+    if args.command == "review":
+        asyncio.run(_review(args))
+        return 0
     if args.command == "serve":
         try:
             asyncio.run(_serve(args))
