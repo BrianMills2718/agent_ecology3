@@ -1,10 +1,10 @@
 # Plan #19: Live Economic MVP Vertical
 
-**Status:** Provider-free vertical complete — authentic Luna execution gated
+**Status:** Complete — authentic run observed and independently signed off
 **Type:** prototype vertical
 **Priority:** Critical
-**Blocked By:** None for local implementation; authentic execution requires exact call authorization
-**Blocks:** Agent Ecology 3 MVP observation
+**Blocked By:** None
+**Blocks:** Nothing; the next frontier is selected by the product roadmap
 
 ## Outcome
 
@@ -13,8 +13,8 @@ two-agent Minimal-mode Luna Medium run with an inspectable value-bearing
 cross-agent interaction and reusable artifact.
 
 The canonical outcome, acceptance criteria, critical path, and failure
-dispositions are owned by [the MVP roadmap](../MVP_ROADMAP.md). This plan owns
-their implementation; it must not narrow them silently.
+dispositions are owned by [the product roadmap](../MVP_ROADMAP.md). This plan
+owns their implementation; it must not narrow them silently.
 
 ## Adopted decisions
 
@@ -59,11 +59,12 @@ their implementation; it must not narrow them silently.
    and terminal replay.
 4. Continue, repair, or stop using the roadmap failure dispositions.
 
-## Execution gate
+## Execution gate (satisfied)
 
-No Luna call is authorized by this plan. After Slices A–B and the zero-provider
-preflight pass, present the exact model, acknowledgement, hard call ceiling,
-maximum exposure, and clean revisions for Brian's approval.
+This plan authorized no Luna call by itself. After Slices A–B and the
+zero-provider preflight passed, Brian approved the exact model,
+acknowledgement, hard call ceiling, maximum exposure, and clean revisions. The
+run then completed under that gate.
 
 The reviewed command shape is:
 
@@ -79,12 +80,11 @@ python3 scripts/run_recoverable_evaluation.py start \
   --port 9019
 ```
 
-`start` is paused by default. Do not use `--start-running` for the authentic
-MVP observation.
+`start` was paused by default; Brian resumed it from the dashboard.
 
 ## Required acceptance
 
-- All MVP acceptance criteria in `docs/MVP_ROADMAP.md` pass.
+- The local-MVP completion criteria recorded in `docs/MVP_ROADMAP.md` pass.
 - Focused API/runner tests and one authentic browser journey cover the changed
   live path; broad UI parity and production checks remain out of scope.
 - The completed receipt and dashboard agree on action count, principals,
@@ -131,6 +131,23 @@ MVP observation.
   both opportunities. Its first shutdown probe found that raw `SIGTERM` skipped
   terminal receipt custody, so shutdown now requests graceful server exit over
   the local control API before terminal status and receipt publication.
-- The remaining Slice C gate is an authentic Luna Medium run. Its counted
-  actions must be model-selected; the provider-free scripted purchase cannot
-  satisfy MVP acceptance.
+
+## Authentic observation receipt
+
+- Brian resumed the merged Plan 19 run from the existing dashboard and later
+  reviewed the completed result as acceptable.
+- Source custody: AE3 `941c5cd7fe06766e0a19147f43a5ea0afea2af19` on
+  `origin/main`; reviewed `llm_client`
+  `286715784f1d535d6dfcd2c867ca678d666e27d5`.
+- Exact execution: Luna Medium, Minimal cognition, two principals, seed 24190,
+  14 committed attempts, 14 provider dispatches, balanced 7/7, zero retry,
+  zero fallback, and no MCP.
+- Visible behavior: 14 successful model-selected actions, three genuine
+  `alpha_2 -> alpha_1` paid reads totaling 5 scrip, seven agent-created
+  artifacts, reuse of `alpha_1_analysis`, one mint submission, and final scrip
+  balances 104/95.
+- Durable bundle:
+  `/home/brian/.local/state/agent_ecology3/plan19_luna_live_economic_mvp_v1/`.
+- Independent disposition: [SIGNED-OFF](../evaluations/19_live_economic_mvp_signoff.md)
+  for the bounded local-MVP claim only. No behavioral, causal, comparative, or
+  generalization claim is licensed.

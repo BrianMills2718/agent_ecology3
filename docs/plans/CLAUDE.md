@@ -2,9 +2,10 @@
 
 Track all implementation work here.
 
-**Current direction:** [Agent Ecology 3 MVP Roadmap](../MVP_ROADMAP.md) is the
-canonical outcome and priority authority. Completed plans below are supporting
-history. Plan 19 is the selected active goal.
+**Current direction:** [Agent Ecology 3 Product Roadmap](../MVP_ROADMAP.md) is
+the canonical outcome and priority authority. Completed plans below are
+supporting history. Plan 19 completed the local MVP; the roadmap selects general
+single-run archive/reopen as the next goal pending bounded design.
 
 ## Gap Summary
 
@@ -28,7 +29,7 @@ history. Plan 19 is the selected active goal.
 | 16 | [Completed run review](16_completed_run_review.md) | High | ✅ Complete | Human MVP review |
 | 17 | [Useful completed-run review](17_useful_run_review.md) | High | ✅ Complete | Human review of the Luna Medium PoC |
 | 18 | [Ecosystem operator dashboard](18_ecosystem_operator.md) | High | ✅ Complete | Useful human observation of an AE3 run |
-| 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | Provider-free vertical complete — authentic execution gated | Authentic Agent Ecology 3 MVP observation |
+| 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | ✅ Complete — authentic run signed off | Repeatable local workbench |
 
 ## Status Key
 

@@ -1,99 +1,172 @@
-# Agent Ecology 3 MVP Roadmap
+# Agent Ecology 3 Product Roadmap
 
 ```yaml
 doc_role: active_authority
 authority: canonical
 status: active
+delivery_maturity: local_prototype
+current_stage: repeatable_local_workbench
 created: 2026-08-13
 updated: 2026-08-13
 ```
 
-This is the current-direction front door for the Agent Ecology 3 MVP. Completed
-plans and evaluations remain evidence; they do not define the next priority.
+This is the current-direction front door for Agent Ecology 3. It preserves the
+completed MVP as the canonical exemplar and selects the shortest path toward a
+repeatable local agent-ecology workbench. Completed plans and evaluations are
+evidence; they do not define the next priority.
 
-## MVP outcome
+## Outcome and operating bias
 
-For Brian as the operator, change a preserved-run replay into a live,
-inspectable two-agent ecology: launch one bounded Luna Medium run, resume it in
-the dashboard, watch both agents act and resources change, observe at least one
-successful cross-agent value-bearing interaction and one reusable artifact,
-then inspect the completed run in the same interface.
+For Brian as the operator, change a one-off, CLI-oriented agent simulation into
+a repeatable local workbench where he can launch bounded ecologies, understand
+who did what and why value moved, reopen completed runs, compare useful runs,
+and progressively explore richer scenarios without editing source code.
 
-Delivery maturity is **local prototype**. This is not a behavioral comparison,
-production service, or claim that emergence generalizes.
+Rapid user-visible progress is the default. Reversible local choices advance
+without recurring approval. Pause only for new model spend, external
+publication or deployment, destructive scope, sensitive data, or a product
+direction change that materially alters this outcome.
 
-## Observation status
+The current investment boundary is **local prototype**. Authentication,
+multi-user hosting, production reliability, generalized security hardening,
+database migration, broad viewport matrices, and scale engineering are not on
+the critical path unless a real deployment or reproduced failure activates
+them.
+
+## Current truth
 
 | Dimension | Current truth |
 |---|---|
-| Technical execution | Luna Medium route, structured actions, recovery, detached lifecycle, and hard call caps pass |
-| Reviewability | The same Ecosystem operator contract now renders live World state and completed-run replay |
-| Stakeholder observation | Provider-free browser journey is legible across paused, running, and completed states; authentic Luna journey remains |
-| MVP outcome | **Not yet authentically observed**: the provider-free fixture proves a paid interaction is visible, but Luna has not yet selected the counted actions |
+| Technical execution | Luna Medium, structured actions, recovery, hard call caps, live projection, graceful shutdown, and receipt custody pass |
+| Stakeholder reviewability | Brian reviewed the completed authentic run in the existing Ecosystem dashboard and said it looked fine |
+| Stakeholder outcome | **Local MVP complete**: two agents acted live, value crossed principals, reusable artifacts were created and consumed, and the run completed in the same interface |
+| Independent evidence | Plan 19 is independently signed off for this bounded local-MVP claim |
+| Operational state | The canonical completed run remains inspectable locally; general single-run reopening after worker shutdown is the first missing boundary |
+| Claim boundary | One successful local run; no causal, comparative, population, or generalization claim |
 
-The canonical outcome probe is a local dashboard session starting paused and
-ending with a replayable completed run. Tests, traces, and receipts support the
-probe but do not replace Brian's observation of it.
+## Canonical outcome exemplar
 
-## Critical path
+**Classification:** `canonical_outcome_exemplar`
 
-| Order | Goal | Class | State | Exit evidence |
+- Starting state: merged AE3 `941c5cd`, reviewed `llm_client` `2867157`, two
+  Minimal-mode principals, two discoverable priced opportunities, paused at
+  0/14 calls.
+- Operator action: Brian resumed the run from the existing dashboard.
+- System transition: Luna selected 14 structured actions through the real
+  runner and action executor.
+- Inspectable result: the Ecosystem dashboard showed 14/14 successful
+  decisions, three genuine `alpha_2 -> alpha_1` purchases totaling 5 scrip,
+  seven agent-created artifacts, reuse of `alpha_1_analysis`, one mint
+  submission, final balances 104/95, and completed custody.
+- Durable evidence:
+  `/home/brian/.local/state/agent_ecology3/plan19_luna_live_economic_mvp_v1/`
+  plus [the Plan 19 sign-off](evaluations/19_live_economic_mvp_signoff.md).
+- Evidence step-down: provider-free fixtures establish plumbing only; the
+  authentic run establishes this one local observation only.
+- Known negative case: an agent reading its own priced artifact is displayed
+  as a purchase even though no cross-principal transfer occurs. This is a
+  bounded presentation defect, not a failed economic interaction.
+
+## Capability sequence and success criteria
+
+| Order | Capability outcome | Class/state | Success criterion | Promotion trigger |
 |---|---|---|---|---|
-| 1 | Feed the existing Ecosystem panels from the running `World` and preserve Resume/Pause/Stop/recovery | direct blocker | implemented and browser-observed provider-free | Fresh browser observes paused -> running -> completed with live agents, activity, artifacts, and resources |
-| 2 | Provide one Minimal-mode, two-agent scenario with discoverable priced/cross-agent opportunities without prescribing the selected actions | vertical | implemented and focused-check passing | Provider-free fixture proves opportunities are legal, visible, affordable, and not forced by the scenario |
-| 3 | Execute one authentic capped Luna Medium run through that scenario | vertical | blocked on clean merged revision and exact call authorization | Dashboard visibly shows at least one successful value-bearing cross-agent action and one reusable artifact; receipt has exact custody and no retry/fallback/MCP |
-| 4 | Repair only a failure reproduced by the authentic probe, then repeat only if its result can change the continue/stop decision | conditional | deliberately deferred | Focused evidence closes the observed boundary |
-| 5 | Add an interaction graph synchronized with live/replay state | optional | deliberately deferred | Resume only after a run contains relationships worth visualizing and the graph would improve operator judgment |
+| 0 | Authentic live economic MVP | vertical / **complete** | Brian can launch, watch, understand, and inspect one completed two-agent run without raw JSON | Satisfied by Plan 19 |
+| 1 | Reopen any preserved run | direct blocker / **selected** | After shutting down the original worker, a fresh process lists and opens the single Plan 19 receipt read-only with the same 14 actions, balances, artifacts, lifecycle, and evidence; zero model calls | Complete the focused browser journey from a fresh process |
+| 2 | Launch another bounded run from the existing dashboard | vertical / fully specifiable after 1 | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Run-library adoption is proven and new model spend is separately authorized |
+| 3 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | A real run contains relationships that Brian finds hard to understand |
+| 4 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
+| 5 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
+| 6 | Expand ecology size and dynamics | conditional | A 4–8 agent run remains legible, bounded, and economically active; scaling work addresses only reproduced limits | Two-agent runs are repeatable and the next uncertainty is network behavior |
+| 7 | Internal pilot or external release | deliberately deferred | Deployment target, users, data, access, uptime, and release authority are explicit before production controls enter scope | A real remote or multi-user consumer exists |
 
-Plan 19 owns goals 1–3. They are one sequential prototype vertical; no work-unit
-graph or parallel coordination artifact is needed.
+Success criteria derive from the explicit user outcome and the observed current
+boundary. Release-only controls activate only at capability 7; evaluation
+controls activate only at capability 5.
 
 ## Binding implementation order
 
-1. Extend the existing dashboard/API seam; do not create another dashboard.
-2. Prove live operator projection provider-free with the current runner.
-3. Freeze the smallest economically legible scenario and its mutation checks.
-4. Run the exact browser journey against the implementation revision.
-5. Request approval for the exact Luna call ceiling and acknowledgement.
-6. Execute once, preserve the receipt, and assess the visible result.
+1. Generalize the existing receipt-backed review seam from a hard-coded matched
+   pair to a run library that can open the canonical single Plan 19 run.
+2. Prove that path from a fresh process after shutting down the live worker.
+3. Extend the same dashboard with one fixed-profile, paused-by-default launch
+   action; do not build a configuration panel zoo.
+4. Observe one newly launched run through the same screen. Provider-free checks
+   prove launch plumbing; an authentic run requires a new exact spend approval.
+5. Repair only defects reproduced in that journey.
+6. Select scenario exploration, comparison, or larger ecologies based on the
+   next concrete operator question—not because infrastructure exists.
 
-Reversible local implementation choices proceed without repeated approval.
-Pause for a change to the MVP outcome, a new external/shared boundary, or the
-exact multi-call Luna authorization.
+No work-unit graph or parallel program is justified for the current
+single-contributor sequence. The selected goal should receive a bounded design,
+then proceed as one reversible vertical.
 
-## MVP acceptance
+## Selected execution frontier
 
-- A single command starts the run paused and exposes the dashboard URL.
-- Ecosystem is the live default; agents, action feed, artifacts, balances,
-  budget, lifecycle, and recovery update during the run.
-- Resume, Pause, and Stop remain usable and machine-accessible.
-- The model—not a local fallback—selects all counted actions.
-- At least one successful paid read, scrip transfer, or LLM-budget transfer
-  crosses principals.
-- At least one agent-created reusable artifact is visible and inspectable in
-  the dashboard.
-- The run stops at the authorized hard call ceiling with exact trace/receipt
-  custody, zero retry/model fallback/MCP, and a replayable terminal state.
-- Brian can explain what happened without opening raw JSON.
+**Goal:** General single-run archive and reopen.
 
-## Failure dispositions
+Backward path:
 
-| Observed failure | Disposition |
+```text
+Brian inspects a completed ecology later
+  <- dashboard selects one preserved run
+  <- receipt-backed operator projection reconstructs its actions and artifacts
+  <- run inventory discovers a valid receipt directory
+  <- canonical Plan 19 receipt and event log
+```
+
+The first missing boundary is the general inventory/reopen seam. Existing
+capabilities are adopted as follows:
+
+| Capability | Canonical seam | Disposition | Adoption proof |
+|---|---|---|---|
+| Operator UI | existing Ecosystem dashboard and `ae3_operator_state.v1` | extend | Fresh browser opens the preserved single run |
+| Durable run state | recovery checkpoint, status, receipt, and JSONL events | reuse | Dashboard values reconcile with the receipt |
+| Completed review | receipt-backed review projection | extend | Works for a single run without fabricating a pair |
+
+**Next planning handoff:** `company-planning:bounded-design` should define only
+the single-run discovery contract, read-only lifecycle behavior, and focused
+browser acceptance. It must not absorb launching, scenario authoring, graphs,
+deployment, or hardening.
+
+## YAGNI guardrails
+
+Do not add the following until their trigger above is real:
+
+- WebSockets or a new frontend framework;
+- a second dashboard;
+- database-backed run storage;
+- authentication, tenancy, cloud deployment, or production observability;
+- generic workflow/orchestration abstractions;
+- interaction graphs before list comprehension fails;
+- broad evaluation matrices or more model calls without a decision they can
+  change;
+- generalized security, compliance, performance, or scale hardening.
+
+Baseline invariants remain: no secret exposure, no accidental publication,
+exact destructive targets, visible failures, and recoverable Git checkpoints.
+
+## Course and failure rules
+
+| Observation | Disposition |
 |---|---|
-| No economic interaction | Revise scenario discoverability/access/affordability or horizon; do not add visualization |
-| `not_authorized` blocks intended opportunity | Repair the access-contract/scenario boundary |
-| Dashboard lags or disagrees with receipts | Repair the live projection/adoption seam before another model run |
-| Budget permits excess calls or stops before the frozen horizon | Keep the independent hard call ceiling authoritative; revise budget separately |
-| Retry, fallback, MCP, ambiguous dispatch, or replacement call | Mark the run invalid and stop |
-| Useful live run but relationships remain hard to understand | Promote the synchronized interaction graph into the next goal |
+| A fresh process cannot reopen Plan 19 | Repair receipt discovery/projection before adding launch controls |
+| Dashboard and receipt disagree | Treat the dashboard as untrusted and repair adoption before another run |
+| Launch requires many configuration choices | Freeze one useful profile; defer general scenario authoring |
+| Another authentic run produces no useful interaction | Revisit opportunity discoverability before visualization or scale |
+| Richer activity is hard to explain | Promote the compact economic summary; graph only if still needed |
+| Work spends two increments on tests/docs/infrastructure without a new visible operator capability | Return immediately to the selected browser journey |
+| A remote or multi-user consumer appears | Replan maturity and activate only the necessary pilot controls |
 
 ## Authority and history
 
-- [Plan 19](plans/19_live_economic_mvp.md) is the selected active goal.
+- This file owns initiative outcome, phase order, success criteria, and selected
+  frontier.
+- [Plan 19](plans/19_live_economic_mvp.md) and its
+  [independent sign-off](evaluations/19_live_economic_mvp_signoff.md) own the
+  completed MVP implementation and evidence.
 - [Plan index](plans/CLAUDE.md) is navigation and historical status.
-- [Evaluation 15](evaluations/15_luna_hard_call_cap.md) proves bounded run and
-  custody feasibility only.
-- [Plan 18](plans/18_ecosystem_operator.md) provides the completed-run operator
-  surface that Plan 19 will extend live.
 - [Lineage and restarts](LINEAGE_AND_RESTARTS.md) remains authoritative for
   AE1/AE2/AE3 lineage and restart failure history.
+- A later numbered plan may own the selected single-run reopen implementation
+  only after bounded design; it must not silently redefine this roadmap.
