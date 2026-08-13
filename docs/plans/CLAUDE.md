@@ -31,6 +31,7 @@ boundary; the roadmap now selects dashboard launch of another bounded run.
 | 18 | [Ecosystem operator dashboard](18_ecosystem_operator.md) | High | ✅ Complete | Useful human observation of an AE3 run |
 | 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | ✅ Complete — authentic run signed off | Repeatable local workbench |
 | 20 | [Single-run archive reopen](20_single_run_archive_reopen.md) | Critical | ✅ Complete | Dashboard launch |
+| 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | In Progress | Another operator-observed run |
 
 ## Status Key
 
