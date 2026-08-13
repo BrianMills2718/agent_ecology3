@@ -57,6 +57,10 @@ EVAL12_STARTING_BUDGET = 0.033192
 EVAL12_TARGET_ATTEMPTS = 16
 EVAL12_PRINCIPAL_COUNT = 2
 EVAL12_POLICY_SEED = 24120
+EVAL14_ACKNOWLEDGEMENTS = {
+    "prescribed": "eval14/luna-medium/prescribed/pair-01/v1",
+    "minimal": "eval14/luna-medium/minimal/pair-01/v1",
+}
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -100,6 +104,11 @@ def _configure(
     principal_count: int = 1,
     cognition_mode: str = "prescribed",
     policy_seed: int = 0,
+    action_failure_policy: Literal[
+        "recovery_fallback", "fail_closed_no_substitute"
+    ] = "recovery_fallback",
+    mint_enabled: bool = False,
+    mint_auction_after_horizon: bool = False,
 ) -> AppConfig:
     config = load_config(config_path)
     config.principals.count = principal_count
@@ -108,11 +117,16 @@ def _configure(
         if starting_llm_budget is None
         else float(starting_llm_budget)
     )
-    config.mint.enabled = False
+    config.mint.enabled = mint_enabled
     config.logging.logs_dir = str(data_dir / "logs")
     config.logging.recent_event_limit = 2000
     config.simulation.default_duration_seconds = 3600
     config.simulation.max_runtime_seconds = 7200
+    if mint_auction_after_horizon:
+        config.mint.first_auction_delay_seconds = (
+            config.simulation.default_duration_seconds + 1.0
+        )
+        config.mint.scoring_max_budget = 0.0
     config.simulation.loop.min_delay_seconds = 3.0
     config.simulation.loop.max_delay_seconds = 3.0
     config.llm.default_model = LUNA_MODEL
@@ -126,6 +140,7 @@ def _configure(
         Literal["prescribed", "minimal"], cognition_mode
     )
     config.llm.loop_policy_seed = policy_seed
+    config.llm.loop_action_failure_policy = action_failure_policy
     config.llm.decision_output_mode = "luna_structured_v1"
     config.llm.reasoning_effort = "medium"
     config.llm.codex_transport = "cli"
@@ -186,6 +201,11 @@ def _post_json(url: str) -> dict[str, Any]:
 
 
 def _validate_start_contract(args: argparse.Namespace) -> None:
+    if args.acknowledgement in EVAL14_ACKNOWLEDGEMENTS.values():
+        raise RuntimeError(
+            "Evaluation 14 execution is not authorized; only its provider-free "
+            "implementation may run"
+        )
     if args.acknowledgement == ACKNOWLEDGEMENT:
         if args.target_attempts != 2 or args.starting_llm_budget is not None:
             raise RuntimeError("Plan 10 is frozen to two attempts and its original budget")

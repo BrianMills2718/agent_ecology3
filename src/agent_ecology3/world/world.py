@@ -1646,6 +1646,7 @@ async def run():
         "gate_fallback_used": False,
         "gate_reason": None,
         "recovery_fallback_used": False,
+        "action_failure_policy": {self.config.llm.loop_action_failure_policy!r},
         "action_gate_enabled": {self.config.llm.loop_action_gate_enabled},
         "feedback_enabled": feedback_enabled,
         "llm_trace_id": None,
@@ -1703,6 +1704,13 @@ async def run():
 
     result = invoke("kernel_act", decision)
     if not result.get("success"):
+        if decision_meta["action_failure_policy"] == "fail_closed_no_substitute":
+            return {{
+                "raw_decision": raw_decision if isinstance(raw_decision, dict) else None,
+                "decision": decision,
+                "result": result,
+                "decision_meta": decision_meta,
+            }}
         fallback = _fallback_action(state_snapshot)
         recovery = invoke("kernel_act", fallback)
         decision_meta["recovery_fallback_used"] = True

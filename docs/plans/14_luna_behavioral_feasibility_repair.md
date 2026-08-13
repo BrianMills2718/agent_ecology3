@@ -1,6 +1,6 @@
 # Plan #14: Luna Behavioral Feasibility Repair
 
-**Status:** Proposed design — implementation and execution not authorized
+**Status:** Provider-free vertical implemented — execution not authorized
 **Type:** evaluation design
 **Priority:** High
 **Blocked By:** Plans #12 and #13 complete
@@ -37,3 +37,17 @@ Provider-free implementation only:
       boundaries are explicit.
 - [x] Exact future exposure is 28 serial provider calls maximum.
 - [x] Implementation and live authorization remain separate gates.
+
+## Provider-free implementation receipt
+
+- The typed loop policy defaults to `recovery_fallback`, preserving ordinary
+  simulations. Evaluation 14 projects `fail_closed_no_substitute` so a failed
+  selected action is logged as the result and no replacement action executes.
+- The Evaluation 14 runtime projection enables the mint because it remains an
+  advertised legal action, delays its auction beyond the run horizon, and sets
+  scorer budget to zero so the mint cannot add provider calls.
+- Both cell acknowledgements are frozen in the design and explicitly rejected
+  by the live entry point until separate execution authorization is granted.
+- `behavioral_feasibility_repair.validate_design_file` checks the seed, budget,
+  balanced 7/7 fourteen-call horizon, fifteenth pre-dispatch boundary, 28-call
+  maximum exposure, and non-substitution controls without contacting a model.

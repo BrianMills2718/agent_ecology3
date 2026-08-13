@@ -10,6 +10,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
+from agent_ecology3.analysis.behavioral_feasibility_repair import validate_design_file
 from agent_ecology3.config import AppConfig
 from agent_ecology3.dashboard import create_app
 from agent_ecology3.simulation import (
@@ -20,7 +21,7 @@ from agent_ecology3.simulation import (
     SimulationRunner,
     build_recoverable_world,
 )
-from scripts.run_recoverable_evaluation import _validate_start_contract
+from scripts.run_recoverable_evaluation import _configure, _validate_start_contract
 from scripts.run_recoverable_evaluation import _write_receipt as write_run_receipt
 
 
@@ -363,3 +364,42 @@ def test_receipt_snapshots_terminal_status_published_before_write(
     receipt = json.loads((data_dir / "run_receipt.json").read_text(encoding="utf-8"))
     assert receipt["recovery"]["lifecycle_state"] == "stopped"
     assert receipt["recovery"]["terminal_reason"] == "fixture_stop"
+
+
+def test_eval14_provider_free_contract_and_runtime_projection(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    result = validate_design_file(
+        repo_root / "config/evaluations/14_luna_behavioral_feasibility.json"
+    )
+    assert result["status"] == "pass"
+    assert result["provider_calls"] == 0
+
+    config = _configure(
+        repo_root / "config/config.yaml",
+        tmp_path,
+        starting_llm_budget=0.033192,
+        principal_count=2,
+        cognition_mode="prescribed",
+        policy_seed=24140,
+        action_failure_policy="fail_closed_no_substitute",
+        mint_enabled=True,
+        mint_auction_after_horizon=True,
+    )
+    assert config.llm.loop_action_failure_policy == "fail_closed_no_substitute"
+    assert config.mint.enabled is True
+    assert config.mint.scoring_max_budget == 0.0
+    assert config.mint.first_auction_delay_seconds > config.simulation.default_duration_seconds
+
+
+@pytest.mark.parametrize("mode", ["prescribed", "minimal"])
+def test_eval14_acknowledgement_remains_execution_blocked(mode: str) -> None:
+    args = SimpleNamespace(
+        acknowledgement=f"eval14/luna-medium/{mode}/pair-01/v1",
+        target_attempts=14,
+        starting_llm_budget=0.033192,
+        principal_count=2,
+        cognition_mode=mode,
+        policy_seed=24140,
+    )
+    with pytest.raises(RuntimeError, match="execution is not authorized"):
+        _validate_start_contract(args)
