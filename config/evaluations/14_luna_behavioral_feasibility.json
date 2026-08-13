@@ -1,0 +1,36 @@
+{
+  "schema_version": "ae3_eval14_design.v1",
+  "evaluation_id": "14_luna_behavioral_feasibility",
+  "stage": "exploratory_behavioral_feasibility",
+  "model": "codex/gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "conditions": ["prescribed", "minimal"],
+  "acknowledgements": {
+    "prescribed": "eval14/luna-medium/prescribed/pair-01/v1",
+    "minimal": "eval14/luna-medium/minimal/pair-01/v1"
+  },
+  "principal_count": 2,
+  "starting_llm_budget_per_principal": 0.033192,
+  "required_committed_attempts_per_condition": 14,
+  "required_attempt_distribution": {"alpha_1": 7, "alpha_2": 7},
+  "required_terminal_boundary": {
+    "attempt_ordinal": 15,
+    "phase": "pre_dispatch_rejected",
+    "trace_id": null,
+    "reason": "scarcity_binding_pre_dispatch"
+  },
+  "matched_pairs": [
+    {"pair_id": "pair_01", "seed": 24140, "first_condition": "prescribed"}
+  ],
+  "maximum_provider_attempts": 28,
+  "provider_retries": 0,
+  "fallback_models": [],
+  "mcp_servers": [],
+  "local_action_failure_policy": "fail_closed_no_substitute",
+  "mint": {
+    "enabled": true,
+    "auction_after_horizon": true,
+    "scoring_max_budget": 0.0
+  },
+  "decision": "behavioral_instrument_feasibility_only"
+}

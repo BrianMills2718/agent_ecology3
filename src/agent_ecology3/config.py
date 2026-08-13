@@ -77,6 +77,9 @@ class LLMConfig(StrictModel):
     loop_prompt_template_path: str | None = None
     loop_prompt_feedback_enabled: bool = True
     loop_action_gate_enabled: bool = True
+    loop_action_failure_policy: Literal[
+        "recovery_fallback", "fail_closed_no_substitute"
+    ] = "recovery_fallback"
     subscription_budget_charge_mode: Literal["actual", "estimated", "none"] = "estimated"
     subscription_estimated_cost_multiplier: float = Field(default=1.0, ge=0.0)
     decision_output_mode: Literal["legacy", "luna_structured_v1"] = "legacy"

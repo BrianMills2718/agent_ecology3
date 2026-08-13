@@ -1067,3 +1067,53 @@ def test_runner_stops_after_exact_settled_attempt_target(tmp_path) -> None:
     assert len(attempt_events) == 16
     assert len(decisions) == 16
     assert decisions[-1]["llm_trace_id"] == "ae3/test_exact_attempt_stop/attempt_16"
+
+
+def test_loop_action_failure_can_fail_closed_without_substitution(tmp_path) -> None:
+    cfg = _make_config(tmp_path)
+    cfg.principals.count = 2
+    cfg.llm.enable_bootstrap_loop_llm = True
+    cfg.llm.loop_forced_explore_mode = "off"
+    cfg.llm.loop_action_failure_policy = "fail_closed_no_substitute"
+    world = World(cfg, run_id="test_fail_closed_action")
+
+    def _fake_syscall(**_kwargs):
+        return {
+            "success": True,
+            "content": json.dumps(
+                {"action_type": "read_artifact", "artifact_id": "alpha_2_strategy"}
+            ),
+            "usage": {"total_tokens": 10},
+            "cost": 0.0,
+            "charged_cost": 0.0,
+            "cost_source": "test",
+            "billing_mode": "subscription",
+            "cache_hit": False,
+            "undercharged_cost": 0.0,
+        }
+
+    world.call_llm_as_syscall = _fake_syscall
+    result = world.execute_action_data(
+        "alpha_1",
+        {
+            "action_type": "invoke_artifact",
+            "artifact_id": "alpha_1_loop",
+            "method": "run",
+            "args": [],
+        },
+    )
+    assert result.success is True
+    decisions = [
+        event
+        for event in world.logger.read_recent(50)
+        if event.get("event_type") == "loop_decision"
+    ]
+    assert len(decisions) == 1
+    decision = decisions[0]
+    assert decision["decision_action"] == "read_artifact"
+    assert decision["result_success"] is False
+    assert decision["result_error_code"] == "not_authorized"
+    assert decision["fallback_used"] is False
+    assert decision["recovery_fallback_used"] is False
+    assert decision["fallback"] is None
+    assert decision["action_failure_policy"] == "fail_closed_no_substitute"

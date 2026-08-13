@@ -597,6 +597,9 @@ class ActionExecutor:
                         "gate_reason": meta_dict.get("gate_reason"),
                         "decision_source": meta_dict.get("source"),
                         "action_gate_enabled": bool(meta_dict.get("action_gate_enabled", False)),
+                        "action_failure_policy": meta_dict.get(
+                            "action_failure_policy", "recovery_fallback"
+                        ),
                         "feedback_enabled": bool(meta_dict.get("feedback_enabled", False)),
                         "llm_attempted": bool(meta_dict.get("llm_attempted", False)),
                         "llm_success": bool(meta_dict.get("llm_success", False)),
