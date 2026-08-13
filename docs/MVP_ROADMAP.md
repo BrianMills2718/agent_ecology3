@@ -37,12 +37,12 @@ them.
 
 | Dimension | Current truth |
 |---|---|
-| Technical execution | Plan 19 proves one valid Luna Medium vertical; Plan 21 exposed a fail-open worker/runtime defect that Plan 22 is repairing |
+| Technical execution | Plan 22 passed a one-call Luna canary and a fresh 14-call Luna Medium run through the repaired fail-loud worker |
 | Stakeholder reviewability | Brian reviewed the completed authentic run in the existing Ecosystem dashboard and said it looked fine |
 | Stakeholder outcome | **Local MVP complete**: two agents acted live, value crossed principals, reusable artifacts were created and consumed, and the run completed in the same interface |
 | Independent evidence | Plan 19 is independently signed off for this bounded local-MVP claim |
-| Operational state | The dashboard can reopen preserved runs and launch the frozen profile paused; the resumed Plan 21 run is invalid evidence (14 local pre-dispatch errors rendered as fallback successes) |
-| Claim boundary | One successful local run; no causal, comparative, population, or generalization claim |
+| Operational state | The dashboard launches paused, resumes explicitly, reaches truthful 14/14 custody, and reopens the new durable run after worker shutdown; the invalid Plan 21 incident remains preserved negative evidence |
+| Claim boundary | Repeatable local workbench demonstrated by the Plan 19 and Plan 22 runs; no causal, comparative, population, or generalization claim |
 
 ## Canonical outcome exemplar
 
@@ -74,7 +74,7 @@ them.
 | 0 | Authentic live economic MVP | vertical / **complete** | Brian can launch, watch, understand, and inspect one completed two-agent run without raw JSON | Satisfied by Plan 19 |
 | 1 | Reopen any preserved run | direct blocker / **complete** | After shutting down the original worker, a fresh process lists and opens the single Plan 19 receipt read-only with the same 14 actions, balances, artifacts, lifecycle, and evidence; zero model calls | Satisfied by Plan 20 |
 | 2 | Launch another bounded run from the existing dashboard | vertical / **complete** | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Satisfied by Plan 21 |
-| 3 | Fail-loud repeat-run boundary | direct blocker / **in progress** | A durable worker stops invalid on the first authentic-boundary failure and never presents a substitute as model behavior | Satisfied by Plan 22 plus an authorized one-call canary |
+| 3 | Fail-loud repeat-run boundary | direct blocker / **complete** | A durable worker stops invalid on the first authentic-boundary failure and never presents a substitute as model behavior | Satisfied by Plan 22 canary and fresh 14-call run |
 | 4 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | A real run contains relationships that Brian finds hard to understand |
 | 5 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 6 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
@@ -95,45 +95,48 @@ controls activate only at capability 5.
 4. Repair the reproduced deleted-cwd and substitute-success defects with a
    provider-free fail-loud vertical.
 5. After separate authorization, prove the boundary with one Luna call before
-   exposing another 14-call run.
-6. Observe one newly launched valid run through the same screen.
+   exposing another 14-call run. **Complete.**
+6. Observe one newly launched valid run through the same screen. **Technically
+   complete; Brian's usefulness judgment remains.**
 7. Select scenario exploration, comparison, or larger ecologies based on the
    next concrete operator question—not because infrastructure exists.
 
 No work-unit graph or parallel program is justified for the current
 single-contributor sequence. Future implementation goals receive a bounded
-design; the current frontier is the Plan 22 fail-loud repair, followed by a
-separately authorized one-call Luna canary.
+design. The technical repeat-run frontier is complete; the current frontier is
+Brian's review of the preserved Plan 22 run before selecting any conditional
+capability.
 
 ## Selected execution frontier
 
-**Goal:** Make the existing dashboard-run path incapable of converting an
-authentic-boundary failure into apparent agent behavior.
+**Goal:** Have Brian judge whether the repaired, repeatable dashboard run is
+understandable and useful enough to accept the local MVP.
 
 Backward path:
 
 ```text
-Brian can trust the next ecology shown in the dashboard
-  <- one authorized Luna canary proves durable cwd and fail-loud custody
+Brian accepts the repeatable local MVP
+  <- Brian reviews the reopened Plan 22 run in the existing dashboard
+  <- a fresh 14-call run completes with authentic actions and zero substitutes
+  <- one Luna canary proves durable cwd and fail-loud custody
   <- provider-free checks prove the first failure stops after one attempt
-  <- dashboard marks historical substitute actions as untrusted
-  <- worker runs from durable run storage, not a removable worktree
 ```
 
-The product boundary is complete; the remaining frontier is a human spend
-decision followed by authentic observation. Existing capabilities apply as
-follows:
+The implementation boundary is complete; the remaining frontier is stakeholder
+acceptance. Existing capabilities apply as follows:
 
 | Capability | Canonical seam | Disposition | Adoption proof |
 |---|---|---|---|
-| Operator UI | existing Ecosystem dashboard | repair in place | Fallback-origin rows are not successful agent decisions |
-| Worker lifecycle | recoverable paused worker | repair in place | Durable cwd survives worktree cleanup; first failure is terminal invalid |
-| Spend boundary | hard call cap, fixed Luna profile, explicit Resume | preserve | No provider call during repair; one-call canary requires separate authorization |
+| Operator UI | existing Ecosystem dashboard | accepted implementation | Completed run shows 14 readable decisions and preserves raw Evidence |
+| Worker lifecycle | recoverable paused worker | accepted implementation | Durable run reopens after the original worker exits |
+| Spend boundary | hard call cap, fixed Luna profile, explicit Resume | preserved | Canary passed before exactly 14 repeat-run dispatches |
 
-**Next decision handoff:** Complete Plan 22 provider-free. Then request exact
-authorization for one Luna Medium canary. Do not resume the preserved invalid
-Plan 21 run or spend another 14 calls before that canary passes. No scenario
-work, graph, deployment, or production hardening is required first.
+**Next decision handoff:** Brian reviews
+`plan22_luna_mvp_20260813_193248` and decides whether the activity is
+understandable and useful. If accepted, choose the next conditional capability
+from a concrete operator question. If rejected, repair only the specific
+comprehension or behavior defect observed. No scenario work, graph, deployment,
+or production hardening is required first.
 
 ## YAGNI guardrails
 
@@ -178,3 +181,5 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
   implementation and focused browser evidence.
 - [Plan 21](plans/21_dashboard_launch.md) owns the completed paused dashboard
   launch and zero-dispatch browser evidence.
+- [Plan 22](plans/22_fail_loud_authentic_runs.md) owns the fail-loud repair,
+  authentic canary, repeat-run receipt, and durable reopen evidence.

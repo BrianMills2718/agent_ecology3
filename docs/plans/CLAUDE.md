@@ -6,8 +6,9 @@ Track all implementation work here.
 the canonical outcome and priority authority. Completed plans below are
 supporting history. Plans 19–21 completed the local MVP, durable reopen, and
 paused dashboard-launch boundaries. The resumed Plan 21 run was invalidated by
-a deleted-worker-cwd failure concealed by substitute actions. Plan 22 is the
-active repair frontier.
+a deleted-worker-cwd failure concealed by substitute actions. Plan 22 repaired
+that boundary and passed both its authentic one-call canary and a fresh 14-call
+dashboard run; Brian's usefulness review is the remaining MVP acceptance gate.
 
 ## Gap Summary
 
@@ -34,7 +35,7 @@ active repair frontier.
 | 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | ✅ Complete — authentic run signed off | Repeatable local workbench |
 | 20 | [Single-run archive reopen](20_single_run_archive_reopen.md) | Critical | ✅ Complete | Dashboard launch |
 | 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
-| 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | Provider-free complete; canary pending | One-call Luna canary authorization |
+| 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | ✅ Complete — canary and 14-call run passed | Brian's usefulness review |
 
 ## Status Key
 
