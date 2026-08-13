@@ -10,7 +10,10 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from agent_ecology3.analysis.behavioral_feasibility_repair import validate_design_file
+from agent_ecology3.analysis.behavioral_feasibility_repair import (
+    validate_cell_evidence,
+    validate_design_file,
+)
 from agent_ecology3.config import AppConfig
 from agent_ecology3.dashboard import create_app
 from agent_ecology3.simulation import (
@@ -392,14 +395,71 @@ def test_eval14_provider_free_contract_and_runtime_projection(tmp_path: Path) ->
 
 
 @pytest.mark.parametrize("mode", ["prescribed", "minimal"])
-def test_eval14_acknowledgement_remains_execution_blocked(mode: str) -> None:
+def test_eval14_acknowledgement_freezes_authorized_cell(mode: str) -> None:
     args = SimpleNamespace(
         acknowledgement=f"eval14/luna-medium/{mode}/pair-01/v1",
-        target_attempts=14,
+        target_attempts=15,
         starting_llm_budget=0.033192,
         principal_count=2,
         cognition_mode=mode,
         policy_seed=24140,
     )
-    with pytest.raises(RuntimeError, match="execution is not authorized"):
-        _validate_start_contract(args)
+    _validate_start_contract(args)
+
+    with pytest.raises(RuntimeError, match="requires exactly 15 attempt records"):
+        _validate_start_contract(SimpleNamespace(**{**vars(args), "target_attempts": 14}))
+
+
+def test_eval14_cell_validator_suppresses_invalid_pair() -> None:
+    committed = [
+        {
+            "ordinal": ordinal,
+            "phase": "committed",
+            "payer_id": f"alpha_{1 if ordinal % 2 else 2}",
+            "trace_id": f"trace-{ordinal}",
+        }
+        for ordinal in range(1, 15)
+    ]
+    boundary = {
+        "ordinal": 15,
+        "phase": "pre_dispatch_rejected",
+        "payer_id": "alpha_1",
+        "trace_id": None,
+    }
+    checkpoint = {
+        "attempts": [*committed, boundary],
+        "provider_dispatch_count": 14,
+        "terminal_reason": "scarcity_binding_pre_dispatch",
+    }
+    status = {
+        "lifecycle_state": "stopped",
+        "terminal_reason": "scarcity_binding_pre_dispatch",
+    }
+    receipt = {
+        "acknowledgement": "eval14/luna-medium/prescribed/pair-01/v1",
+        "recovery": status,
+        "checkpoint": checkpoint,
+        "shared_client_receipts": [{} for _ in range(14)],
+        "local_action_failure_policy": "fail_closed_no_substitute",
+        "mint": {
+            "enabled": True,
+            "first_auction_delay_seconds": 3601.0,
+            "scoring_max_budget": 0.0,
+        },
+    }
+    valid = validate_cell_evidence(
+        condition="prescribed",
+        checkpoint=checkpoint,
+        status=status,
+        receipt=receipt,
+    )
+    assert valid["status"] == "valid"
+
+    invalid = validate_cell_evidence(
+        condition="prescribed",
+        checkpoint={**checkpoint, "provider_dispatch_count": 15},
+        status=status,
+        receipt=receipt,
+    )
+    assert invalid["status"] == "invalid"
+    assert invalid["failed_checks"] == ["dispatch_ceiling"]

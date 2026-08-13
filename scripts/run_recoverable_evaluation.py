@@ -61,6 +61,10 @@ EVAL14_ACKNOWLEDGEMENTS = {
     "prescribed": "eval14/luna-medium/prescribed/pair-01/v1",
     "minimal": "eval14/luna-medium/minimal/pair-01/v1",
 }
+EVAL14_STARTING_BUDGET = 0.033192
+EVAL14_TARGET_ATTEMPTS = 15
+EVAL14_PRINCIPAL_COUNT = 2
+EVAL14_POLICY_SEED = 24140
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -201,11 +205,26 @@ def _post_json(url: str) -> dict[str, Any]:
 
 
 def _validate_start_contract(args: argparse.Namespace) -> None:
-    if args.acknowledgement in EVAL14_ACKNOWLEDGEMENTS.values():
-        raise RuntimeError(
-            "Evaluation 14 execution is not authorized; only its provider-free "
-            "implementation may run"
-        )
+    expected_eval14_ack = EVAL14_ACKNOWLEDGEMENTS.get(
+        getattr(args, "cognition_mode", None)
+    )
+    if args.acknowledgement == expected_eval14_ack:
+        if (
+            args.target_attempts != EVAL14_TARGET_ATTEMPTS
+            or args.principal_count != EVAL14_PRINCIPAL_COUNT
+            or args.policy_seed != EVAL14_POLICY_SEED
+            or not math.isclose(
+                float(args.starting_llm_budget or -1),
+                EVAL14_STARTING_BUDGET,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ):
+            raise RuntimeError(
+                "Evaluation 14 requires exactly 15 attempt records, two principals, "
+                "seed 24140, and starting_llm_budget=0.033192"
+            )
+        return
     if args.acknowledgement == ACKNOWLEDGEMENT:
         if args.target_attempts != 2 or args.starting_llm_budget is not None:
             raise RuntimeError("Plan 10 is frozen to two attempts and its original budget")
@@ -251,7 +270,10 @@ def _validate_start_contract(args: argparse.Namespace) -> None:
                 "seed 24120, and starting_llm_budget=0.033192"
             )
         return
-    raise RuntimeError("start requires an exact Plan 10, Plan 11, or Evaluation 12 acknowledgement")
+    raise RuntimeError(
+        "start requires an exact Plan 10, Plan 11, or Evaluation 12 acknowledgement, "
+        "or an exact Evaluation 14 acknowledgement"
+    )
 
 
 def _spawn(args: argparse.Namespace, *, start_running: bool) -> dict[str, Any]:
@@ -366,6 +388,12 @@ def _write_receipt(
         "principal_count": world.config.principals.count,
         "cognition_mode": world.config.llm.loop_cognition_mode,
         "policy_seed": world.config.llm.loop_policy_seed,
+        "local_action_failure_policy": world.config.llm.loop_action_failure_policy,
+        "mint": {
+            "enabled": world.config.mint.enabled,
+            "first_auction_delay_seconds": world.config.mint.first_auction_delay_seconds,
+            "scoring_max_budget": world.config.mint.scoring_max_budget,
+        },
         "recovery": coordinator.status(),
         "checkpoint": checkpoint,
         "shared_client_receipts": shared_receipts,
@@ -382,6 +410,7 @@ async def _serve(args: argparse.Namespace) -> None:
     data_dir = Path(args.data_dir).expanduser().resolve()
     data_dir.mkdir(parents=True, exist_ok=True)
     source = _preflight()
+    is_eval14 = args.acknowledgement in EVAL14_ACKNOWLEDGEMENTS.values()
     config = _configure(
         Path(args.config).resolve(),
         data_dir,
@@ -389,6 +418,11 @@ async def _serve(args: argparse.Namespace) -> None:
         principal_count=args.principal_count,
         cognition_mode=args.cognition_mode,
         policy_seed=args.policy_seed,
+        action_failure_policy=(
+            "fail_closed_no_substitute" if is_eval14 else "recovery_fallback"
+        ),
+        mint_enabled=is_eval14,
+        mint_auction_after_horizon=is_eval14,
     )
     world, coordinator = build_recoverable_world(
         config,
