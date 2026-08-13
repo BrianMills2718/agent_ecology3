@@ -277,20 +277,38 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
         data_dir = tmp_path / condition
         log_path = data_dir / "events.jsonl"
         data_dir.mkdir(parents=True)
-        log_path.write_text(
-            json.dumps(
+        action = "query_kernel" if condition == "prescribed" else "write_artifact"
+        succeeded = condition == "minimal"
+        log_events = [
+            {
+                "event_type": "loop_decision",
+                "event_number": 14,
+                "principal_id": "alpha_2",
+                "decision_action": action,
+                "decision": {"action_type": action},
+                "result_success": succeeded,
+                "result_error_code": None if succeeded else "not_authorized",
+                "fallback_used": False,
+            }
+        ]
+        if condition == "minimal":
+            log_events.append(
                 {
-                    "event_type": "loop_decision",
+                    "event_type": "artifact_written",
                     "event_number": 14,
                     "principal_id": "alpha_2",
-                    "decision_action": "write_artifact",
+                    "artifact_id": "alpha_2_strategy_v2",
+                    "artifact_type": "strategy",
+                    "was_update": False,
                 }
             )
-            + "\n",
+        log_path.write_text(
+            "".join(json.dumps(event) + "\n" for event in log_events),
             encoding="utf-8",
         )
         receipt = {
             "acknowledgement": f"eval15/luna-medium/{condition}/pair-01/v1",
+            "model": "codex/gpt-5.6-luna",
             "recovery": {
                 "run_id": f"eval15_{condition}",
                 "committed_attempts": 14,
@@ -302,6 +320,10 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
                 "event_number": 14,
                 "principal_count": 2,
                 "artifact_count": 8,
+                "balances": {
+                    "alpha_1": {"scrip": 100, "resources": {"llm_budget": 0.01}},
+                    "alpha_2": {"scrip": 100, "resources": {"llm_budget": 0.01}},
+                },
                 "events": [],
                 "log_path": str(log_path),
             },
@@ -315,12 +337,26 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
     with TestClient(app) as client:
         page = client.get("/")
         assert page.status_code == 200
-        assert "Review run" in page.text
-        assert "review only" in page.text
+        assert "What happened, decision by decision" in page.text
+        assert "Advanced evidence" in page.text
 
         runs = client.get("/runs").json()
         assert [item["id"] for item in runs["runs"]] == ["prescribed", "minimal"]
         assert runs["read_only"] is True
+
+        summary = client.get("/review-summary").json()
+        assert summary["valid_pair"] is True
+        assert "not a causal result" in summary["scope_note"]
+        assert [run["id"] for run in summary["runs"]] == ["prescribed", "minimal"]
+        prescribed, minimal_summary = summary["runs"]
+        assert prescribed["action_counts"] == {"query_kernel": 1}
+        assert prescribed["failures"] == 1
+        assert prescribed["fallbacks"] == 0
+        assert minimal_summary["action_counts"] == {"write_artifact": 1}
+        assert minimal_summary["artifacts_created"] == [
+            {"id": "alpha_2_strategy_v2", "type": "strategy", "owner": "alpha_2"}
+        ]
+        assert minimal_summary["balances"][0]["scrip"] == 100
 
         minimal = client.get("/state?run=minimal").json()
         assert minimal["run_id"] == "eval15_minimal"
@@ -332,7 +368,7 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
         assert minimal["recovery"]["lifecycle_state"] == "stopped"
 
         events = client.get("/events?run=minimal&limit=10").json()
-        assert events["count"] == 1
+        assert events["count"] == 2
         assert events["events"][0]["decision_action"] == "write_artifact"
         assert client.post("/control/resume").json() == {
             "success": False,
