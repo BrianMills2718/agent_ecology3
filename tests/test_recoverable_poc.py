@@ -271,6 +271,75 @@ def test_dashboard_preserves_controls_and_exposes_recovery_state(tmp_path: Path)
         assert client.post("/control/stop").json()["success"] is True
 
 
+def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
+    review_runs: dict[str, Path] = {}
+    for condition, lifecycle in (("prescribed", "completed"), ("minimal", "stopped")):
+        data_dir = tmp_path / condition
+        log_path = data_dir / "events.jsonl"
+        data_dir.mkdir(parents=True)
+        log_path.write_text(
+            json.dumps(
+                {
+                    "event_type": "loop_decision",
+                    "event_number": 14,
+                    "principal_id": "alpha_2",
+                    "decision_action": "write_artifact",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        receipt = {
+            "acknowledgement": f"eval15/luna-medium/{condition}/pair-01/v1",
+            "recovery": {
+                "run_id": f"eval15_{condition}",
+                "committed_attempts": 14,
+                "target_attempts": 14,
+                "lifecycle_state": lifecycle,
+            },
+            "world_state": {
+                "run_id": f"eval15_{condition}",
+                "event_number": 14,
+                "principal_count": 2,
+                "artifact_count": 8,
+                "events": [],
+                "log_path": str(log_path),
+            },
+        }
+        (data_dir / "run_receipt.json").write_text(
+            json.dumps(receipt), encoding="utf-8"
+        )
+        review_runs[condition] = data_dir
+
+    app = create_app(review_runs=review_runs)
+    with TestClient(app) as client:
+        page = client.get("/")
+        assert page.status_code == 200
+        assert "Review run" in page.text
+        assert "review only" in page.text
+
+        runs = client.get("/runs").json()
+        assert [item["id"] for item in runs["runs"]] == ["prescribed", "minimal"]
+        assert runs["read_only"] is True
+
+        minimal = client.get("/state?run=minimal").json()
+        assert minimal["run_id"] == "eval15_minimal"
+        assert minimal["review"] == {
+            "read_only": True,
+            "run": "minimal",
+            "acknowledgement": "eval15/luna-medium/minimal/pair-01/v1",
+        }
+        assert minimal["recovery"]["lifecycle_state"] == "stopped"
+
+        events = client.get("/events?run=minimal&limit=10").json()
+        assert events["count"] == 1
+        assert events["events"][0]["decision_action"] == "write_artifact"
+        assert client.post("/control/resume").json() == {
+            "success": False,
+            "error": "runner unavailable",
+        }
+
+
 def test_detached_status_fails_loud_when_no_worker_exists(tmp_path: Path) -> None:
     script = Path(__file__).resolve().parents[1] / "scripts" / "run_recoverable_evaluation.py"
     completed = subprocess.run(
