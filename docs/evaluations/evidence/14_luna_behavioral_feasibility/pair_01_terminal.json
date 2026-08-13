@@ -1,0 +1,81 @@
+{
+  "schema_version": "ae3_eval14_terminal_evidence.v1",
+  "status": "invalid",
+  "evaluation_id": "14_luna_behavioral_feasibility",
+  "pair_id": "pair_01",
+  "source": {
+    "agent_ecology3_revision": "3afde55d0a0e01fea460187a6a5837050058d3e6",
+    "agent_ecology3_source_clean": true,
+    "agent_ecology3_source_pushed": true,
+    "llm_client_revision": "286715784f1d535d6dfcd2c867ca678d666e27d5",
+    "llm_client_source_clean": true
+  },
+  "route": {
+    "model": "codex/gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "transport": "cli",
+    "mcp_servers": [],
+    "retry_count": 0,
+    "fallback_models": [],
+    "local_action_failure_policy": "fail_closed_no_substitute"
+  },
+  "frozen_contract": {
+    "principal_count": 2,
+    "policy_seed": 24140,
+    "starting_llm_budget_per_principal": 0.033192,
+    "required_committed_attempts_per_condition": 14,
+    "required_attempt_distribution": {"alpha_1": 7, "alpha_2": 7},
+    "required_boundary_attempt": 15,
+    "maximum_provider_attempts": 28
+  },
+  "prescribed": {
+    "classification": "valid",
+    "provider_dispatch_count": 14,
+    "committed_attempts": 14,
+    "attempt_distribution": {"alpha_1": 7, "alpha_2": 7},
+    "boundary_attempt_ordinal": 15,
+    "boundary_attempt_phase": "pre_dispatch_rejected",
+    "boundary_trace_id": null,
+    "terminal_reason": "scarcity_binding_pre_dispatch",
+    "shared_client_receipts": 14,
+    "fallback_used_loop_decisions": 0,
+    "failed_selected_actions": 1,
+    "checkpoint_sha256": "e408a2956be35aa5248601c0bc9d467a92152183a0631017313955fbc709a27c",
+    "status_sha256": "f32481f9ea5f6b5579e36cfcd19ccda6723194dd79c9383108157a617a7a73c1",
+    "full_receipt_sha256": "bbb7a0aa80fa4effdcb0bcb18f13ae54f708a7f89ce7b5fba9249b5f69c93e94"
+  },
+  "minimal": {
+    "classification": "invalid_missing_scarcity_boundary",
+    "provider_dispatch_count": 15,
+    "committed_attempts": 15,
+    "attempt_distribution": {"alpha_1": 8, "alpha_2": 7},
+    "boundary_attempt_ordinal": null,
+    "boundary_attempt_phase": null,
+    "boundary_trace_id": null,
+    "terminal_reason": null,
+    "shared_client_receipts": 15,
+    "fallback_used_loop_decisions": 0,
+    "failed_selected_actions": 0,
+    "checkpoint_sha256": "47489cc035ac3cec616e7c16f5d3726e0c68ac41c0839e2cd051c96e6539b9b8",
+    "status_sha256": "0ad8333f13d4167222f8435f0221fe751bd8d02fc256b341c4674de84fb50d93",
+    "full_receipt_sha256": "e61a87237467d684001bfb19402ee041ef043f5248bdf9b9d5334f2690ef4efe"
+  },
+  "decision": {
+    "classification": "invalid_pair_and_exposure_overrun",
+    "provider_calls_used": 29,
+    "authorized_ceiling": 28,
+    "behavioral_claim_permitted": false,
+    "additional_execution_permitted": false
+  },
+  "diagnosis": {
+    "failure_class": "condition_dependent_budget_did_not_enforce_registered_call_ceiling",
+    "evidence": "Prescribed per-call charges rose from 0.003876 to 0.005256 and bound before call 15; minimal charges ranged from 0.002475 to 0.004497 and still admitted call 15.",
+    "control_gap": "target_attempts=15 was also the only hard dispatch stop, so the registered 14-call provider ceiling was not independently enforced."
+  },
+  "external_evidence_root": "$XDG_STATE_HOME/agent_ecology3/eval14/pair_01",
+  "non_claims": [
+    "The pair cannot support a prescribed-versus-minimal behavioral comparison.",
+    "The different observed trajectories are descriptive invalid-run artifacts only.",
+    "No rerun or replacement evaluation is authorized by this readout."
+  ]
+}
