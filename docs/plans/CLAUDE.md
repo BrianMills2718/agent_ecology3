@@ -34,7 +34,7 @@ active repair frontier.
 | 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | ✅ Complete — authentic run signed off | Repeatable local workbench |
 | 20 | [Single-run archive reopen](20_single_run_archive_reopen.md) | Critical | ✅ Complete | Dashboard launch |
 | 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
-| 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | Implementation complete; browser + canary pending | One-call Luna canary authorization |
+| 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | Provider-free complete; canary pending | One-call Luna canary authorization |
 
 ## Status Key
 

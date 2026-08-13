@@ -1,6 +1,6 @@
 # Plan #22: Fail-Loud Authentic Runs
 
-**Status:** Implementation Complete — browser observation and Luna canary pending
+**Status:** Provider-Free Complete — Luna canary pending
 **Type:** prototype repair
 **Priority:** Critical
 **Blocked By:** None
@@ -64,7 +64,7 @@ as ecology behavior.
   substitute action under `fail_closed_no_substitute`.
 - [x] Historical fallback rows are visibly untrusted and not counted as
   successful agent decisions.
-- [ ] Focused provider-free tests and one rendered failure-state observation pass.
+- [x] Focused provider-free tests and one rendered failure-state observation pass.
 - [x] No provider call is made during implementation or verification.
 
 ## Non-goals
@@ -93,7 +93,14 @@ is immutable evidence of this failure. Its receipt claims completion, but it has
 - The served HTML contains the invalid-evidence banner and
   `substitute — not model-selected` activity label while archive selection,
   artifacts, Evidence, and launch remain present.
-- No browser engine is installed in this execution environment, so visual
-  browser observation remains explicitly outstanding.
+- Fresh headless Chromium at 1440×900 served the preserved invalid run from the
+  merged Plan 22 path. It showed the invalid-evidence banner, all 14 substitute
+  decisions as `substitute — not model-selected`, the two economic opportunity
+  artifacts by default, and the preserved Evidence view. Refresh retained the
+  same state with zero console errors and zero failed requests.
+- The initial browser pass exposed an empty archive artifact default. The
+  focused continuity repair now selects `Economic artifacts` for both archive
+  and live entry points; the rerun verified both artifacts before and after
+  refresh.
 - Repository-wide `mypy` remains red on 26 pre-existing errors in seven
   unrelated files; the changed modules are clean.

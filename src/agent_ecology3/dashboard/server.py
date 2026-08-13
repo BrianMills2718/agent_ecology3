@@ -623,6 +623,7 @@ _DASHBOARD_HTML = """<!doctype html>
       document.getElementById('workspaceNav').classList.add('visible');
       document.getElementById('liveControls').style.display = 'none';
       document.getElementById('liveView').classList.add('hidden');
+      document.getElementById('artifactScope').value = 'economy';
       if (payload.comparison_available) renderReview(await fetchJson('/review-summary'));
       await loadOperator();
       showView('ecosystem');

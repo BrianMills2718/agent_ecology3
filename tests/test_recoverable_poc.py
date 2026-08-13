@@ -648,6 +648,7 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
         assert "Artifacts" in page.text
         assert "What happened, decision by decision" in page.text
         assert "Raw evidence" in page.text
+        assert page.text.count("artifactScope').value = 'economy'") == 2
 
         runs = client.get("/runs").json()
         assert [item["id"] for item in runs["runs"]] == ["prescribed", "minimal"]
