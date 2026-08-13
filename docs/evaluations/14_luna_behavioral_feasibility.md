@@ -1,7 +1,7 @@
 # Evaluation 14: Luna Behavioral Feasibility Repair
 
 **Stage:** Proposed new-number exploratory feasibility probe
-**Execution:** Not implemented, authorized, or run
+**Execution:** Authorized 2026-08-13; live evidence pending
 **Predecessor:** Evaluation 12 terminal invalid; no inputs or cells are reused
 
 ## Outcome and decision
@@ -87,7 +87,6 @@ pre-dispatch and do not consume provider calls. Each cell has a stable run ID,
 atomic checkpoint, unique acknowledgement, and detached dashboard worker.
 Partial evidence is preserved; an invalid first cell suppresses the second.
 
-No execution is authorized by this document. Implementation and zero-provider
-preflight must merge first; the exact 28-call ceiling then requires separate
-human authorization. Any result-driven decision requires independent
+Implementation and zero-provider preflight merged before Brian authorized the
+exact 28-call ceiling on 2026-08-13. Any result-driven decision requires independent
 `eval-decision-signoff`.
