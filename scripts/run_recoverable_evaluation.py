@@ -46,6 +46,9 @@ ACKNOWLEDGEMENT = "plan10/luna-medium/dashboard-poc/v1"
 SCARCITY_ACKNOWLEDGEMENT = "plan11/luna-medium/scarcity-midpoint/v1"
 SCARCITY_STARTING_BUDGET = 0.033192
 SCARCITY_TARGET_ATTEMPTS = 16
+SCARCITY_CONTROL_ACKNOWLEDGEMENT = "plan11/luna-medium/scarcity-control/v1"
+SCARCITY_CONTROL_STARTING_BUDGET = 0.066384
+SCARCITY_CONTROL_TARGET_ATTEMPTS = 8
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -181,6 +184,18 @@ def _validate_start_contract(args: argparse.Namespace) -> None:
         ):
             raise RuntimeError(
                 "Plan 11 requires exactly 16 target attempts and starting_llm_budget=0.033192"
+            )
+        return
+    if args.acknowledgement == SCARCITY_CONTROL_ACKNOWLEDGEMENT:
+        if args.target_attempts != SCARCITY_CONTROL_TARGET_ATTEMPTS or not math.isclose(
+            float(args.starting_llm_budget or -1),
+            SCARCITY_CONTROL_STARTING_BUDGET,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise RuntimeError(
+                "Plan 11 control requires exactly 8 target attempts and "
+                "starting_llm_budget=0.066384"
             )
         return
     raise RuntimeError("start requires an exact Plan 10 or Plan 11 acknowledgement")
