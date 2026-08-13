@@ -28,6 +28,7 @@ from agent_ecology3.simulation import (
 from scripts.run_recoverable_evaluation import (
     PLAN19_ACKNOWLEDGEMENT,
     _configure,
+    _discover_review_runs,
     _seed_mvp_opportunities,
     _terminal_lifecycle,
     _validate_start_contract,
@@ -526,6 +527,7 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
         runs = client.get("/runs").json()
         assert [item["id"] for item in runs["runs"]] == ["prescribed", "minimal"]
         assert runs["read_only"] is True
+        assert runs["comparison_available"] is True
 
         summary = client.get("/review-summary").json()
         assert summary["valid_pair"] is True
@@ -584,6 +586,113 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
             "success": False,
             "error": "runner unavailable",
         }
+
+
+def test_dashboard_reopens_one_preserved_run_without_fabricating_pair(
+    tmp_path: Path,
+) -> None:
+    data_dir = tmp_path / "plan19_luna_live_economic_mvp_v1"
+    data_dir.mkdir()
+    log_path = data_dir / "events.jsonl"
+    log_path.write_text(
+        json.dumps(
+            {
+                "event_type": "loop_decision",
+                "event_number": 14,
+                "principal_id": "alpha_2",
+                "decision_action": "read_artifact",
+                "decision": {
+                    "action_type": "read_artifact",
+                    "artifact_id": "alpha_1_analysis",
+                },
+                "result_success": True,
+                "read_price_paid": 2,
+                "recipient": "alpha_1",
+                "fallback_used": False,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    receipt = {
+        "acknowledgement": "plan19/luna-medium/live-economic-mvp/v1",
+        "model": "codex/gpt-5.6-luna",
+        "recovery": {
+            "run_id": data_dir.name,
+            "committed_attempts": 14,
+            "target_attempts": 14,
+            "lifecycle_state": "completed",
+        },
+        "world_state": {
+            "run_id": data_dir.name,
+            "event_number": 14,
+            "principal_count": 2,
+            "artifact_count": 1,
+            "principals": ["alpha_1", "alpha_2"],
+            "frozen": [],
+            "balances": {
+                "alpha_1": {"scrip": 104, "resources": {"llm_budget": 0.0}},
+                "alpha_2": {"scrip": 95, "resources": {"llm_budget": 0.0}},
+            },
+            "quotas": {},
+            "artifacts": [
+                {
+                    "id": "alpha_1_analysis",
+                    "type": "analysis",
+                    "owner": "alpha_1",
+                    "created_by": "alpha_1",
+                    "content": "Reusable analysis",
+                    "read_price": 2,
+                    "invoke_price": 0,
+                    "executable": False,
+                    "access_contract_id": "kernel_contract_freeware",
+                }
+            ],
+            "events": [],
+            "log_path": str(log_path),
+        },
+    }
+    (data_dir / "run_receipt.json").write_text(
+        json.dumps(receipt), encoding="utf-8"
+    )
+
+    review_runs = _discover_review_runs(data_dir)
+    assert review_runs == {data_dir.name: data_dir}
+    app = create_app(review_runs=review_runs)
+    with TestClient(app) as client:
+        runs = client.get("/runs").json()
+        assert runs == {
+            "runs": [
+                {
+                    "id": data_dir.name,
+                    "label": "Plan19 Luna Live Economic Mvp V1",
+                }
+            ],
+            "default_run": data_dir.name,
+            "read_only": True,
+            "comparison_available": False,
+        }
+        assert client.get("/review-summary").json() == {
+            "success": False,
+            "error": "matched-pair comparison unavailable",
+        }
+        operator = client.get("/operator-state").json()
+        assert operator["schema_version"] == "ae3_operator_state.v1"
+        assert operator["read_only"] is True
+        assert operator["lifecycle_state"] == "completed"
+        assert operator["max_turn"] == 1
+        assert [agent["scrip"] for agent in operator["agents"]] == [104, 95]
+        assert operator["artifacts"][0]["id"] == "alpha_1_analysis"
+
+
+def test_single_run_discovery_fails_loud_for_incomplete_custody(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "run_receipt.json").write_text(
+        json.dumps({"world_state": {}, "recovery": {}}), encoding="utf-8"
+    )
+    with pytest.raises(RuntimeError, match="has no event log"):
+        _discover_review_runs(tmp_path)
 
 
 def test_detached_status_fails_loud_when_no_worker_exists(tmp_path: Path) -> None:
