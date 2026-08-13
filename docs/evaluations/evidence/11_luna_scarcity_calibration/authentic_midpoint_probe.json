@@ -1,0 +1,66 @@
+{
+  "schema_version": "ae3_luna_scarcity_probe_evidence.v1",
+  "status": "pass",
+  "run_id": "plan11_luna_scarcity_midpoint_v1",
+  "acknowledgement": "plan11/luna-medium/scarcity-midpoint/v1",
+  "source": {
+    "agent_ecology3_revision": "49ce2a42a3c7cdade467035c16be2de661b7b3c5",
+    "agent_ecology3_source_clean": true,
+    "agent_ecology3_source_pushed": true,
+    "llm_client_revision": "286715784f1d535d6dfcd2c867ca678d666e27d5",
+    "llm_client_source_clean": true
+  },
+  "route": {
+    "model": "codex/gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "transport": "cli",
+    "billing_mode": "subscription_included",
+    "mcp_servers": [],
+    "retry_count": 0,
+    "fallback_models": []
+  },
+  "frozen_setting": {
+    "principal_count": 1,
+    "starting_llm_budget": 0.033192,
+    "maximum_provider_dispatches": 16
+  },
+  "readout": {
+    "decision": "midpoint_candidate_eligible_for_later_control_design",
+    "lifecycle_state": "stopped",
+    "terminal_reason": "scarcity_binding_pre_dispatch",
+    "provider_dispatch_count": 7,
+    "committed_attempts": 7,
+    "boundary_attempt_ordinal": 8,
+    "boundary_attempt_phase": "pre_dispatch_rejected",
+    "boundary_trace_id": null,
+    "remaining_llm_budget": 0.002196,
+    "projected_reference_capacity": 8,
+    "observed_dispatch_capacity": 7
+  },
+  "settled_attempts": {
+    "total_tokens": [15585, 15855, 15957, 15872, 15972, 16121, 16210],
+    "internal_budget_charges": [0.003876, 0.004149, 0.004296, 0.004455, 0.004605, 0.004752, 0.004863],
+    "duration_ms": [5990.43681, 8524.109605, 9519.458179, 6909.602992, 7975.586695, 10892.657999, 10145.391851],
+    "action_types": ["query_kernel", "query_kernel", "query_kernel", "read_artifact", "query_kernel", "query_kernel", "query_kernel"],
+    "settlement_statuses": ["provider_settled_accepted", "provider_settled_accepted", "provider_settled_accepted", "provider_settled_accepted", "provider_settled_accepted", "provider_settled_accepted", "provider_settled_accepted"],
+    "shared_client_terminal_receipts": 7,
+    "shared_client_statuses": ["succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "succeeded"]
+  },
+  "dashboard_observation": {
+    "viewport": "1440x1000",
+    "visible_attempt_progress": "7/16",
+    "visible_custody": "stopped",
+    "visible_remaining_llm_budget": 0.002196,
+    "preserved_controls": ["Resume", "Pause", "Stop"],
+    "console_errors": [],
+    "failed_requests": []
+  },
+  "external_full_receipt_sha256": "42f590f7d590c0db1d54baae46b5ccab0301c2974c6f2523847604208961d389",
+  "external_checkpoint_sha256": "23518cd03a806ecf1d068262307f8a5eba063f2d707cf356328ee8bdb16ff13f",
+  "non_claims": [
+    "This one-principal cell does not establish Luna reliability.",
+    "It does not establish that scarcity changes behavior.",
+    "It does not establish a comparison baseline or production parameter.",
+    "The midpoint remains a candidate for a later calibration/control design."
+  ]
+}

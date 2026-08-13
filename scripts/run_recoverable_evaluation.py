@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import os
 import signal
 import subprocess
@@ -31,6 +32,7 @@ from agent_ecology3.dashboard import create_app
 from agent_ecology3.simulation import (
     RecoverableLoopWorld,
     RecoveryCoordinator,
+    RecoveryScarcityBoundary,
     RecoveryTerminalError,
     SimulationRunner,
     build_recoverable_world,
@@ -41,6 +43,9 @@ from agent_ecology3.world.luna_actions import (
 )
 
 ACKNOWLEDGEMENT = "plan10/luna-medium/dashboard-poc/v1"
+SCARCITY_ACKNOWLEDGEMENT = "plan11/luna-medium/scarcity-midpoint/v1"
+SCARCITY_STARTING_BUDGET = 0.033192
+SCARCITY_TARGET_ATTEMPTS = 16
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
@@ -76,11 +81,18 @@ def _pid_alive(pid: Any) -> bool:
     return True
 
 
-def _configure(config_path: Path, data_dir: Path) -> AppConfig:
+def _configure(
+    config_path: Path,
+    data_dir: Path,
+    *,
+    starting_llm_budget: float | None = None,
+) -> AppConfig:
     config = load_config(config_path)
     config.principals.count = 1
-    config.principals.starting_llm_budget = max(
-        1.0, float(config.principals.starting_llm_budget)
+    config.principals.starting_llm_budget = (
+        max(1.0, float(config.principals.starting_llm_budget))
+        if starting_llm_budget is None
+        else float(starting_llm_budget)
     )
     config.mint.enabled = False
     config.logging.logs_dir = str(data_dir / "logs")
@@ -155,9 +167,27 @@ def _post_json(url: str) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {"success": False, "error": "invalid response"}
 
 
+def _validate_start_contract(args: argparse.Namespace) -> None:
+    if args.acknowledgement == ACKNOWLEDGEMENT:
+        if args.target_attempts != 2 or args.starting_llm_budget is not None:
+            raise RuntimeError("Plan 10 is frozen to two attempts and its original budget")
+        return
+    if args.acknowledgement == SCARCITY_ACKNOWLEDGEMENT:
+        if args.target_attempts != SCARCITY_TARGET_ATTEMPTS or not math.isclose(
+            float(args.starting_llm_budget or -1),
+            SCARCITY_STARTING_BUDGET,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise RuntimeError(
+                "Plan 11 requires exactly 16 target attempts and starting_llm_budget=0.033192"
+            )
+        return
+    raise RuntimeError("start requires an exact Plan 10 or Plan 11 acknowledgement")
+
+
 def _spawn(args: argparse.Namespace, *, start_running: bool) -> dict[str, Any]:
-    if args.acknowledgement != ACKNOWLEDGEMENT:
-        raise RuntimeError(f"start requires exact acknowledgement {ACKNOWLEDGEMENT!r}")
+    _validate_start_contract(args)
     data_dir = Path(args.data_dir).expanduser().resolve()
     paths = _paths(data_dir)
     existing = _read_json(paths["status"])
@@ -170,7 +200,7 @@ def _spawn(args: argparse.Namespace, *, start_running: bool) -> dict[str, Any]:
         str(Path(__file__).resolve()),
         "serve",
         "--acknowledgement",
-        ACKNOWLEDGEMENT,
+        args.acknowledgement,
         "--data-dir",
         str(data_dir),
         "--config",
@@ -184,6 +214,8 @@ def _spawn(args: argparse.Namespace, *, start_running: bool) -> dict[str, Any]:
         "--port",
         str(args.port),
     ]
+    if args.starting_llm_budget is not None:
+        command.extend(["--starting-llm-budget", str(args.starting_llm_budget)])
     if start_running:
         command.append("--start-running")
     with paths["worker_log"].open("a", encoding="utf-8") as output:
@@ -223,6 +255,7 @@ def _write_receipt(
     coordinator: RecoveryCoordinator,
     world: RecoverableLoopWorld,
     source: dict[str, Any],
+    acknowledgement: str,
 ) -> None:
     checkpoint = _read_json(_paths(data_dir)["checkpoint"]) or {}
     raw_attempts = checkpoint.get("attempts")
@@ -242,8 +275,8 @@ def _write_receipt(
     except Exception as exc:  # noqa: BLE001 - retain a truthful evidence blocker
         shared_receipts = [{"receipt_error": f"{type(exc).__name__}: {exc}"}]
     payload = {
-        "schema_version": "ae3_luna_dashboard_poc_receipt.v1",
-        "acknowledgement": ACKNOWLEDGEMENT,
+        "schema_version": "ae3_luna_recoverable_run_receipt.v1",
+        "acknowledgement": acknowledgement,
         "model": LUNA_MODEL,
         "reasoning_effort": "medium",
         "transport": "cli",
@@ -251,6 +284,7 @@ def _write_receipt(
         "retry_count": 0,
         "fallback_models": [],
         "source": source,
+        "starting_llm_budget": world.config.principals.starting_llm_budget,
         "recovery": coordinator.status(),
         "checkpoint": checkpoint,
         "shared_client_receipts": shared_receipts,
@@ -261,14 +295,17 @@ def _write_receipt(
 
 
 async def _serve(args: argparse.Namespace) -> None:
-    if args.acknowledgement != ACKNOWLEDGEMENT:
-        raise RuntimeError("serve acknowledgement mismatch")
+    _validate_start_contract(args)
     import uvicorn
 
     data_dir = Path(args.data_dir).expanduser().resolve()
     data_dir.mkdir(parents=True, exist_ok=True)
     source = _preflight()
-    config = _configure(Path(args.config).resolve(), data_dir)
+    config = _configure(
+        Path(args.config).resolve(),
+        data_dir,
+        starting_llm_budget=args.starting_llm_budget,
+    )
     world, coordinator = build_recoverable_world(
         config,
         run_id=args.run_id,
@@ -315,6 +352,7 @@ async def _serve(args: argparse.Namespace) -> None:
                         coordinator=coordinator,
                         world=world,
                         source=source,
+                        acknowledgement=args.acknowledgement,
                     )
                     receipt_written = True
             else:
@@ -330,7 +368,13 @@ async def _serve(args: argparse.Namespace) -> None:
         await asyncio.gather(run_task, return_exceptions=True)
         heartbeat_task.cancel()
         await asyncio.gather(heartbeat_task, return_exceptions=True)
-        _write_receipt(data_dir=data_dir, coordinator=coordinator, world=world, source=source)
+        _write_receipt(
+            data_dir=data_dir,
+            coordinator=coordinator,
+            world=world,
+            source=source,
+            acknowledgement=args.acknowledgement,
+        )
 
 
 def _status(args: argparse.Namespace) -> dict[str, Any]:
@@ -354,6 +398,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", default=str(REPO_ROOT / "config" / "config.yaml"))
     parser.add_argument("--run-id", default=DEFAULT_RUN_ID)
     parser.add_argument("--target-attempts", type=int, default=2)
+    parser.add_argument("--starting-llm-budget", type=float)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9000)
     parser.add_argument("--start-running", action="store_true")
@@ -362,11 +407,12 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _parser().parse_args()
-    if args.target_attempts != 2:
-        raise SystemExit("this PoC is frozen to exactly two target attempts")
     if args.command == "serve":
         try:
             asyncio.run(_serve(args))
+        except RecoveryScarcityBoundary as exc:
+            print(json.dumps({"success": True, "terminal": "scarcity_binding", "reason": str(exc)}))
+            return 0
         except RecoveryTerminalError as exc:
             print(json.dumps({"success": False, "terminal": "invalid", "error": str(exc)}))
             return 2

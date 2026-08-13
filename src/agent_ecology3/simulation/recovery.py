@@ -28,6 +28,7 @@ AttemptPhase = Literal[
     "provider_settled",
     "applying",
     "committed",
+    "pre_dispatch_rejected",
     "dispatch_ambiguous",
     "invalid",
 ]
@@ -82,6 +83,10 @@ class RecoveryTerminalError(BaseException):
 
 class SimulatedRecoveryInterruption(RecoveryTerminalError):
     """Provider-free fault used to prove the two recovery boundaries."""
+
+
+class RecoveryScarcityBoundary(RecoveryTerminalError):
+    """Stop a calibration cell after a proven pre-dispatch budget rejection."""
 
 
 Syscall = Callable[..., Awaitable[dict[str, Any]]]
@@ -221,6 +226,11 @@ class RecoveryCoordinator:
         if checkpoint.terminal_state == "invalid":
             self._write_status("invalid", terminal_reason=checkpoint.terminal_reason)
             raise RecoveryTerminalError(checkpoint.terminal_reason or "recovery checkpoint is invalid")
+        if checkpoint.terminal_state == "stopped":
+            self._write_status("stopped", checkpoint=checkpoint)
+            raise RecoveryScarcityBoundary(
+                checkpoint.terminal_reason or "recovery checkpoint already stopped"
+            )
         unsafe = next(
             (
                 attempt
@@ -481,6 +491,15 @@ class RecoveryCoordinator:
 
         attempt.trace_id = str(result.get("trace_id") or "") or None
         attempt.syscall_result = cast(dict[str, Any], json.loads(json.dumps(result, ensure_ascii=True)))
+        if result.get("error_code") == "insufficient_budget" and attempt.trace_id is None:
+            attempt.phase = "pre_dispatch_rejected"
+            attempt.error = str(result.get("error") or "insufficient llm_budget")
+            self._checkpoint.provider_dispatch_count -= 1
+            self._checkpoint.terminal_state = "stopped"
+            self._checkpoint.terminal_reason = "scarcity_binding_pre_dispatch"
+            self._persist()
+            self._write_status("stopped", terminal_reason=self._checkpoint.terminal_reason)
+            raise RecoveryScarcityBoundary(self._checkpoint.terminal_reason)
         if result.get("error_code") == "llm_dispatch_ambiguous":
             attempt.phase = "dispatch_ambiguous"
             attempt.error = str(result.get("error") or "provider dispatch is ambiguous")
