@@ -216,12 +216,14 @@ _DASHBOARD_HTML = """<!doctype html>
 
     async function refresh() {
       try {
-        const state = await fetchJson(`/state${runQuery()}`);
+        const query = runQuery();
+        const separator = selectedRun ? '&' : '?';
+        const [state, events] = await Promise.all([
+          fetchJson(`/state${query}`),
+          fetchJson(`/events${query}${separator}limit=60`),
+        ]);
         renderStatus(state);
         document.getElementById('state').textContent = JSON.stringify(state, null, 2);
-
-        const separator = selectedRun ? '&' : '?';
-        const events = await fetchJson(`/events${runQuery()}${separator}limit=60`);
         document.getElementById('events').textContent = JSON.stringify(events, null, 2);
       } catch (err) {
         document.getElementById('state').textContent = `dashboard error: ${err}`;
