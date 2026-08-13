@@ -1,6 +1,6 @@
 # Plan #19: Live Economic MVP Vertical
 
-**Status:** Selected — bounded design and provider-free implementation next
+**Status:** Provider-free vertical complete — authentic Luna execution gated
 **Type:** prototype vertical
 **Priority:** Critical
 **Blocked By:** None for local implementation; authentic execution requires exact call authorization
@@ -65,6 +65,23 @@ No Luna call is authorized by this plan. After Slices A–B and the zero-provide
 preflight pass, present the exact model, acknowledgement, hard call ceiling,
 maximum exposure, and clean revisions for Brian's approval.
 
+The reviewed command shape is:
+
+```bash
+python3 scripts/run_recoverable_evaluation.py start \
+  --acknowledgement plan19/luna-medium/live-economic-mvp/v1 \
+  --run-id plan19_luna_live_economic_mvp_v1 \
+  --target-attempts 14 \
+  --starting-llm-budget 0.033192 \
+  --principal-count 2 \
+  --cognition-mode minimal \
+  --policy-seed 24190 \
+  --port 9019
+```
+
+`start` is paused by default. Do not use `--start-running` for the authentic
+MVP observation.
+
 ## Required acceptance
 
 - All MVP acceptance criteria in `docs/MVP_ROADMAP.md` pass.
@@ -84,3 +101,31 @@ maximum exposure, and clean revisions for Brian's approval.
 - Internal budget and independent provider ceiling are conflated again.
 - A failed model-selected action is replaced by a local substitute and appears
   economically successful.
+
+## Provider-free development receipt
+
+- The live `/operator-state` projection now consumes the running `World` and
+  canonical events; completed-run replay still uses the same operator contract.
+- Artifact discovery exposes `read_price` and `invoke_price`, so Luna can see
+  whether a readable opportunity is economically relevant.
+- Two ordinary freeware artifacts, one owned by each principal and each priced
+  at 2 scrip, are seeded as scenario opportunities. Their metadata explicitly
+  marks them as fixtures, and seeding emits no agent-action event.
+- A scripted structured-action fixture exercised the real runner and action
+  path with zero provider calls. It produced one cross-agent purchase, balances
+  of 102/98 from 100/100, no fallback, and a paid activity row in the dashboard.
+  This validates plumbing only; it is not evidence that Luna will choose the
+  purchase.
+- Fresh Chromium at 1440×900 observed paused (0/2, 100/100), running (1/2), and
+  completed (2/2, 102/98) states in the existing Ecosystem dashboard.
+- The full repository suite passes 145 tests against the clean, reviewed
+  `llm_client` revision `286715784f1d535d6dfcd2c867ca678d666e27d5`. The
+  general active client checkout is not the execution authority for this plan.
+- The browser journey reproduced and closed two lifecycle defects before any
+  Luna spend: paused wall time consumed the active duration, and a heartbeat
+  race could relabel a fully committed run as stopped. Active runtime now
+  excludes paused time, and terminal custody is derived from durable committed
+  attempts with `invalid` remaining authoritative.
+- The remaining Slice C gate is an authentic Luna Medium run. Its counted
+  actions must be model-selected; the provider-free scripted purchase cannot
+  satisfy MVP acceptance.

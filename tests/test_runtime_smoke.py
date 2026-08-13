@@ -468,6 +468,7 @@ def test_query_artifacts_readable_only_filters_unreadable(tmp_path) -> None:
             "artifact_type": "note",
             "content": "shared",
             "executable": False,
+            "read_price": 3,
         },
     )
     assert shared.success, shared.message
@@ -495,6 +496,9 @@ def test_query_artifacts_readable_only_filters_unreadable(tmp_path) -> None:
     for row in rows:
         assert isinstance(row, dict)
         assert row.get("readable") is True
+    shared_row = next(row for row in rows if row.get("id") == "alpha_2_shared_note")
+    assert shared_row["read_price"] == 3
+    assert shared_row["invoke_price"] == 0
 
 
 def test_loop_updates_cognitive_state_and_notebook(tmp_path) -> None:

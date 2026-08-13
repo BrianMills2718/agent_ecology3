@@ -27,9 +27,9 @@ production service, or claim that emergence generalizes.
 | Dimension | Current truth |
 |---|---|
 | Technical execution | Luna Medium route, structured actions, recovery, detached lifecycle, and hard call caps pass |
-| Reviewability | Completed Eval 15 runs open in the Ecosystem operator dashboard with replay and artifact inspection |
-| Stakeholder observation | Partial: the dashboard is "at least somewhat understandable" |
-| MVP outcome | **Not yet observed**: the operator view is not wired to a live run, and Eval 15 produced no transfer, paid purchase, mint submission, or scrip movement |
+| Reviewability | The same Ecosystem operator contract now renders live World state and completed-run replay |
+| Stakeholder observation | Provider-free browser journey is legible across paused, running, and completed states; authentic Luna journey remains |
+| MVP outcome | **Not yet authentically observed**: the provider-free fixture proves a paid interaction is visible, but Luna has not yet selected the counted actions |
 
 The canonical outcome probe is a local dashboard session starting paused and
 ending with a replayable completed run. Tests, traces, and receipts support the
@@ -39,9 +39,9 @@ probe but do not replace Brian's observation of it.
 
 | Order | Goal | Class | State | Exit evidence |
 |---|---|---|---|---|
-| 1 | Feed the existing Ecosystem panels from the running `World` and preserve Resume/Pause/Stop/recovery | direct blocker | selected | Fresh browser observes paused -> running -> completed with live agents, activity, artifacts, and resources |
-| 2 | Provide one Minimal-mode, two-agent scenario with discoverable priced/cross-agent opportunities without prescribing the selected actions | vertical | selected; bounded design next | Provider-free fixture proves opportunities are legal, visible, affordable, and not forced |
-| 3 | Execute one authentic capped Luna Medium run through that scenario | vertical | blocked on exact call authorization after implementation review | Dashboard visibly shows at least one successful value-bearing cross-agent action and one reusable artifact; receipt has exact custody and no retry/fallback/MCP |
+| 1 | Feed the existing Ecosystem panels from the running `World` and preserve Resume/Pause/Stop/recovery | direct blocker | implemented and browser-observed provider-free | Fresh browser observes paused -> running -> completed with live agents, activity, artifacts, and resources |
+| 2 | Provide one Minimal-mode, two-agent scenario with discoverable priced/cross-agent opportunities without prescribing the selected actions | vertical | implemented and focused-check passing | Provider-free fixture proves opportunities are legal, visible, affordable, and not forced by the scenario |
+| 3 | Execute one authentic capped Luna Medium run through that scenario | vertical | blocked on clean merged revision and exact call authorization | Dashboard visibly shows at least one successful value-bearing cross-agent action and one reusable artifact; receipt has exact custody and no retry/fallback/MCP |
 | 4 | Repair only a failure reproduced by the authentic probe, then repeat only if its result can change the continue/stop decision | conditional | deliberately deferred | Focused evidence closes the observed boundary |
 | 5 | Add an interaction graph synchronized with live/replay state | optional | deliberately deferred | Resume only after a run contains relationships worth visualizing and the graph would improve operator judgment |
 

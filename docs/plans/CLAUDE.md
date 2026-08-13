@@ -28,7 +28,7 @@ history. Plan 19 is the selected active goal.
 | 16 | [Completed run review](16_completed_run_review.md) | High | ✅ Complete | Human MVP review |
 | 17 | [Useful completed-run review](17_useful_run_review.md) | High | ✅ Complete | Human review of the Luna Medium PoC |
 | 18 | [Ecosystem operator dashboard](18_ecosystem_operator.md) | High | ✅ Complete | Useful human observation of an AE3 run |
-| 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | Selected — design/implementation next | Authentic Agent Ecology 3 MVP observation |
+| 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | Provider-free vertical complete — authentic execution gated | Authentic Agent Ecology 3 MVP observation |
 
 ## Status Key
 
