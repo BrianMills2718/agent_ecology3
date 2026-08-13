@@ -17,7 +17,7 @@ Track all implementation work here.
 | 9 | [Behavioral comparison execution](09_behavioral_comparison_execution.md) | High | ✅ Complete (invalid) | New-number evaluation only |
 | 10 | [Luna Medium compatibility and recovery gate](10_luna_medium_recovery_gate.md) | High | ✅ Complete | Luna-specific qualification and scarcity calibration |
 | 11 | [Luna scarcity calibration](11_luna_scarcity_calibration.md) | High | ✅ Calibration complete | New-number Luna behavioral comparison |
-| 12 | [Luna behavioral feasibility probe](12_luna_behavioral_feasibility.md) | High | 🚧 32-call execution authorized; preflight | Replicated Luna cognition comparison |
+| 12 | [Luna behavioral feasibility probe](12_luna_behavioral_feasibility.md) | High | ✅ Complete (invalid at prescribed 14/16) | New-number design only |
 
 ## Status Key
 

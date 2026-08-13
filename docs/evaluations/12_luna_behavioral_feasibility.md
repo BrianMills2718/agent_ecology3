@@ -1,7 +1,7 @@
 # Evaluation 12: Luna Behavioral Feasibility Probe
 
 **Stage:** Preregistered exploratory feasibility probe
-**Execution:** Not authorized and not run
+**Execution:** Terminal invalid; prescribed stopped at 14/16 and minimal was not started
 **Decision owner:** Brian Mills
 
 ## Claim and decision
@@ -81,3 +81,32 @@ No execution is authorized by this document. A human must explicitly approve
 the exact 32-call ceiling after the implementation revision and zero-provider
 preflight are reviewed. Any decision from completed evidence additionally
 requires fresh `eval-decision-signoff`.
+
+## Terminal result
+
+The prescribed cell began from clean pushed revision `b144021` after the
+provider-free preflight passed. Fourteen Luna calls settled and committed,
+balanced 7/7 across the two principals. Attempt 15 was rejected before provider
+dispatch because neither principal retained enough LLM budget for the rendered
+request. The dashboard showed `14/16` and custody `stopped` with no console
+errors or failed requests.
+
+Evaluation 12 required exactly 16 committed attempts for a valid cell.
+Therefore the prescribed cell is invalid for the matched comparison. The
+minimal cell was not started, limiting actual exposure to 14 of the authorized
+32 calls and avoiding an uninterpretable unmatched result. The action history
+includes reads, writes, transfers, and mint submissions, but cannot support a
+cognition comparison.
+
+Three retained loop decisions also have `fallback_used=true`, independently
+violating the frozen no-fallback validity contract.
+
+The full receipt contains a stale `recovery.lifecycle_state=running` projection
+written before the terminal status update. The embedded checkpoint and durable
+`status.json` both retain the scarcity stop; compact evidence records this
+custody mismatch. It does not change the invalid classification, but a future
+evaluation must fix receipt finalization before dispatch.
+
+Evaluation 12 must not rerun the prescribed cell or start minimal. Any new
+design requires a new evaluation number. A fresh adversarial verifier signed
+off on this invalid/no-claim/withhold-minimal disposition.

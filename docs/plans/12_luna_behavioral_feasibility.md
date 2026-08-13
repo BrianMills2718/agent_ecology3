@@ -1,6 +1,6 @@
 # Plan #12: Luna Behavioral Feasibility Probe
 
-**Status:** Preregistered and authorized — execution preflight
+**Status:** Complete — terminal invalid at prescribed 14/16
 **Type:** evaluation design
 **Priority:** High
 **Blocked By:** Plan #11 complete
@@ -37,3 +37,11 @@ still requires a clean pushed implementation revision and passing preflight.
 - [x] No Luna call occurs and execution remains separately authorized.
 - [x] Prescribed/minimal acknowledgements freeze cognition mode, two
       principals, seed `24120`, budget `0.033192`, and 16 attempts per cell.
+
+## Terminal disposition
+
+Prescribed stopped at a truthful pre-dispatch scarcity boundary after 14
+balanced committed calls. Because the frozen validity contract required 16,
+and three loop decisions used fallback, the cell and Evaluation 12 are terminal
+invalid. Minimal was not started. No behavioral claim follows and no Evaluation
+12 cell may be run or rerun. Independent sign-off supports this disposition.

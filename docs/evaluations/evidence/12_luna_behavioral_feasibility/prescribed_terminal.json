@@ -1,0 +1,75 @@
+{
+  "schema_version": "ae3_eval12_terminal_evidence.v1",
+  "status": "invalid",
+  "evaluation_id": "12_luna_behavioral_feasibility",
+  "condition": "prescribed",
+  "run_id": "eval12_prescribed_pair01_v1",
+  "acknowledgement": "eval12/luna-medium/prescribed/pair-01/v1",
+  "source": {
+    "agent_ecology3_revision": "b144021f68d57d1bc96a38bc5893ccb189d64d95",
+    "agent_ecology3_source_clean": true,
+    "agent_ecology3_source_pushed": true,
+    "llm_client_revision": "286715784f1d535d6dfcd2c867ca678d666e27d5",
+    "llm_client_source_clean": true
+  },
+  "route": {
+    "model": "codex/gpt-5.6-luna",
+    "reasoning_effort": "medium",
+    "transport": "cli",
+    "mcp_servers": [],
+    "retry_count": 0,
+    "fallback_models": []
+  },
+  "frozen_contract": {
+    "principal_count": 2,
+    "policy_seed": 24120,
+    "starting_llm_budget_per_principal": 0.033192,
+    "required_committed_attempts": 16,
+    "required_attempts_per_principal": "6-10"
+  },
+  "observed": {
+    "provider_dispatch_count": 14,
+    "committed_attempts": 14,
+    "attempt_distribution": {"alpha_1": 7, "alpha_2": 7},
+    "boundary_attempt_ordinal": 15,
+    "boundary_attempt_phase": "pre_dispatch_rejected",
+    "boundary_trace_id": null,
+    "terminal_reason": "scarcity_binding_pre_dispatch",
+    "remaining_llm_budget": {"alpha_1": 0.000516, "alpha_2": 0.000384},
+    "action_types": [
+      "query_kernel", "query_kernel", "query_kernel", "query_kernel",
+      "query_kernel", "read_artifact", "read_artifact", "write_artifact",
+      "write_artifact", "transfer", "transfer", "submit_to_mint",
+      "submit_to_mint", "write_artifact"
+    ],
+    "shared_client_terminal_receipts": 14,
+    "fallback_used_loop_decisions": 3,
+    "shared_client_statuses": [
+      "succeeded", "succeeded", "succeeded", "succeeded", "succeeded",
+      "succeeded", "succeeded", "succeeded", "succeeded", "succeeded",
+      "succeeded", "succeeded", "succeeded", "succeeded"
+    ]
+  },
+  "decision": {
+    "classification": "invalid_horizon_shortfall",
+    "minimal_cell_started": false,
+    "provider_calls_used": 14,
+    "authorized_ceiling": 32,
+    "behavioral_claim_permitted": false
+  },
+  "custody_note": "status.json and checkpoint report stopped; run_receipt.json retained a stale recovery.lifecycle_state of running while preserving the same scarcity terminal reason and exact checkpoint. Checkpoint and status govern terminal classification.",
+  "dashboard_observation": {
+    "visible_attempt_progress": "14/16",
+    "visible_custody": "stopped",
+    "principal_count": 2,
+    "console_errors": [],
+    "failed_requests": []
+  },
+  "external_full_receipt_sha256": "c0dd56f1c08a904f9ed8566957cde0fbda7ae41c725552800a421f0bd8a66092",
+  "external_checkpoint_sha256": "c4dfada13282e3989e7aea1b5c2086db05f3646c383fffa790d08a7d6049d1b2",
+  "non_claims": [
+    "No prescribed-versus-minimal comparison was completed.",
+    "The prescribed trajectory cannot establish a cognition effect.",
+    "Evaluation 12 must not rerun this cell or start minimal under the same evaluation."
+  ]
+}
