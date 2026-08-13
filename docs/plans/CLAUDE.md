@@ -4,8 +4,8 @@ Track all implementation work here.
 
 **Current direction:** [Agent Ecology 3 Product Roadmap](../MVP_ROADMAP.md) is
 the canonical outcome and priority authority. Completed plans below are
-supporting history. Plan 19 completed the local MVP; the roadmap selects general
-single-run archive/reopen as the next goal pending bounded design.
+supporting history. Plans 19 and 20 completed the local MVP and durable reopen
+boundary; the roadmap now selects dashboard launch of another bounded run.
 
 ## Gap Summary
 
@@ -30,6 +30,7 @@ single-run archive/reopen as the next goal pending bounded design.
 | 17 | [Useful completed-run review](17_useful_run_review.md) | High | ✅ Complete | Human review of the Luna Medium PoC |
 | 18 | [Ecosystem operator dashboard](18_ecosystem_operator.md) | High | ✅ Complete | Useful human observation of an AE3 run |
 | 19 | [Live economic MVP vertical](19_live_economic_mvp.md) | Critical | ✅ Complete — authentic run signed off | Repeatable local workbench |
+| 20 | [Single-run archive reopen](20_single_run_archive_reopen.md) | Critical | ✅ Complete | Dashboard launch |
 
 ## Status Key
 

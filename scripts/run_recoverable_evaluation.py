@@ -615,21 +615,58 @@ async def _serve(args: argparse.Namespace) -> None:
         )
 
 
+def _validate_review_run(data_dir: Path) -> None:
+    """Fail before serving when preserved custody cannot support read-only review."""
+    receipt_path = data_dir / "run_receipt.json"
+    receipt = _read_json(receipt_path)
+    if receipt is None:
+        raise RuntimeError(f"invalid completed-run receipt: {receipt_path}")
+    world_state = receipt.get("world_state")
+    recovery = receipt.get("recovery")
+    if not isinstance(world_state, dict) or not isinstance(recovery, dict):
+        raise RuntimeError(f"completed-run receipt is missing run state: {receipt_path}")
+    raw_log_path = world_state.get("log_path")
+    if not isinstance(raw_log_path, str) or not raw_log_path:
+        raise RuntimeError(f"completed-run receipt has no event log: {receipt_path}")
+    if not Path(raw_log_path).is_file():
+        raise RuntimeError(
+            f"completed-run event log does not exist: {raw_log_path}"
+        )
+
+
+def _discover_review_runs(review_root: Path) -> dict[str, Path]:
+    """Discover one direct run or immediate receipt-bearing run directories."""
+    if (review_root / "run_receipt.json").is_file():
+        _validate_review_run(review_root)
+        return {review_root.name: review_root}
+
+    candidates = sorted(
+        (
+            child
+            for child in review_root.iterdir()
+            if child.is_dir() and (child / "run_receipt.json").is_file()
+        ),
+        key=lambda path: (
+            {"prescribed": 0, "minimal": 1}.get(path.name, 2),
+            path.name,
+        ),
+    ) if review_root.is_dir() else []
+    if not candidates:
+        raise RuntimeError(
+            "completed-run review requires a run_receipt.json in the selected "
+            f"directory or one of its immediate children: {review_root}"
+        )
+    for data_dir in candidates:
+        _validate_review_run(data_dir)
+    return {data_dir.name: data_dir for data_dir in candidates}
+
+
 async def _review(args: argparse.Namespace) -> None:
-    """Serve preserved prescribed/minimal cells without reconstructing a world."""
+    """Serve preserved runs read-only without reconstructing a world."""
     import uvicorn
 
-    pair_dir = Path(args.data_dir).expanduser().resolve()
-    review_runs = {
-        condition: pair_dir / condition for condition in ("prescribed", "minimal")
-    }
-    missing = [
-        str(data_dir / "run_receipt.json")
-        for data_dir in review_runs.values()
-        if not (data_dir / "run_receipt.json").is_file()
-    ]
-    if missing:
-        raise RuntimeError("completed-run review requires receipts: " + ", ".join(missing))
+    review_root = Path(args.data_dir).expanduser().resolve()
+    review_runs = _discover_review_runs(review_root)
     app = create_app(review_runs=review_runs)
     server = uvicorn.Server(
         uvicorn.Config(app, host=args.host, port=args.port, log_level="warning")

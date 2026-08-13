@@ -258,7 +258,7 @@ _DASHBOARD_HTML = """<!doctype html>
         <button class=\"tab\" id=\"comparisonTab\" onclick=\"showView('comparison')\">Comparison</button>
         <button class=\"tab\" id=\"evidenceTab\" onclick=\"showView('evidence')\">Evidence</button>
       </div>
-      <label class=\"condition-picker\" id=\"conditionPicker\">Condition
+      <label class=\"condition-picker\" id=\"conditionPicker\"><span id=\"runPickerLabel\">Condition</span>
         <select id=\"runSelect\" onchange=\"selectRun(this.value)\"></select>
       </label>
     </nav>
@@ -548,13 +548,15 @@ _DASHBOARD_HTML = """<!doctype html>
         `<option value="${run.id}">${run.label}</option>`
       ).join('');
       select.value = selectedRun;
+      document.getElementById('runPickerLabel').textContent = payload.comparison_available ? 'Condition' : 'Run';
+      document.getElementById('comparisonTab').style.display = payload.comparison_available ? '' : 'none';
       document.getElementById('eyebrow').textContent = 'Luna Medium ecology replay';
       document.getElementById('pageTitle').textContent = 'Agent Ecology 3';
       document.getElementById('pageSubtitle').textContent = 'Watch agents act, inspect what they create, and follow the ecology decision by decision.';
       document.getElementById('workspaceNav').classList.add('visible');
       document.getElementById('liveControls').style.display = 'none';
       document.getElementById('liveView').classList.add('hidden');
-      renderReview(await fetchJson('/review-summary'));
+      if (payload.comparison_available) renderReview(await fetchJson('/review-summary'));
       await loadOperator();
       showView('ecosystem');
       return true;
@@ -1028,12 +1030,13 @@ def create_app(
             "runs": items,
             "default_run": next(iter(review_runs), None),
             "read_only": bool(review_runs),
+            "comparison_available": set(review_runs) == {"prescribed", "minimal"},
         }
 
     @app.get("/review-summary")
     async def review_summary() -> dict[str, Any]:
-        if not review_runs:
-            return {"success": False, "error": "completed review unavailable"}
+        if set(review_runs) != {"prescribed", "minimal"}:
+            return {"success": False, "error": "matched-pair comparison unavailable"}
         return _summarize_review_pair(review_runs)
 
     @app.get("/operator-state")
