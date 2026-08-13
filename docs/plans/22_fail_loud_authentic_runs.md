@@ -1,6 +1,6 @@
 # Plan #22: Fail-Loud Authentic Runs
 
-**Status:** Provider-Free Complete — Luna canary pending
+**Status:** Complete — authentic canary and repeat run passed
 **Type:** prototype repair
 **Priority:** Critical
 **Blocked By:** None
@@ -66,6 +66,10 @@ as ecology behavior.
   successful agent decisions.
 - [x] Focused provider-free tests and one rendered failure-state observation pass.
 - [x] No provider call is made during implementation or verification.
+- [x] One authentic Luna canary settles and commits exactly once with zero
+  retries, fallbacks, or substitutes.
+- [x] A fresh 14-call run reaches completed custody and remains reviewable from
+  durable storage after its worker exits.
 
 ## Non-goals
 
@@ -137,3 +141,36 @@ is immutable evidence of this failure. Its receipt claims completion, but it has
   refresh.
 - Repository-wide `mypy` remains red on 26 pre-existing errors in seven
   unrelated files; the changed modules are clean.
+
+## Authentic Completion Evidence
+
+Brian authorized Luna calls needed to reach the MVP on 2026-08-13. Execution
+kept the staged boundary: the one-call canary had to pass before the 14-call run
+could start.
+
+- Canary `plan22_luna_canary_v1` completed in one attempt. Its receipt records
+  one `provider_settled_accepted` Luna Medium call, one committed structured
+  `read_artifact` action, one shared-client receipt, zero retries, and no
+  fallback model or substitute action. Fresh Chromium showed `1/1`, completed
+  custody, the model-selected action, and both economic artifacts after
+  refresh, with zero console errors or failed requests.
+- Repeat run `plan22_luna_mvp_20260813_193248` started paused at `0/14`, two
+  principals, two visible opportunities, and zero dispatch. After Resume it
+  completed exactly 14 provider-settled calls and 14 committed model-selected
+  actions with 14 shared-client receipts, zero retries, and zero fallback,
+  gate-fallback, recovery-fallback, or substitute decisions.
+- The repeat run produced nine new strategy artifacts, including priced
+  artifacts, a cross-principal read of `alpha_1_strategy_v4`, a purchase of
+  `alpha_1_market_signal` by `alpha_2`, and one mint submission. Final balances
+  were `alpha_1=101` and `alpha_2=98`; both principals made seven decisions.
+- Fresh Chromium at 1440x900 showed completed custody, `14/14`, all 14 readable
+  activity rows, 11 visible economic artifacts, and the raw Evidence view.
+  Refresh produced zero console errors or failed requests.
+- After the completed worker was shut down, a separate read-only review process
+  reopened the durable receipt with all 14 decisions and 11 economic artifacts.
+  The authoritative run directory is
+  `/home/brian/.local/state/agent_ecology3/plan22_luna_mvp_20260813_193248/`.
+
+The remaining product gate is Brian's judgment that this newly repeatable run
+is understandable and useful. That is a stakeholder acceptance decision, not
+another implementation or hardening task.
