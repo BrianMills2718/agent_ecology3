@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
+import scripts.run_recoverable_evaluation as recoverable_script
 
 from agent_ecology3.analysis.behavioral_feasibility_repair import (
     validate_cell_evidence,
@@ -268,6 +269,107 @@ def test_pre_dispatch_budget_rejection_stops_without_provider_dispatch(
     assert json.loads(status.read_text(encoding="utf-8"))["lifecycle_state"] == "stopped"
 
 
+def test_local_pre_dispatch_failure_is_terminal_without_substitute(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    config.llm.loop_action_failure_policy = "fail_closed_no_substitute"
+    checkpoint, status = _paths(tmp_path)
+    _world, coordinator = build_recoverable_world(
+        config,
+        run_id="plan22_pre_dispatch_failure",
+        target_attempts=14,
+        checkpoint_path=checkpoint,
+        status_path=status,
+    )
+
+    async def fail_before_dispatch(**_kwargs):
+        return {
+            "success": False,
+            "trace_id": "ae3/plan22/pre-dispatch",
+            "error": "llm call failed: cwd was deleted",
+            "error_code": "llm_error",
+            "settlement_status": "pre_dispatch_failed",
+            "reservation_retained": False,
+            "provider_dispatch_confirmed": False,
+        }
+
+    coordinator._original_syscall = fail_before_dispatch
+    with pytest.raises(RecoveryTerminalError, match="cwd was deleted"):
+        asyncio.run(
+            coordinator.call_llm(
+                payer_id="alpha_1",
+                model=config.llm.default_model,
+                messages=[{"role": "user", "content": "decide"}],
+            )
+        )
+
+    durable = json.loads(checkpoint.read_text(encoding="utf-8"))
+    assert durable["provider_dispatch_count"] == 0
+    assert durable["terminal_state"] == "invalid"
+    assert durable["attempts"][-1]["phase"] == "invalid"
+    assert json.loads(status.read_text(encoding="utf-8"))["lifecycle_state"] == "invalid"
+
+
+def test_fail_closed_selected_action_failure_is_not_committed_or_replaced(
+    tmp_path: Path,
+) -> None:
+    config = _config(tmp_path)
+    config.principals.count = 2
+    config.llm.loop_action_failure_policy = "fail_closed_no_substitute"
+    checkpoint, status = _paths(tmp_path)
+    dispatches: list[str] = []
+    world, coordinator = build_recoverable_world(
+        config,
+        run_id="plan22_action_failure",
+        target_attempts=1,
+        checkpoint_path=checkpoint,
+        status_path=status,
+    )
+
+    async def select_unauthorized_read(*, payer_id, model, messages, tools=None):
+        prepared, context = world._prepare_llm_syscall(
+            payer_id=payer_id,
+            model=model,
+            messages=messages,
+        )
+        assert prepared is None and context is not None
+        dispatches.append(context.trace_id)
+        return world._settle_llm_syscall(
+            context,
+            SimpleNamespace(
+                content="",
+                tool_calls=[],
+                usage={"total_tokens": 10},
+                cache_hit=False,
+                marginal_cost=0.0,
+                cost=0.0,
+                cost_source="fixture",
+                billing_mode="subscription_included",
+                codex_events=[{"type": "agent_message"}],
+            ),
+            structured_action={
+                "action_type": "read_artifact",
+                "artifact_id": "alpha_2_strategy",
+            },
+            structured_schema_sha256="fixture",
+        )
+
+    coordinator._original_syscall = select_unauthorized_read
+    with pytest.raises(RecoveryTerminalError, match="model-selected action failed"):
+        asyncio.run(SimulationRunner(world).run(duration=2, target_llm_attempts=1))
+
+    durable = json.loads(checkpoint.read_text(encoding="utf-8"))
+    assert len(dispatches) == 1
+    assert durable["provider_dispatch_count"] == 1
+    assert durable["terminal_state"] == "invalid"
+    assert durable["attempts"][0]["phase"] == "invalid"
+    assert not any(
+        event.get("event_type") == "loop_decision"
+        for event in world.logger.read_recent(100)
+    )
+
+
 def test_runner_can_start_paused_and_resume(tmp_path: Path) -> None:
     async def exercise() -> None:
         config = _config(tmp_path)
@@ -304,6 +406,22 @@ def test_dashboard_preserves_controls_and_exposes_recovery_state(tmp_path: Path)
     )
     runner = SimulationRunner(world)
     coordinator.publish_status("paused", pid=123)
+    world.logger.log(
+        "loop_decision",
+        {
+            "event_number": 1,
+            "principal_id": "alpha_1",
+            "decision_action": "query_kernel",
+            "decision": {
+                "action_type": "query_kernel",
+                "query_type": "resources",
+                "params": {},
+            },
+            "result_success": True,
+            "result_error_code": None,
+            "fallback_used": True,
+        },
+    )
     shutdown_requested: list[bool] = []
     app = create_app(
         world_provider=lambda: world,
@@ -316,10 +434,15 @@ def test_dashboard_preserves_controls_and_exposes_recovery_state(tmp_path: Path)
         page = client.get("/")
         assert page.status_code == 200
         assert "Luna attempts" in page.text
+        assert "substitute — not model-selected" in page.text
         state = client.get("/state").json()
         assert state["run_id"] == "plan10_dashboard_fixture"
         assert state["recovery"]["target_attempts"] == 2
         assert state["recovery"]["lifecycle_state"] == "paused"
+        operator = client.get("/operator-state").json()
+        assert operator["fallback_count"] == 1
+        assert operator["actions"][0]["success"] is False
+        assert operator["actions"][0]["local_action_success"] is True
         assert client.post("/control/pause").json()["success"] is True
         assert runner.is_paused is True
         assert client.post("/control/resume").json()["success"] is True
@@ -562,6 +685,7 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
             "artifact_id": "alpha_2_strategy_v2",
             "artifact_owner": "alpha_2",
             "success": True,
+            "local_action_success": True,
             "error_code": None,
             "fallback_used": False,
             "value_amount": 0,
@@ -783,6 +907,48 @@ def test_dashboard_launch_adopts_frozen_plan19_profile_paused(
     assert Path(getattr(launch_args, "data_dir")).parent == tmp_path / "agent_ecology3"
     assert result["profile"] == _dashboard_launch_profile()
     assert result["status"]["provider_dispatch_count"] == 0  # type: ignore[index]
+
+
+def test_spawn_uses_durable_run_cwd_and_stable_shared_client_project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, object] = {}
+    data_dir = tmp_path / "durable-run"
+
+    class FakeProcess:
+        pid = 4242
+
+        def __init__(self, _command, **kwargs):
+            captured.update(kwargs)
+            (data_dir / "status.json").write_text(
+                json.dumps({"pid": self.pid, "lifecycle_state": "paused"}),
+                encoding="utf-8",
+            )
+
+        def poll(self):
+            return None
+
+    monkeypatch.setattr(recoverable_script, "_preflight", lambda: {"success": True})
+    monkeypatch.setattr(recoverable_script.subprocess, "Popen", FakeProcess)
+    result = recoverable_script._spawn(
+        SimpleNamespace(
+            acknowledgement=PLAN19_ACKNOWLEDGEMENT,
+            data_dir=str(data_dir),
+            config="config/config.yaml",
+            run_id="plan22_durable_worker",
+            target_attempts=14,
+            starting_llm_budget=0.033192,
+            principal_count=2,
+            cognition_mode="minimal",
+            policy_seed=24190,
+            host="127.0.0.1",
+            port=9099,
+        ),
+        start_running=False,
+    )
+    assert captured["cwd"] == data_dir.resolve()
+    assert captured["env"]["LLM_CLIENT_PROJECT"] == "agent_ecology3"  # type: ignore[index]
+    assert result["pid"] == 4242
 
 
 def test_detached_status_fails_loud_when_no_worker_exists(tmp_path: Path) -> None:

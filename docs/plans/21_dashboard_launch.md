@@ -82,3 +82,14 @@ to a repeatable local workbench.
   browser reported no console errors or failed requests.
 - The complete pytest suite passed before the final label-only correction; the
   focused dashboard, archive-continuity, and launch tests passed afterward.
+
+## Subsequent Run Disposition
+
+Plan 21's launch capability remains complete, but the run it prepared is
+**invalid evidence**. After the launching worktree was removed, Brian resumed
+`plan21_luna_dashboard_20260813_183636`. The worker's cwd pointed at that deleted
+worktree, so `llm_client` failed locally before Codex dispatch on all 14
+attempts. AE3 then substituted and committed 14 `query_kernel` actions and the
+dashboard displayed them as successful. The retained run has zero shared-client
+receipts, no agent-created artifacts, and no value movement. Plan 22 owns the
+repair; this historical receipt is preserved unchanged.

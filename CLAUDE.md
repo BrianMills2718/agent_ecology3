@@ -79,9 +79,22 @@ agent_ecology3/
 
 ## Design Principles
 
-1. **YOUR_PRINCIPLE_1** - TODO: describe your first design principle
-2. **YOUR_PRINCIPLE_2** - TODO: describe your second design principle
-3. **YOUR_PRINCIPLE_3** - TODO: describe your third design principle
+1. **One authentic path** - Maintained LLM cognition uses the shared
+   `llm_client`; principals, economy, artifacts, and custody remain AE3-owned.
+2. **Fail loud** - An authentic run MUST stop and become invalid on transport,
+   model, schema, decision-gate, or selected-action failure. It MUST NOT replace
+   the failed decision with a local action, retry, fallback model, or synthetic
+   success. Preserve the original error and trace/custody state.
+3. **Fixtures are visibly non-authentic** - Deterministic substitutes are
+   allowed only in explicitly provider-free tests or historical analysis. They
+   cannot count as model-selected actions or support an authentic-run claim.
+4. **Durable workers use durable paths** - A worker that may outlive a branch
+   MUST NOT use a removable worktree as its current directory. Runtime status
+   must distinguish attempted dispatch, provider-confirmed settlement, and
+   locally applied action.
+5. **Truth before polish** - Receipts and the dashboard must expose invalid
+   custody and decision provenance; a fallback or failed model call is never a
+   successful agent decision.
 
 ---
 
@@ -89,7 +102,9 @@ agent_ecology3/
 
 | Use | Not | Why |
 |-----|-----|-----|
-| `your_term` | `alternate_name` | Consistency |
+| `authentic run` | `live-ish run` | Requires real shared-client model custody and no substitute decisions |
+| `provider-free fixture` | `authentic run` | Proves plumbing without claiming model behavior |
+| `fallback action` | `agent decision` | A local substitute is not model-selected behavior |
 
 ---
 
@@ -118,4 +133,3 @@ This repo uses worktree-based isolation for concurrent AI instances.
 
 **Check for messages from other instances:**
 `python scripts/meta/worktree-coordination/check_messages.py`
-

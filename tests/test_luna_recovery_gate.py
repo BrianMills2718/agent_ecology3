@@ -400,6 +400,39 @@ def test_luna_async_dispatch_ambiguity_retains_reservation_without_retry(
     assert world.get_llm_syscall_count() == 1
 
 
+def test_luna_local_file_not_found_is_pre_dispatch_and_refunded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = _configured_world(tmp_path)
+    before_budget = world.ledger.get_llm_budget("alpha_1")
+    before_calls = world.ledger.get_resource_remaining("alpha_1", "llm_calls")
+
+    def fail_in_local_lifecycle(**_kwargs: Any) -> tuple[Any, object]:
+        raise FileNotFoundError(2, "No such file or directory")
+
+    fake_module = types.ModuleType("llm_client")
+    fake_module.call_llm_structured = fail_in_local_lifecycle
+    monkeypatch.setitem(sys.modules, "llm_client", fake_module)
+    _accept_reviewed_shared_client(monkeypatch)
+
+    result = world.call_llm_as_syscall(
+        payer_id="alpha_1",
+        model=LUNA_MODEL,
+        messages=[{"role": "user", "content": "choose"}],
+    )
+
+    assert result["success"] is False
+    assert result["error_code"] == "llm_error"
+    assert result["settlement_status"] == "pre_dispatch_failed"
+    assert result["provider_dispatch_confirmed"] is False
+    assert result["reservation_retained"] is False
+    assert world.ledger.get_llm_budget("alpha_1") == pytest.approx(before_budget)
+    assert world.ledger.get_resource_remaining("alpha_1", "llm_calls") == pytest.approx(
+        before_calls
+    )
+
+
 @pytest.mark.parametrize(
     ("codex_events", "error_code", "event_types"),
     (
