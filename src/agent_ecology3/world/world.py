@@ -707,6 +707,24 @@ class World:
         iteration = int(state.get("iteration", 0)) + 1
         state["iteration"] = iteration
 
+        target: str | None = None
+        if isinstance(decision, dict):
+            for key in ("artifact_id", "recipient_id", "query_type"):
+                raw_target = decision.get(key)
+                if isinstance(raw_target, str) and raw_target.strip():
+                    target = raw_target.strip()
+                    break
+        read_observation: dict[str, str] | None = None
+        if normalized_action == "read_artifact" and action_success and target:
+            observed = self.artifacts.get(target)
+            if observed is not None and not observed.deleted:
+                read_observation = {
+                    "artifact_id": observed.id,
+                    "artifact_type": observed.type,
+                    "owner": observed.owner,
+                    "content": observed.content[:600],
+                }
+
         action_counts_raw = state.get("action_counts")
         action_counts = dict(action_counts_raw) if isinstance(action_counts_raw, dict) else {}
         action_counts[normalized_action] = int(action_counts.get(normalized_action, 0)) + 1
@@ -714,16 +732,19 @@ class World:
 
         recent_actions_raw = state.get("recent_actions")
         recent_actions = list(recent_actions_raw) if isinstance(recent_actions_raw, list) else []
-        recent_actions.append(
-            {
-                "iteration": iteration,
-                "action_type": normalized_action,
-                "success": action_success,
-                "error_code": result_error_code,
-                "source": decision_source,
-                "fallback_used": bool(fallback_used),
-            }
-        )
+        recent_action: dict[str, Any] = {
+            "iteration": iteration,
+            "action_type": normalized_action,
+            "success": action_success,
+            "error_code": result_error_code,
+            "source": decision_source,
+            "fallback_used": bool(fallback_used),
+        }
+        if target is not None:
+            recent_action["target"] = target
+        if read_observation is not None:
+            recent_action["observation"] = read_observation
+        recent_actions.append(recent_action)
         recent_actions = [item for item in recent_actions if isinstance(item, dict)][-20:]
         state["recent_actions"] = recent_actions
 
@@ -743,6 +764,10 @@ class World:
         key_facts = dict(key_facts_raw) if isinstance(key_facts_raw, dict) else {}
         key_facts["last_action_type"] = normalized_action
         key_facts["stagnation_count"] = state["stagnation_count"]
+        if read_observation is not None:
+            key_facts["last_read_artifact"] = read_observation["artifact_id"]
+            key_facts["last_read_owner"] = read_observation["owner"]
+            key_facts["last_read_content"] = read_observation["content"]
         journal_suffix = f"source={decision_source or 'unknown'}"
         if self.config.llm.loop_cognition_mode == "prescribed":
             objectives_raw = state.get("objectives")
@@ -780,7 +805,11 @@ class World:
 
         journal_raw = notebook.get("journal")
         journal = list(journal_raw) if isinstance(journal_raw, list) else []
-        journal.append(f"i{iteration} {normalized_action} success={action_success} {journal_suffix}")
+        target_suffix = f" target={target}" if target is not None else ""
+        journal.append(
+            f"i{iteration} {normalized_action}{target_suffix} "
+            f"success={action_success} {journal_suffix}"
+        )
         notebook["journal"] = [str(item) for item in journal][-80:]
 
         self.artifacts.write(

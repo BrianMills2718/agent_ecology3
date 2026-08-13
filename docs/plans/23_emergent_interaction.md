@@ -88,4 +88,30 @@ writing a differently named artifact does not satisfy adaptation.
 
 ## Acceptance Evidence
 
-Pending fresh Plan 23 execution.
+### Development run 1 — valid but below threshold
+
+`plan23_emergent_v1_run1` completed 14/14 on merged revision `fb8927c` with
+14 shared-client receipts, zero retries, and zero fallbacks or substitutes. It
+improved real interaction substantially over the Plan 22 baseline:
+
+- `alpha_2` created priced `alpha_2_market_method`; `alpha_1` paid to read it
+  twice, satisfying endogenous paid use of a run-created artifact;
+- cross-paid consumption rose to 18 scrip across eight events and reuse-weighted
+  artifact value rose to `30.476649`;
+- the run produced four market/validation artifacts rather than nine versioned
+  strategy artifacts.
+
+It did not pass. Reads dominated 10/14 decisions (`71.4%`), only read and write
+actions appeared, entropy fell to `0.863`, and both principals repeatedly paid
+for the same artifact. Trace inspection showed that successful reads persisted
+only action type and success; the next Luna turn received neither the target ID
+nor the purchased content. The apparent later adaptation therefore cannot be
+attributed to learned artifact content.
+
+### Development intervention 2
+
+Persist each action's selected target in existing private cognitive state. For
+a successful authorized read, also retain a bounded 600-character observation
+with artifact ID, type, owner, and content in the principal's state/notebook.
+This reuses the current memory seam and does not add a memory service, action
+policy, role, or forced exploration. Run 2 must satisfy the unchanged rubric.
