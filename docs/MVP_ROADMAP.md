@@ -41,7 +41,7 @@ them.
 | Stakeholder reviewability | Brian reviewed the completed authentic run in the existing Ecosystem dashboard and said it looked fine |
 | Stakeholder outcome | **Local MVP complete**: two agents acted live, value crossed principals, reusable artifacts were created and consumed, and the run completed in the same interface |
 | Independent evidence | Plan 19 is independently signed off for this bounded local-MVP claim |
-| Operational state | The canonical completed run remains inspectable locally; general single-run reopening after worker shutdown is the first missing boundary |
+| Operational state | A fresh model-free process can reopen the canonical completed run read-only; dashboard launch of another bounded run is the next missing boundary |
 | Claim boundary | One successful local run; no causal, comparative, population, or generalization claim |
 
 ## Canonical outcome exemplar
@@ -72,8 +72,8 @@ them.
 | Order | Capability outcome | Class/state | Success criterion | Promotion trigger |
 |---|---|---|---|---|
 | 0 | Authentic live economic MVP | vertical / **complete** | Brian can launch, watch, understand, and inspect one completed two-agent run without raw JSON | Satisfied by Plan 19 |
-| 1 | Reopen any preserved run | direct blocker / **selected** | After shutting down the original worker, a fresh process lists and opens the single Plan 19 receipt read-only with the same 14 actions, balances, artifacts, lifecycle, and evidence; zero model calls | Complete the focused browser journey from a fresh process |
-| 2 | Launch another bounded run from the existing dashboard | vertical / fully specifiable after 1 | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Run-library adoption is proven and new model spend is separately authorized |
+| 1 | Reopen any preserved run | direct blocker / **complete** | After shutting down the original worker, a fresh process lists and opens the single Plan 19 receipt read-only with the same 14 actions, balances, artifacts, lifecycle, and evidence; zero model calls | Satisfied by Plan 20 |
+| 2 | Launch another bounded run from the existing dashboard | vertical / **selected** | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Run-library adoption is proven and new model spend is separately authorized |
 | 3 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | A real run contains relationships that Brian finds hard to understand |
 | 4 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 5 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
@@ -103,31 +103,32 @@ then proceed as one reversible vertical.
 
 ## Selected execution frontier
 
-**Goal:** General single-run archive and reopen.
+**Goal:** Launch another bounded run from the existing dashboard.
 
 Backward path:
 
 ```text
-Brian inspects a completed ecology later
-  <- dashboard selects one preserved run
-  <- receipt-backed operator projection reconstructs its actions and artifacts
-  <- run inventory discovers a valid receipt directory
-  <- canonical Plan 19 receipt and event log
+Brian reaches a new paused ecology without using a CLI
+  <- dashboard offers one explicit fixed-profile launch action
+  <- launch creates durable custody and starts the existing worker paused
+  <- live Ecosystem opens with model, call ceiling, and exposure visible
+  <- Resume remains the only boundary that can dispatch Luna
 ```
 
-The first missing boundary is the general inventory/reopen seam. Existing
-capabilities are adopted as follows:
+The first missing boundary is adopting the existing CLI launch path in the
+dashboard without weakening its paused spend boundary. Existing capabilities
+are adopted as follows:
 
 | Capability | Canonical seam | Disposition | Adoption proof |
 |---|---|---|---|
-| Operator UI | existing Ecosystem dashboard and `ae3_operator_state.v1` | extend | Fresh browser opens the preserved single run |
-| Durable run state | recovery checkpoint, status, receipt, and JSONL events | reuse | Dashboard values reconcile with the receipt |
-| Completed review | receipt-backed review projection | extend | Works for a single run without fabricating a pair |
+| Operator UI | existing Ecosystem dashboard and archive selector | extend | Launch reaches the live paused Ecosystem in the same workspace |
+| Worker lifecycle | existing `start` command and recoverable runner | adopt | The UI uses the canonical paused-by-default launch path |
+| Spend boundary | hard call cap, fixed Luna profile, explicit Resume | preserve | Launch alone produces zero provider dispatches |
 
 **Next planning handoff:** `company-planning:bounded-design` should define only
-the single-run discovery contract, read-only lifecycle behavior, and focused
-browser acceptance. It must not absorb launching, scenario authoring, graphs,
-deployment, or hardening.
+one fixed-profile launch action, its paused handoff into the live Ecosystem, and
+the zero-dispatch-before-Resume acceptance. It must not absorb configuration
+authoring, scenarios, graphs, deployment, or hardening.
 
 ## YAGNI guardrails
 
@@ -168,5 +169,7 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
 - [Plan index](plans/CLAUDE.md) is navigation and historical status.
 - [Lineage and restarts](LINEAGE_AND_RESTARTS.md) remains authoritative for
   AE1/AE2/AE3 lineage and restart failure history.
-- A later numbered plan may own the selected single-run reopen implementation
+- [Plan 20](plans/20_single_run_archive_reopen.md) owns the completed archive
+  implementation and focused browser evidence.
+- A later numbered plan may own the selected dashboard-launch implementation
   only after bounded design; it must not silently redefine this roadmap.

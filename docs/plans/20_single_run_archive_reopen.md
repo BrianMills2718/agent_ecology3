@@ -1,6 +1,6 @@
 # Plan #20: Single-Run Archive Reopen
 
-**Status:** In Progress
+**Status:** Complete
 **Type:** prototype vertical
 **Priority:** Critical
 **Blocked By:** None
@@ -56,12 +56,12 @@ repeatable local workbench.
 
 ## Acceptance Criteria
 
-- [ ] A direct Plan 19 run directory starts a fresh read-only review process.
-- [ ] `/runs` lists the preserved run and the dashboard opens it in Ecosystem.
-- [ ] Dashboard/API values reconcile to 14 actions, final balances 104/95, artifacts, and completed lifecycle.
-- [ ] Starting review makes zero model calls.
-- [ ] Existing prescribed/minimal matched-pair Comparison remains available.
-- [ ] Missing or malformed receipt custody fails visibly.
+- [x] A direct Plan 19 run directory starts a fresh read-only review process.
+- [x] `/runs` lists the preserved run and the dashboard opens it in Ecosystem.
+- [x] Dashboard/API values reconcile to 14 actions, final balances 104/95, 23 final artifacts, and completed lifecycle.
+- [x] Starting review makes zero model calls.
+- [x] Existing prescribed/minimal matched-pair Comparison remains available.
+- [x] Missing or malformed receipt custody fails visibly.
 
 ## Non-goals
 
@@ -75,3 +75,18 @@ repeatable local workbench.
 - Single-run review calls the matched-pair summary and fabricates a comparison.
 - The change strands the existing matched-pair Comparison or live dashboard controls.
 - Review accidentally invokes runner or model code instead of reading custody.
+
+## Completion Evidence
+
+- Original Plan 19 worker PID 82728 shut down through the graceful control path.
+- A fresh process from pushed revision `bf00c39` served the direct Plan 19
+  directory on port 9019 with no runner or model-dispatch seam.
+- `/runs`, `/operator-state`, `/state`, and `/events` reconciled the preserved
+  run as read-only, completed, 14 decisions, balances 104/95, and 23 final
+  artifacts. The preserved provider dispatch count remained 14.
+- Fresh Chromium at 1440×900 opened Ecosystem, switched to Evidence and back,
+  and started replay. Comparison was absent, the selector was labeled Run, and
+  the browser reported no console errors or failed requests.
+- The complete pytest suite and doc-code coupling check passed. Mypy reported
+  26 existing errors across seven unchanged files; it reported no error in the
+  changed dashboard source.
