@@ -22,6 +22,7 @@ Track all implementation work here.
 | 14 | [Luna behavioral feasibility repair](14_luna_behavioral_feasibility_repair.md) | High | ✅ Complete (invalid pair) | New-number design only |
 | 15 | [Hard call cap](15_hard_call_cap.md) | High | ✅ Complete | Dashboard-visible matched pair |
 | 16 | [Completed run review](16_completed_run_review.md) | High | ✅ Complete | Human MVP review |
+| 17 | [Useful completed-run review](17_useful_run_review.md) | High | ✅ Complete | Human review of the Luna Medium PoC |
 
 ## Status Key
 
