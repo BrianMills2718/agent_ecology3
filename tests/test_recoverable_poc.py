@@ -296,3 +296,39 @@ def test_control_acknowledgement_freezes_budget_and_horizon() -> None:
         )
         with pytest.raises(RuntimeError, match="control requires exactly 8"):
             _validate_start_contract(invalid)
+
+
+@pytest.mark.parametrize(
+    ("mode", "acknowledgement"),
+    [
+        ("prescribed", "eval12/luna-medium/prescribed/pair-01/v1"),
+        ("minimal", "eval12/luna-medium/minimal/pair-01/v1"),
+    ],
+)
+def test_eval12_acknowledgements_freeze_matched_cell(
+    mode: str, acknowledgement: str
+) -> None:
+    valid = SimpleNamespace(
+        acknowledgement=acknowledgement,
+        target_attempts=16,
+        starting_llm_budget=0.033192,
+        principal_count=2,
+        cognition_mode=mode,
+        policy_seed=24120,
+    )
+    _validate_start_contract(valid)
+
+    invalid = SimpleNamespace(**{**vars(valid), "principal_count": 1})
+    with pytest.raises(RuntimeError, match="Evaluation 12 requires exactly 16"):
+        _validate_start_contract(invalid)
+
+    crossed = SimpleNamespace(
+        **{
+            **vars(valid),
+            "acknowledgement": "eval12/luna-medium/minimal/pair-01/v1"
+            if mode == "prescribed"
+            else "eval12/luna-medium/prescribed/pair-01/v1",
+        }
+    )
+    with pytest.raises(RuntimeError, match="exact Plan 10, Plan 11, or Evaluation 12"):
+        _validate_start_contract(crossed)
