@@ -1,0 +1,8 @@
+schema_version: ui-registry/v1
+project_id: agent_ecology3
+ui_status: active
+surfaces:
+  - id: agent-ecology3-dashboard
+    lifecycle: candidate
+    source_path: src/agent_ecology3/dashboard
+    purpose: FastAPI dashboard app (single app.get("/") HTML entry point).
