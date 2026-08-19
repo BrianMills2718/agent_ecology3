@@ -10,6 +10,12 @@
 #     soft: true  # Optional: warn instead of fail
 
 couplings:
+  - sources:
+      - "src/agent_ecology3/dashboard/**"
+    docs:
+      - "ui/registry.yaml"
+    description: "A UI-serving file is about to be created or changed. Read ui/registry.yaml first -- this repo has one real surface, the dashboard app; a change is very unlikely to need a second one."
+
   # Example: Core module documentation
   - sources:
       - "src/core/*.py"
