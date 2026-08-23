@@ -11,6 +11,8 @@
 This is the short, current entry point for understanding why three Agent
 Ecology repositories exist. It consolidates evidence; it does not replace the
 detailed removal records, simulation notes, or Project Meta lifecycle authority.
+The detailed prevention and recurring-audit companion is the
+[Agent Ecology Failure-Mode Dossier](FAILURE_MODE_DOSSIER.md).
 
 ## Lifecycle Boundary
 
