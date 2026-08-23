@@ -193,6 +193,9 @@ agent_ecology3/
 - `docs/plans/19_live_economic_mvp.md` - selected active prototype vertical;
   live operator adoption, economic scenario, and separately authorized run.
 - `docs/LINEAGE_AND_RESTARTS.md` - canonical comparison of AE1, AE2, and AE3; restart evidence, recurring failure modes, and the unresolved lifecycle decision.
+- `docs/FAILURE_MODE_DOSSIER.md` - detailed AE1-AE3 failure register with
+  evidence classes, prevention constraints, audit probes, recurring Company
+  Planning/AES adoption points, and simplified-ecology design constraints.
 - `docs/evaluations/04_prescription_ablation.md` - preregistered matched-control test and its inconclusive result, provider/runtime failure analysis, evidence bundle, and rerun prerequisites.
 - `docs/evaluations/05_provider_tool_qualification.md` - async/provider/tool
   qualification design, one-shot result, classifier failure mode, and immutable
