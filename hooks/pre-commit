@@ -10,6 +10,46 @@ echo "Running pre-commit checks..."
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT"
 
+# --- Canonical-checkout guard -------------------------------------------------
+# Implementation belongs in a claimed worktree at <repo>/worktrees/<branch>/,
+# never the canonical checkout. Inserted by
+# project-meta/scripts/rollout_canonical_checkout_guard.py on 2026-08-21, after
+# two sessions working one canonical checkout lost a finished, verified edit and
+# twice came within one command of committing another agent's unfinished work.
+#
+# The pre-write claim gate cannot cover this: it is wired to PreToolUse on
+# Edit|Write, and bypass-permissions mode instructs agents to change files with
+# sed and heredocs instead, so shell writes never reach it. A commit-time check
+# sees every write regardless of how it was made.
+#
+# ALLOW_CANONICAL_CHECKOUT_COMMIT=1 skips only this check, so the rest of the
+# suite still runs -- unlike --no-verify, which skips everything.
+#
+# Both rev-parse calls need --path-format=absolute. From a subdirectory, plain
+# --git-common-dir returns a relative path while --git-dir returns absolute, so
+# an unnormalized compare is always unequal and the guard silently never fires.
+if [[ "${ALLOW_CANONICAL_CHECKOUT_COMMIT:-0}" != "1" ]]; then
+    GIT_COMMON_DIR_ABS=$(git rev-parse --path-format=absolute --git-common-dir)
+    GIT_DIR_ABS=$(git rev-parse --path-format=absolute --git-dir)
+    if [[ "$GIT_COMMON_DIR_ABS" == "$GIT_DIR_ABS" ]]; then
+        echo ""
+        echo "ERROR: Commit blocked - this is the CANONICAL checkout, not a worktree."
+        echo "Implementation belongs in a claimed worktree at worktrees/<branch>/."
+        echo ""
+        echo "Fix:"
+        echo "  git worktree add worktrees/<name> -b <name>"
+        echo "  cd worktrees/<name>   # re-stage and commit there"
+        echo "Prefer the repository's own worktree entry point when it has one,"
+        echo "since that also registers the coordination claim."
+        echo ""
+        echo "Escape hatch (reversible single-writer maintenance only):"
+        echo "  ALLOW_CANONICAL_CHECKOUT_COMMIT=1 git commit ..."
+        echo ""
+        exit 1
+    fi
+fi
+# --- end canonical-checkout guard ---------------------------------------------
+
 STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
 
 # Helper: find a script at either scripts/meta/ or scripts/
