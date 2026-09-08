@@ -8,9 +8,8 @@ supporting history. Plans 19–21 completed the local MVP, durable reopen, and
 paused dashboard-launch boundaries. The resumed Plan 21 run was invalidated by
 a deleted-worker-cwd failure concealed by substitute actions. Plan 22 repaired
 that boundary and passed both its authentic one-call canary and a fresh 14-call
-dashboard run. Plan 23 now has a technically passing reciprocal-interaction
-candidate; independent sign-off and Brian's interesting-behavior review are the
-active frontier.
+dashboard run. Plan 23 now has an independently signed-off reciprocal-interaction
+candidate; Brian's interesting-behavior review is the sole active frontier.
 
 ## Gap Summary
 
@@ -38,7 +37,7 @@ active frontier.
 | 20 | [Single-run archive reopen](20_single_run_archive_reopen.md) | Critical | ✅ Complete | Dashboard launch |
 | 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
 | 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | ✅ Complete — canary and 14-call run passed | Brian's usefulness review |
-| 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | Candidate passed; independent sign-off and Brian review pending | Interesting-behavior decision |
+| 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | Independently signed off; Brian review pending | Interesting-behavior decision |
 
 ## Status Key
 
