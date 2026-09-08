@@ -1,6 +1,6 @@
 # Plan #23: Emergent Economic Interaction
 
-**Status:** Candidate Passed — independent sign-off and Brian review pending
+**Status:** Independently Signed Off — Brian review pending
 **Type:** exploratory PoC iteration
 **Priority:** Critical
 **Blocked By:** None
@@ -170,6 +170,7 @@ the same 14 decisions and artifacts. The authoritative run directory is
 `/home/brian/.local/state/agent_ecology3/plan23_emergent_v2_run3/`.
 
 This is a technically passing exploratory candidate, not a general emergence
-claim. The mandatory independent eval-decision sign-off remains pending because
-this session was not authorized to spawn the required fresh verifier. Brian's
-judgment of whether the behavior is actually interesting also remains pending.
+claim. Independent sign-off is retained in
+`../evaluations/23_emergent_interaction_signoff.md`; it passes the first four
+pre-registered criteria and leaves the human-interest gate untouched. Brian's
+judgment of whether the behavior is actually interesting remains pending.
