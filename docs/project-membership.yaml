@@ -1,4 +1,4 @@
-schema_version: 1.0.0
+schema_version: 1.1.0
 project_id: project-agent-ecology-3
 display_name: Agent Ecology 3
 context_epoch: 1
@@ -15,3 +15,6 @@ repositories:
       - docs/LINEAGE_AND_RESTARTS.md
       - docs/MVP_ROADMAP.md
     contract_seams: []
+wiki:
+  repository_id: agent-ecology3
+  path: wiki/index.md
