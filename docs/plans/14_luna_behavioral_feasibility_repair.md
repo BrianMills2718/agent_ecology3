@@ -1,3 +1,10 @@
+---
+plan_id: "agent-ecology3#14"
+dependencies: ["agent-ecology3#12", "agent-ecology3#13"]
+dependency_evidence:
+  "agent-ecology3#12": "**Blocked By:** Plans #12 and #13 complete"
+  "agent-ecology3#13": "**Blocked By:** Plans #12 and #13 complete"
+---
 # Plan #14: Luna Behavioral Feasibility Repair
 
 **Status:** Live execution complete — invalid pair; redesign not authorized
