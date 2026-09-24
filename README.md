@@ -190,7 +190,7 @@ agent_ecology3/
 - `docs/MVP_ROADMAP.md` - canonical current MVP outcome, observation status,
   critical path, implementation order, acceptance criteria, and failure
   dispositions.
-- `docs/plans/CLAUDE.md` - current plan/frontier index; follow it rather than
+- `docs/plans/AGENTS.md` - current plan/frontier index; follow it rather than
   inferring active work from older completed plan documents.
 - `docs/LINEAGE_AND_RESTARTS.md` - canonical comparison of AE1, AE2, and AE3; restart evidence, recurring failure modes, and the unresolved lifecycle decision.
 - `docs/FAILURE_MODE_DOSSIER.md` - detailed AE1-AE3 failure register with

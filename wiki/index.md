@@ -14,9 +14,9 @@ Clean-room Agent Ecology kernel for scarce-resource multi-agent experiments with
 
 ## Read next
 
-- [Operating rules](../CLAUDE.md)
+- [Operating rules](../AGENTS.md)
 - [Project overview](../README.md)
-- [Active plan queue](../docs/plans/CLAUDE.md)
+- [Active plan queue](../docs/plans/AGENTS.md)
 
 ## Coverage and unknowns
 
