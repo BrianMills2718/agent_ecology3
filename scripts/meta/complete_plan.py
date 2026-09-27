@@ -43,16 +43,23 @@ TEST_TIMEOUT_SECONDS = 300  # 5 minutes
 
 
 def find_plan_file(plan_number: int, plans_dir: Path) -> Path | None:
-    """Find a plan file by number."""
+    """Find a plan file by number. Fails if duplicates exist."""
     patterns = [
         f"{plan_number:02d}_*.md",
         f"{plan_number}_*.md",
     ]
+    all_matches: list[Path] = []
     for pattern in patterns:
-        matches = list(plans_dir.glob(pattern))
-        if matches:
-            return matches[0]
-    return None
+        all_matches.extend(plans_dir.glob(pattern))
+    # Deduplicate (both patterns may match same file)
+    unique = list({m.resolve(): m for m in all_matches}.values())
+    if len(unique) > 1:
+        print(f"ERROR: Multiple plan files for #{plan_number}:")
+        for m in unique:
+            print(f"  - {m.name}")
+        print("Rename one file to the next available number.")
+        sys.exit(1)
+    return unique[0] if unique else None
 
 
 def get_plan_status(plan_file: Path) -> str:
@@ -283,6 +290,9 @@ def get_git_info(project_root: Path) -> tuple[str, str]:
     """Get current git commit and branch.
 
     Returns (commit_hash, branch_name).
+
+    The commit is recorded as verification evidence, so a git failure exits
+    loudly rather than recording "unknown" or an empty hash.
     """
     try:
         commit = subprocess.run(
@@ -290,6 +300,7 @@ def get_git_info(project_root: Path) -> tuple[str, str]:
             cwd=project_root,
             capture_output=True,
             text=True,
+            check=True,
         ).stdout.strip()
 
         branch = subprocess.run(
@@ -297,11 +308,12 @@ def get_git_info(project_root: Path) -> tuple[str, str]:
             cwd=project_root,
             capture_output=True,
             text=True,
+            check=True,
         ).stdout.strip()
-
-        return commit, branch
-    except Exception:
-        return "unknown", "unknown"
+    except (OSError, subprocess.CalledProcessError) as e:
+        detail = e.stderr.strip() if isinstance(e, subprocess.CalledProcessError) else e
+        raise SystemExit(f"ERROR: git rev-parse failed in {project_root}: {detail}") from e
+    return commit, branch
 
 
 def update_plan_file(
@@ -376,12 +388,13 @@ def update_plan_index(
     plans_dir: Path,
     dry_run: bool = False,
 ) -> bool:
-    """Update plan status in CLAUDE.md index.
+    """Update plan status in the docs/plans/AGENTS.md index.
 
     Returns True if updated successfully.
     """
-    index_file = plans_dir / "CLAUDE.md"
+    index_file = plans_dir / "AGENTS.md"
     if not index_file.exists():
+        print(f"  WARNING: plan index {index_file} not found; index not updated")
         return False
 
     content = index_file.read_text()
@@ -400,7 +413,7 @@ def update_plan_index(
         return False
 
     if dry_run:
-        print(f"[DRY RUN] Would update plans/CLAUDE.md index")
+        print(f"[DRY RUN] Would update plans/AGENTS.md index")
         return True
 
     index_file.write_text(new_content)

@@ -220,19 +220,33 @@ def fix_content_status() -> int:
     return 0
 
 
+def collect_plan_statuses() -> dict[int, dict]:
+    """Parse every plan file, keyed by number. Fails loudly on duplicate numbers."""
+    plan_statuses: dict[int, dict] = {}
+    files_by_num: dict[int, Path] = {}
+    for pf in sorted(PLANS_DIR.glob("[0-9]*_*.md")):
+        status = parse_plan_status(pf)
+        if not status:
+            continue
+        num = status["number"]
+        if num in files_by_num:
+            raise SystemExit(
+                f"ERROR: Duplicate plan number {num}:\n"
+                f"  - {files_by_num[num].name}\n  - {pf.name}\n"
+                "Rename one file to the next available number."
+            )
+        files_by_num[num] = pf
+        plan_statuses[num] = status
+    return plan_statuses
+
+
 def check_consistency() -> list[dict]:
     """Check for inconsistencies between plan files and index."""
     issues = []
 
     # Get all plan files
-    plan_files = sorted(PLANS_DIR.glob("[0-9]*_*.md"))
-
     # Parse each plan file
-    plan_statuses = {}
-    for pf in plan_files:
-        status = parse_plan_status(pf)
-        if status:
-            plan_statuses[status["number"]] = status
+    plan_statuses = collect_plan_statuses()
 
     # Parse index
     index_statuses = parse_index_table(INDEX_FILE)
@@ -275,12 +289,7 @@ def sync_index_to_plans() -> int:
     content = INDEX_FILE.read_text()
 
     # Get plan file statuses
-    plan_files = sorted(PLANS_DIR.glob("[0-9]*_*.md"))
-    plan_statuses = {}
-    for pf in plan_files:
-        status = parse_plan_status(pf)
-        if status:
-            plan_statuses[status["number"]] = status
+    plan_statuses = collect_plan_statuses()
 
     # Find and update each row in the table
     def replace_status(match: re.Match) -> str:

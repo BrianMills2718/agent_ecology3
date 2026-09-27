@@ -80,12 +80,8 @@ def check_suspicious(mock_usage: dict[str, list[tuple[int, str]]]) -> list[str]:
 
     for file_path, lines in mock_usage.items():
         # Read full file to check for mock-ok comments
-        try:
-            full_content = Path(file_path).read_text()
-            full_lines = full_content.split("\n")
-        except Exception:
-            full_content = ""
-            full_lines = []
+        full_content = Path(file_path).read_text()
+        full_lines = full_content.split("\n")
 
         # Check for file-level mock-ok comment (in first 20 lines, typically in docstring)
         file_has_blanket_justification = any(
