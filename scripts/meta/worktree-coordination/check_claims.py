@@ -389,17 +389,17 @@ def get_plan_status(plan_number: int) -> tuple[str, list[int]]:
     Returns (status, blocked_by_list).
     Status is one of: 'complete', 'in_progress', 'blocked', 'planned', 'needs_plan', 'unknown'
     """
-    plan_file = None
-    for f in PLANS_DIR.glob(f"{plan_number:02d}_*.md"):
-        plan_file = f
-        break
-    if not plan_file:
-        for f in PLANS_DIR.glob(f"{plan_number}_*.md"):
-            plan_file = f
-            break
-
-    if not plan_file or not plan_file.exists():
+    patterns = {f"{plan_number:02d}_*.md", f"{plan_number}_*.md"}
+    matches = sorted({m for pattern in patterns for m in PLANS_DIR.glob(pattern)})
+    if len(matches) > 1:
+        names = "\n".join(f"  - {m.name}" for m in matches)
+        raise SystemExit(
+            f"ERROR: Multiple plan files for #{plan_number}:\n{names}\n"
+            "Rename one file to the next available number."
+        )
+    if not matches:
         return ("unknown", [])
+    plan_file = matches[0]
 
     content = plan_file.read_text()
 

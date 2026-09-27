@@ -126,10 +126,16 @@ def find_plan_file(plan_number: int) -> Path | None:
     for plans_dir in unique_locations:
         if not plans_dir.exists():
             continue
-        for pattern in [f"{plan_number:02d}_*.md", f"{plan_number}_*.md"]:
-            matches = list(plans_dir.glob(pattern))
-            if matches:
-                return matches[0]
+        patterns = {f"{plan_number:02d}_*.md", f"{plan_number}_*.md"}
+        matches = sorted({m for pattern in patterns for m in plans_dir.glob(pattern)})
+        if len(matches) > 1:
+            names = "\n".join(f"  - {m}" for m in matches)
+            raise SystemExit(
+                f"ERROR: Multiple plan files for #{plan_number}:\n{names}\n"
+                "Rename one file to the next available number."
+            )
+        if matches:
+            return matches[0]
 
     return None
 
