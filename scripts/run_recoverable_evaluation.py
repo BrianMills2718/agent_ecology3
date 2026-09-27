@@ -511,8 +511,18 @@ def _seed_emergent_opportunities(world: RecoverableLoopWorld) -> list[str]:
 
 def _terminal_lifecycle(
     recovery: dict[str, Any],
+    failure: BaseException | None = None,
 ) -> Literal["completed", "stopped", "invalid"]:
-    """Classify terminal custody from durable progress, not a transient heartbeat."""
+    """Classify terminal custody from the run outcome and durable progress.
+
+    The heartbeat republishes status.json every second, so its lifecycle field
+    cannot be trusted to still say "invalid"; the runner's own terminal
+    exception is the authoritative signal when there is one.
+    """
+    if isinstance(failure, RecoveryScarcityBoundary):
+        return "stopped"
+    if failure is not None:
+        return "invalid"
     if recovery.get("lifecycle_state") == "invalid":
         return "invalid"
     committed = int(recovery.get("committed_attempts", 0) or 0)
@@ -657,6 +667,14 @@ def _write_receipt(
     path.write_text(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _failure_reason(failure: BaseException | None) -> str | None:
+    if failure is None:
+        return None
+    if isinstance(failure, RecoveryTerminalError):
+        return str(failure)
+    return f"{type(failure).__name__}: {failure}"
+
+
 async def _serve(args: argparse.Namespace) -> None:
     _validate_start_contract(args)
     import uvicorn
@@ -743,12 +761,24 @@ async def _serve(args: argparse.Namespace) -> None:
     )
     receipt_written = False
 
+    def run_failure() -> BaseException | None:
+        if not run_task.done() or run_task.cancelled():
+            return None
+        return run_task.exception()
+
+    def publish_terminal_status() -> None:
+        failure = run_failure()
+        coordinator.publish_status(
+            _terminal_lifecycle(coordinator.status(), failure),
+            terminal_reason=_failure_reason(failure),
+            pid=os.getpid(),
+        )
+
     async def heartbeat() -> None:
         nonlocal receipt_written
         while not server.should_exit:
             if run_task.done():
-                lifecycle = _terminal_lifecycle(coordinator.status())
-                coordinator.publish_status(lifecycle, pid=os.getpid())
+                publish_terminal_status()
                 if not receipt_written:
                     _write_receipt(
                         data_dir=data_dir,
@@ -770,9 +800,10 @@ async def _serve(args: argparse.Namespace) -> None:
         runner.stop()
         await asyncio.gather(run_task, return_exceptions=True)
         heartbeat_task.cancel()
-        await asyncio.gather(heartbeat_task, return_exceptions=True)
-        final_lifecycle = _terminal_lifecycle(coordinator.status())
-        coordinator.publish_status(final_lifecycle, pid=os.getpid())
+        (heartbeat_outcome,) = await asyncio.gather(
+            heartbeat_task, return_exceptions=True
+        )
+        publish_terminal_status()
         _write_receipt(
             data_dir=data_dir,
             coordinator=coordinator,
@@ -780,6 +811,16 @@ async def _serve(args: argparse.Namespace) -> None:
             source=source,
             acknowledgement=args.acknowledgement,
         )
+    # Reached only when serving ended normally; re-raise the runner's terminal
+    # exception so main() maps it to the scarcity/invalid exit contract.
+    failure = run_failure()
+    if failure is not None:
+        raise failure
+    # A crashed heartbeat froze operator status for the rest of the run.
+    if isinstance(heartbeat_outcome, BaseException) and not isinstance(
+        heartbeat_outcome, asyncio.CancelledError
+    ):
+        raise RuntimeError("status heartbeat failed during serve") from heartbeat_outcome
 
 
 def _validate_review_run(data_dir: Path) -> None:

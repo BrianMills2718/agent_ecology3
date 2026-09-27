@@ -1350,3 +1350,114 @@ def test_eval15_validator_rejects_fifteenth_dispatch() -> None:
     )
     assert invalid["status"] == "invalid"
     assert "hard_fourteen_call_cap" in invalid["failed_checks"]
+
+
+def _serve_with_failing_runner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: BaseException | None,
+    *,
+    heartbeat_failure: BaseException | None = None,
+) -> tuple[BaseException | None, dict[str, object], dict[str, object]]:
+    """Drive the real serve lifecycle with a runner that ends by raising."""
+    import uvicorn
+
+    class FailingRunner:
+        def __init__(self, world: object) -> None:
+            self.world = world
+            self.stopped = asyncio.Event()
+
+        @property
+        def is_paused(self) -> bool:
+            if heartbeat_failure is not None:
+                raise heartbeat_failure
+            return False
+
+        async def run(self, **_kwargs: object) -> None:
+            if failure is None:
+                await self.stopped.wait()
+            else:
+                raise failure
+
+        def stop(self) -> None:
+            self.stopped.set()
+
+    class ReviewWindowServer:
+        """Stay up across heartbeat ticks, as the operator dashboard does."""
+
+        def __init__(self, _config: object) -> None:
+            self.should_exit = False
+
+        async def serve(self) -> None:
+            await asyncio.sleep(1.5)
+
+    monkeypatch.setattr(recoverable_script, "_preflight", lambda: {"fixture": True})
+    monkeypatch.setattr(recoverable_script, "SimulationRunner", FailingRunner)
+    monkeypatch.setattr(uvicorn, "Server", ReviewWindowServer)
+    data_dir = tmp_path / "worker"
+    args = SimpleNamespace(
+        acknowledgement=recoverable_script.ACKNOWLEDGEMENT,
+        data_dir=str(data_dir),
+        config="config/config.yaml",
+        run_id="serve_failure_fixture",
+        target_attempts=2,
+        starting_llm_budget=None,
+        principal_count=1,
+        cognition_mode="prescribed",
+        policy_seed=0,
+        host="127.0.0.1",
+        port=9098,
+        start_running=True,
+    )
+    raised: BaseException | None = None
+    try:
+        asyncio.run(recoverable_script._serve(args))
+    except BaseException as exc:  # noqa: BLE001 - the propagation is under test
+        raised = exc
+    status = json.loads((data_dir / "status.json").read_text(encoding="utf-8"))
+    receipt = json.loads((data_dir / "run_receipt.json").read_text(encoding="utf-8"))
+    return raised, status, receipt
+
+
+def test_serve_propagates_unexpected_runner_failure_as_invalid(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    failure = RuntimeError("runner bug")
+    raised, status, receipt = _serve_with_failing_runner(tmp_path, monkeypatch, failure)
+    assert raised is failure
+    assert status["lifecycle_state"] == "invalid"
+    assert status["terminal_reason"] == "RuntimeError: runner bug"
+    assert receipt["recovery"]["lifecycle_state"] == "invalid"  # type: ignore[index]
+
+
+def test_serve_propagates_terminal_error_even_after_heartbeat_overwrote_status(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The heartbeat republishes "running" each second, so status.json alone
+    # cannot carry an invalid terminal state to the lifecycle classifier.
+    failure = RecoveryTerminalError("dispatch ambiguous")
+    raised, status, _receipt = _serve_with_failing_runner(tmp_path, monkeypatch, failure)
+    assert raised is failure
+    assert status["lifecycle_state"] == "invalid"
+    assert status["terminal_reason"] == "dispatch ambiguous"
+
+
+def test_serve_propagates_scarcity_boundary_as_stopped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    failure = RecoveryScarcityBoundary("scarcity_binding_pre_dispatch")
+    raised, status, _receipt = _serve_with_failing_runner(tmp_path, monkeypatch, failure)
+    assert raised is failure
+    assert status["lifecycle_state"] == "stopped"
+    assert status["terminal_reason"] == "scarcity_binding_pre_dispatch"
+
+
+def test_serve_fails_loud_when_status_heartbeat_crashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    heartbeat_failure = OSError("status disk full")
+    raised, _status, _receipt = _serve_with_failing_runner(
+        tmp_path, monkeypatch, None, heartbeat_failure=heartbeat_failure
+    )
+    assert isinstance(raised, RuntimeError)
+    assert raised.__cause__ is heartbeat_failure
