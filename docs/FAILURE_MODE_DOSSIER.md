@@ -223,7 +223,8 @@ decision-useful ecology is stable.
 files, 25,864 source lines, 33,916 test lines, and 44,417 Markdown lines. Its
 history later removed about 29,000 lines of legacy agents, about 6,800 lines of
 a dashboard generation, and about 4,200 lines of dead code. AE3 restarted to
-remove six specific classes of breadth ([removal sequence](REMOVAL_SEQUENCE.md)).
+remove six specific classes of breadth (now listed as standing constraints in
+[Lineage and Restarts](LINEAGE_AND_RESTARTS.md#standing-constraints-from-the-rebuild)).
 
 **Consequence.** Iteration cost rises while the thesis remains unanswered.
 Deleting speculative breadth becomes a project of its own.
@@ -796,8 +797,8 @@ rewrite/fork decision:
 ### Cross-line synthesis
 
 - [Lineage and Restarts](LINEAGE_AND_RESTARTS.md)
-- [AE3 Rewrite Scope](REWRITE_SCOPE.md)
-- [AE3 Removal Sequence](REMOVAL_SEQUENCE.md)
+- [AE3 Rewrite Scope (retired, pinned)](https://github.com/BrianMills2718/agent_ecology3/blob/28574ed2a65870e8657c5c16e16b7fdd872cc71e/docs/REWRITE_SCOPE.md)
+- [AE3 Removal Sequence (retired, pinned)](https://github.com/BrianMills2718/agent_ecology3/blob/28574ed2a65870e8657c5c16e16b7fdd872cc71e/docs/REMOVAL_SEQUENCE.md)
 - [AE3 MVP Roadmap](MVP_ROADMAP.md)
 
 ### AE1 primary sources
