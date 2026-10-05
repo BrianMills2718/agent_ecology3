@@ -91,8 +91,10 @@ PLAN23_V2_ACKNOWLEDGEMENT = "plan23/luna-medium/emergent-interaction/v2"
 PLAN23_V2_STARTING_BUDGET = 0.066384
 PLAN24_CANARY_ACKNOWLEDGEMENT = "plan24/luna-low/canary/v1"
 PLAN24_ACKNOWLEDGEMENTS = {
-    "trading": "plan24/luna-low/task-bounty/trading/v1",
-    "solo": "plan24/luna-low/task-bounty/solo/v1",
+    # v1 pair 1 was invalidated by the loop normalizer lowercasing artifact
+    # types (instrument defect); v2 preserves agent-authored case.
+    "trading": "plan24/luna-low/task-bounty/trading/v2",
+    "solo": "plan24/luna-low/task-bounty/solo/v2",
 }
 PLAN24_TARGET_ATTEMPTS = 28
 PLAN24_CANARY_TARGET_ATTEMPTS = 1

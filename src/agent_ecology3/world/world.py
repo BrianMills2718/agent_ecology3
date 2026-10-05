@@ -1339,7 +1339,9 @@ def _normalize_loop_decision(decision, state_snapshot):
         if not isinstance(content, str) or not content.strip():
             content = "note from {principal_id} turn " + str(int(time.time()) + {slot})
         normalized["artifact_id"] = artifact_id
-        normalized["artifact_type"] = artifact_type.strip().lower()
+        # Preserve the agent-authored type exactly (identifiers such as
+        # "solution:HumanEval/28" are case-sensitive; Plan 24 pair 1 lost them).
+        normalized["artifact_type"] = artifact_type.strip()
         normalized["content"] = content
         if (
             {self.config.llm.loop_cognition_mode == "prescribed"}
