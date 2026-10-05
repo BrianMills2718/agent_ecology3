@@ -529,7 +529,7 @@ def test_live_economic_vertical_is_discoverable_and_operator_visible(
     with TestClient(app) as client:
         page = client.get("/")
         assert page.status_code == 200
-        assert "Live Luna Medium ecology" in page.text
+        assert "Live Luna ecology" in page.text
         operator = client.get("/operator-state").json()
         assert operator["read_only"] is False
         assert operator["lifecycle_state"] == "completed"

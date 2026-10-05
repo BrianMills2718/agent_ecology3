@@ -304,7 +304,7 @@ _DASHBOARD_HTML = """<!doctype html>
       <section class=\"review-section\">
         <h2>What happened, decision by decision</h2>
         <p class=\"quiet\">Each column is one condition in the matched pair. Red decisions failed locally; no substitute action was silently used.</p>
-        <div style=\"overflow-x:auto\"><table class=\"timeline\"><thead><tr><th>#</th><th>Prescribed</th><th>Minimal</th></tr></thead><tbody id=\"timelineBody\"></tbody></table></div>
+        <div style=\"overflow-x:auto\"><table class=\"timeline\"><thead><tr><th>#</th><th id=\"timelineLeft\">Prescribed</th><th id=\"timelineRight\">Minimal</th></tr></thead><tbody id=\"timelineBody\"></tbody></table></div>
       </section>
     </main>
     <main class=\"review\" id=\"evidenceView\">
@@ -586,7 +586,9 @@ _DASHBOARD_HTML = """<!doctype html>
             <div class=\"metric\"><b>${run.succeeded}/${run.attempts}</b><span>successful decisions</span></div>
             <div class=\"metric\"><b>${run.artifacts_created.length}</b><span>new artifacts</span></div>
             <div class=\"metric\"><b>${run.failures}</b><span>local failures</span></div>
+            ${run.task_mode ? `<div class=\"metric\"><b>${run.tasks_passed}/8</b><span>tasks passed hidden tests</span></div><div class=\"metric\"><b>${run.scrip_minted}</b><span>scrip minted by checker</span></div><div class=\"metric\"><b>${run.purchases}</b><span>paid reads of the other's work</span></div>` : ''}
           </div>
+          ${run.task_mode ? `<div class=\"intent\">Solved: ${run.solved_tasks.length ? run.solved_tasks.map(t => `${escapeHtml(t.task_id)} by ${escapeHtml(t.solver)}${t.purchases_before.length ? ' after buying ' + t.purchases_before.map(p => escapeHtml(p.artifact_id)).join(', ') : ''}`).join('; ') : 'none'}</div>` : ''}
           <div class=\"mix\">${Object.entries(run.action_counts).map(([name,count]) => `<span class=\"chip\">${escapeHtml(name)} × ${count}</span>`).join('')}</div>
         </article>`).join('');
       document.getElementById('economicSummary').textContent = summary.economic_summary;
@@ -600,6 +602,8 @@ _DASHBOARD_HTML = """<!doctype html>
       const byId = Object.fromEntries(summary.runs.map(run => [run.id, run]));
       const prescribed = byId.prescribed || summary.runs[0];
       const minimal = byId.minimal || summary.runs[1];
+      document.getElementById('timelineLeft').textContent = prescribed ? prescribed.label : '';
+      document.getElementById('timelineRight').textContent = minimal ? minimal.label : '';
       const rows = Math.max(prescribed?.actions.length || 0, minimal?.actions.length || 0);
       document.getElementById('timelineBody').innerHTML = Array.from({length: rows}, (_, i) => `<tr><td>${i + 1}</td><td>${actionCell(prescribed?.actions[i])}</td><td>${actionCell(minimal?.actions[i])}</td></tr>`).join('');
     }
@@ -617,7 +621,7 @@ _DASHBOARD_HTML = """<!doctype html>
       document.getElementById('runPickerLabel').textContent = payload.comparison_available ? 'Condition' : 'Run';
       document.getElementById('comparisonTab').style.display = payload.comparison_available ? '' : 'none';
       document.getElementById('newRunButton').style.display = payload.launch_available ? '' : 'none';
-      document.getElementById('eyebrow').textContent = 'Luna Medium ecology replay';
+      document.getElementById('eyebrow').textContent = 'Luna ecology replay';
       document.getElementById('pageTitle').textContent = 'Agent Ecology 3';
       document.getElementById('pageSubtitle').textContent = 'Watch agents act, inspect what they create, and follow the ecology decision by decision.';
       document.getElementById('workspaceNav').classList.add('visible');
@@ -674,7 +678,7 @@ _DASHBOARD_HTML = """<!doctype html>
 
     async function initializeLive() {
       selectedRun = null;
-      document.getElementById('eyebrow').textContent = 'Live Luna Medium ecology';
+      document.getElementById('eyebrow').textContent = 'Live Luna ecology';
       document.getElementById('pageSubtitle').textContent = 'Watch agents act, inspect resources and artifacts, and control the run from one workspace.';
       document.getElementById('workspaceNav').classList.add('visible');
       document.getElementById('conditionPicker').style.display = 'none';
@@ -780,9 +784,12 @@ def _summarize_review_run(run_id: str, data_dir: Path) -> dict[str, Any]:
             )
     attempts = int(recovery.get("committed_attempts", 0) or 0)
     failures = sum(not action["success"] for action in actions)
+    tasks = _summarize_task_outcomes(events, decisions)
     condition_descriptions = {
         "prescribed": "Agents received assigned roles, objectives, and a role-specific playbook.",
         "minimal": "Agents received constraints but no assigned role, action sequence, or trading policy.",
+        "trading": "Trading open: agents could buy each other's task statements or solutions.",
+        "solo": "Trading closed: each agent could only reach the tasks it was endowed with.",
     }
     return {
         "id": run_id,
@@ -810,6 +817,53 @@ def _summarize_review_run(run_id: str, data_dir: Path) -> dict[str, Any]:
         "scrip_moved": scrip_moved,
         "balances": balance_rows,
         "artifact_count": world_state.get("artifact_count"),
+        **tasks,
+    }
+
+
+def _summarize_task_outcomes(
+    events: list[dict[str, Any]], decisions: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Plan 24 readout: checker-passed tasks and the purchases before each."""
+    scored = [e for e in events if e.get("event_type") == "task_bounty_scored"]
+    purchases = [
+        e
+        for e in events
+        if e.get("event_type") == "artifact_read"
+        and e.get("recipient") not in (None, e.get("principal_id"))
+        and float(e.get("read_price_paid", 0) or 0) > 0
+    ]
+    solved: list[dict[str, Any]] = []
+    for event in scored:
+        if event.get("first_claim") is not True:
+            continue
+        solver = event.get("principal_id")
+        at = int(event.get("event_number", 0) or 0)
+        solved.append(
+            {
+                "task_id": event.get("task_id"),
+                "solver": solver,
+                "artifact_id": event.get("artifact_id"),
+                "scrip_minted": event.get("scrip_minted", 0),
+                "purchases_before": [
+                    {"artifact_id": p.get("artifact_id"), "seller": p.get("recipient"), "price": p.get("read_price_paid")}
+                    for p in purchases
+                    if p.get("principal_id") == solver and int(p.get("event_number", 0) or 0) <= at
+                ],
+            }
+        )
+    calls: Counter[str] = Counter(str(d.get("principal_id")) for d in decisions)
+    return {
+        "task_mode": bool(scored) or any(
+            d.get("decision_action") == "submit_to_mint" for d in decisions
+        ),
+        "tasks_passed": len(solved),
+        "task_submissions": len(scored),
+        "task_failures": sum(1 for e in scored if e.get("passed") is not True),
+        "scrip_minted": sum(int(e.get("scrip_minted", 0) or 0) for e in scored),
+        "solved_tasks": solved,
+        "purchases": len(purchases),
+        "calls_by_principal": dict(calls),
     }
 
 
@@ -820,6 +874,8 @@ def _summarize_review_pair(review_runs: dict[str, Path]) -> dict[str, Any]:
         for run in runs
     )
     by_id = {run["id"]: run for run in runs}
+    if set(by_id) == {"trading", "solo"}:
+        return _summarize_task_pair(by_id["trading"], by_id["solo"], valid_pair)
     prescribed = by_id.get("prescribed")
     minimal = by_id.get("minimal")
     if prescribed is not None and minimal is not None:
@@ -848,6 +904,52 @@ def _summarize_review_pair(review_runs: dict[str, Path]) -> dict[str, Any]:
             "behavioral contrast but not yet a functioning agent economy."
         ),
         "runs": runs,
+    }
+
+
+def _summarize_task_pair(
+    trading: dict[str, Any], solo: dict[str, Any], valid_pair: bool
+) -> dict[str, Any]:
+    """Plan 24 matched pair: outside-checked tasks with trading on vs off."""
+    def per_call(run: dict[str, Any]) -> float:
+        return run["tasks_passed"] / run["attempts"] if run["attempts"] else 0.0
+
+    winner = (
+        "trading" if per_call(trading) > per_call(solo)
+        else "solo" if per_call(solo) > per_call(trading)
+        else "tie"
+    )
+    bought_then_solved = sum(1 for task in trading["solved_tasks"] if task["purchases_before"])
+    headline = (
+        f"Trading open: {trading['tasks_passed']} tasks passed the hidden tests in "
+        f"{trading['attempts']} decisions. Trading closed: {solo['tasks_passed']} in "
+        f"{solo['attempts']}. "
+        + (
+            "Trading solved more per decision."
+            if winner == "trading"
+            else "Working alone solved more per decision."
+            if winner == "solo"
+            else "Both solved the same number per decision."
+        )
+    )
+    return {
+        "schema_version": "ae3_review_summary.v2",
+        "title": "Plan 24 — Trading vs Solo, scored by hidden tests",
+        "pair_kind": "trading_vs_solo",
+        "valid_pair": valid_pair,
+        "pair_winner": winner,
+        "scope_note": (
+            "One matched pair on 8 HumanEval tasks with two Luna-low agents. "
+            "Plan 24's stop rule reads three valid pairs; one pair is not a result."
+        ),
+        "headline": headline,
+        "economic_summary": (
+            f"With trading open, agents made {trading['purchases']} paid reads of each "
+            f"other's artifacts; {bought_then_solved} solved task(s) followed a purchase. "
+            f"Scrip minted by the checker: trading {trading['scrip_minted']}, "
+            f"solo {solo['scrip_minted']}."
+        ),
+        "runs": [trading, solo],
     }
 
 
@@ -1107,7 +1209,7 @@ def create_app(
             "runs": items,
             "default_run": next(iter(review_runs), None),
             "read_only": bool(review_runs),
-            "comparison_available": set(review_runs) == {"prescribed", "minimal"},
+            "comparison_available": set(review_runs) in ({"prescribed", "minimal"}, {"trading", "solo"}),
             "launch_available": launch_provider is not None,
         }
 
@@ -1128,7 +1230,7 @@ def create_app(
 
     @app.get("/review-summary")
     async def review_summary() -> dict[str, Any]:
-        if set(review_runs) != {"prescribed", "minimal"}:
+        if set(review_runs) not in ({"prescribed", "minimal"}, {"trading", "solo"}):
             return {"success": False, "error": "matched-pair comparison unavailable"}
         return _summarize_review_pair(review_runs)
 

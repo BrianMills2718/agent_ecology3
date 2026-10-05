@@ -104,7 +104,22 @@ class KernelQueryHandler:
         artifact = self.world.artifacts.get(artifact_id)
         if artifact is None:
             return {"success": False, "error": "artifact not found", "error_code": "not_found"}
-        return {"success": True, "query_type": "artifact", "result": artifact.to_dict(include_code=False)}
+        result = artifact.to_dict(include_code=False)
+        caller = params.get("_principal_id")
+        if not isinstance(caller, str) or caller != artifact.owner:
+            # A query must not bypass read_price or the read permission: only
+            # free, readable content is returned; otherwise read_artifact pays.
+            readable = False
+            if isinstance(caller, str) and caller:
+                readable = self.world.contract_engine.check(
+                    caller, PermissionAction.READ, artifact
+                ).allowed
+            if not readable or artifact.read_price > 0:
+                result["content"] = None
+                result["content_withheld"] = (
+                    "use read_artifact (pays read_price)" if readable else "not readable"
+                )
+        return {"success": True, "query_type": "artifact", "result": result}
 
     def _query_principals(self, params: dict[str, Any]) -> dict[str, Any]:
         limit = int(params.get("limit", 100))
@@ -194,7 +209,9 @@ class KernelQueryHandler:
         return {
             "success": True,
             "query_type": "events",
-            "events": self.world.logger.read_recent(limit),
+            # Events are activity metadata, not a free side channel to artifact
+            # contents or other principals' prompts (Plan 24).
+            "events": [_redact_event(event) for event in self.world.logger.read_recent(limit)],
         }
 
     def _query_frozen(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -239,3 +256,31 @@ class KernelQueryHandler:
             "depends_on": artifact.depends_on,
             "dependents": dependents,
         }
+
+
+_REDACTED_EVENT_KEYS = frozenset(
+    {
+        "content",
+        "code",
+        "code_preview",
+        "messages",
+        "prompt",
+        "rendered_prompt",
+        "raw_response",
+        "response",
+        "reasoning",
+    }
+)
+
+
+def _redact_event(value: Any) -> Any:
+    """Drop artifact contents and model I/O from an event, keeping metadata."""
+
+    if isinstance(value, dict):
+        return {
+            key: ("[withheld]" if key in _REDACTED_EVENT_KEYS else _redact_event(item))
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_event(item) for item in value]
+    return value

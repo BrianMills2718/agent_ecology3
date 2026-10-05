@@ -248,9 +248,17 @@ class ExecutableContract:
 class ContractEngine:
     """Resolves and evaluates contracts for artifact permissions."""
 
-    def __init__(self, artifact_store: Any, ledger: Any, *, default_when_missing: str) -> None:
+    def __init__(
+        self,
+        artifact_store: Any,
+        ledger: Any,
+        *,
+        default_when_missing: str,
+        cross_principal_trading: bool = True,
+    ) -> None:
         self._artifact_store = artifact_store
         self._ledger = ledger
+        self.cross_principal_trading = cross_principal_trading
         self._default_when_missing = default_when_missing
         self._kernel_contracts: dict[str, AccessContract] = {
             KERNEL_CONTRACT_FREEWARE: FreewareContract(),
@@ -282,6 +290,15 @@ class ContractEngine:
         method: str | None = None,
         args: list[Any] | None = None,
     ) -> PermissionResult:
+        if (
+            not self.cross_principal_trading
+            and action is PermissionAction.READ
+            and artifact.owner != caller
+            and self._ledger.principal_exists(artifact.owner)
+        ):
+            return PermissionResult(
+                False, "trading_disabled: another principal's artifact is closed in this run"
+            )
         context: dict[str, object] = {
             "target_created_by": artifact.created_by,
             "target_metadata": artifact.metadata,

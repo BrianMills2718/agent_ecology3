@@ -89,7 +89,28 @@ PLAN23_PRINCIPAL_COUNT = 2
 PLAN23_POLICY_SEED = 24230
 PLAN23_V2_ACKNOWLEDGEMENT = "plan23/luna-medium/emergent-interaction/v2"
 PLAN23_V2_STARTING_BUDGET = 0.066384
+PLAN24_CANARY_ACKNOWLEDGEMENT = "plan24/luna-low/canary/v1"
+PLAN24_ACKNOWLEDGEMENTS = {
+    "trading": "plan24/luna-low/task-bounty/trading/v1",
+    "solo": "plan24/luna-low/task-bounty/solo/v1",
+}
+PLAN24_TARGET_ATTEMPTS = 28
+PLAN24_CANARY_TARGET_ATTEMPTS = 1
+PLAN24_PRINCIPAL_COUNT = 2
+PLAN24_POLICY_SEEDS = (24241, 24242, 24243)
+PLAN24_STARTING_BUDGET = 1.0
+PLAN24_TASK_BANK = REPO_ROOT / "config" / "tasks" / "humaneval_plan24_v1.jsonl"
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
+
+
+def _plan24_condition(acknowledgement: str) -> str | None:
+    """Return 'trading' or 'solo' for a Plan 24 run (the canary uses trading)."""
+    if acknowledgement == PLAN24_CANARY_ACKNOWLEDGEMENT:
+        return "trading"
+    for condition, ack in PLAN24_ACKNOWLEDGEMENTS.items():
+        if acknowledgement == ack:
+            return condition
+    return None
 
 
 def _default_data_dir() -> Path:
@@ -177,6 +198,9 @@ def _configure(
     mint_enabled: bool = False,
     mint_auction_after_horizon: bool = False,
     loop_prompt_template_path: Path | None = None,
+    reasoning_effort: Literal["low", "medium"] = "medium",
+    task_bank_path: Path | None = None,
+    cross_principal_trading: bool = True,
 ) -> AppConfig:
     config = load_config(config_path)
     config.principals.count = principal_count
@@ -215,13 +239,19 @@ def _configure(
     )
     config.llm.loop_action_failure_policy = action_failure_policy
     config.llm.decision_output_mode = "luna_structured_v1"
-    config.llm.reasoning_effort = "medium"
+    config.llm.reasoning_effort = reasoning_effort
     config.llm.codex_transport = "cli"
     config.llm.codex_sandbox_mode = "read-only"
     config.llm.codex_approval_policy = "never"
     config.llm.codex_isolate_home = True
     config.llm.structured_response_model = "LunaLoopDecisionV1"
     config.llm.expected_billing_mode = "subscription_included"
+    config.economy.cross_principal_trading = cross_principal_trading
+    if task_bank_path is not None:
+        config.mint.enabled = True
+        config.mint.mode = "task_bounty"
+        config.mint.task_bank_path = str(task_bank_path.resolve())
+        config.mint.scoring_max_budget = 0.0
     return AppConfig.model_validate(config.model_dump())
 
 
@@ -274,6 +304,30 @@ def _post_json(url: str) -> dict[str, Any]:
 
 
 def _validate_start_contract(args: argparse.Namespace) -> None:
+    if _plan24_condition(args.acknowledgement) is not None:
+        expected_attempts = (
+            PLAN24_CANARY_TARGET_ATTEMPTS
+            if args.acknowledgement == PLAN24_CANARY_ACKNOWLEDGEMENT
+            else PLAN24_TARGET_ATTEMPTS
+        )
+        if (
+            args.target_attempts != expected_attempts
+            or args.principal_count != PLAN24_PRINCIPAL_COUNT
+            or args.cognition_mode != "minimal"
+            or args.policy_seed not in PLAN24_POLICY_SEEDS
+            or not math.isclose(
+                float(args.starting_llm_budget or -1),
+                PLAN24_STARTING_BUDGET,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ):
+            raise RuntimeError(
+                f"Plan 24 requires {expected_attempts} attempts, two principals, "
+                f"Minimal cognition, a seed in {PLAN24_POLICY_SEEDS}, and "
+                f"starting_llm_budget={PLAN24_STARTING_BUDGET}"
+            )
+        return
     if args.acknowledgement in {
         PLAN23_ACKNOWLEDGEMENT,
         PLAN23_V2_ACKNOWLEDGEMENT,
@@ -509,6 +563,43 @@ def _seed_emergent_opportunities(world: RecoverableLoopWorld) -> list[str]:
     return [item[0] for item in opportunities]
 
 
+def _seed_task_bank(world: RecoverableLoopWorld) -> list[str]:
+    """Endow each principal with its frozen task statements (Plan 24).
+
+    Only the signature and docstring are written; hidden tests stay with the
+    checker. This seeds opportunities, never actions.
+    """
+    from agent_ecology3.world.mint import load_task_bank
+
+    if world.principal_ids != ["alpha_1", "alpha_2"]:
+        raise RuntimeError("Plan 24 scenario requires exactly alpha_1 and alpha_2")
+    written: list[str] = []
+    for task in load_task_bank(PLAN24_TASK_BANK).values():
+        number = task.task_id.split("/")[-1]
+        artifact_id = f"{task.owner}_task_{number}"
+        content = (
+            f"Task {task.task_id}. Solve it with an artifact of artifact_type "
+            f"'solution:{task.task_id}' whose content is plain Python defining "
+            f"`{task.entry_point}`, then submit_to_mint it.\n\n{task.prompt}"
+        )
+        world.artifacts.write(
+            artifact_id,
+            "task_statement",
+            content,
+            created_by=task.owner,
+            owner=task.owner,
+            read_price=2,
+            access_contract_id="kernel_contract_freeware",
+            metadata={
+                "plan24_task_id": task.task_id,
+                "mvp_scenario_opportunity": True,
+                "fixture_not_agent_action": True,
+            },
+        )
+        written.append(artifact_id)
+    return written
+
+
 def _terminal_lifecycle(
     recovery: dict[str, Any],
     failure: BaseException | None = None,
@@ -637,7 +728,7 @@ def _write_receipt(
         "schema_version": "ae3_luna_recoverable_run_receipt.v1",
         "acknowledgement": acknowledgement,
         "model": LUNA_MODEL,
-        "reasoning_effort": "medium",
+        "reasoning_effort": world.config.llm.reasoning_effort,
         "transport": "cli",
         "mcp_servers": [],
         "retry_count": 0,
@@ -653,7 +744,13 @@ def _write_receipt(
             for artifact in world.artifacts.artifacts.values()
             if artifact.metadata.get("mvp_scenario_opportunity") is True
         ],
+        "plan24_condition": _plan24_condition(acknowledgement),
+        "economy": {
+            "cross_principal_trading": world.config.economy.cross_principal_trading,
+        },
+        "task_bank": world.config.mint.task_bank_path,
         "mint": {
+            "mode": world.config.mint.mode,
             "enabled": world.config.mint.enabled,
             "first_auction_delay_seconds": world.config.mint.first_auction_delay_seconds,
             "scoring_max_budget": world.config.mint.scoring_max_budget,
@@ -689,7 +786,8 @@ async def _serve(args: argparse.Namespace) -> None:
         PLAN22_CANARY_ACKNOWLEDGEMENT,
         PLAN23_ACKNOWLEDGEMENT,
         PLAN23_V2_ACKNOWLEDGEMENT,
-    }
+    } or _plan24_condition(args.acknowledgement) is not None
+    plan24_condition = _plan24_condition(args.acknowledgement)
     config = _configure(
         Path(args.config).resolve(),
         data_dir,
@@ -703,15 +801,20 @@ async def _serve(args: argparse.Namespace) -> None:
             else "recovery_fallback"
         ),
         mint_enabled=is_fail_closed_evaluation,
-        mint_auction_after_horizon=is_fail_closed_evaluation,
+        mint_auction_after_horizon=is_fail_closed_evaluation and plan24_condition is None,
         loop_prompt_template_path=(
-            REPO_ROOT / "config" / "prompts" / "loop_prompt_emergent_v1.txt"
+            REPO_ROOT / "config" / "prompts" / f"loop_prompt_tasks_{plan24_condition}_v1.txt"
+            if plan24_condition is not None
+            else REPO_ROOT / "config" / "prompts" / "loop_prompt_emergent_v1.txt"
             if args.acknowledgement in {
                 PLAN23_ACKNOWLEDGEMENT,
                 PLAN23_V2_ACKNOWLEDGEMENT,
             }
             else None
         ),
+        reasoning_effort="low" if plan24_condition is not None else "medium",
+        task_bank_path=PLAN24_TASK_BANK if plan24_condition is not None else None,
+        cross_principal_trading=plan24_condition != "solo",
     )
     world, coordinator = build_recoverable_world(
         config,
@@ -730,6 +833,8 @@ async def _serve(args: argparse.Namespace) -> None:
         PLAN23_V2_ACKNOWLEDGEMENT,
     }:
         _seed_emergent_opportunities(world)
+    elif plan24_condition is not None:
+        _seed_task_bank(world)
     runner = SimulationRunner(world)
     coordinator.publish_status(
         "running" if args.start_running else "paused",

@@ -104,7 +104,6 @@ class LLMConfig(StrictModel):
 
         expected: dict[str, object] = {
             "default_model": "codex/gpt-5.6-luna",
-            "reasoning_effort": "medium",
             "codex_transport": "cli",
             "codex_sandbox_mode": "read-only",
             "codex_approval_policy": "never",
@@ -119,6 +118,11 @@ class LLMConfig(StrictModel):
             for field, value in expected.items()
             if getattr(self, field) != value
         ]
+        # Plan 10 qualified medium; Plan 24 adds low (Brian, 2026-10-05).
+        if self.reasoning_effort not in ("medium", "low"):
+            mismatches.append(
+                f"reasoning_effort={self.reasoning_effort!r} (expected 'medium' or 'low')"
+            )
         if self.allowed_models and self.allowed_models != ["codex/gpt-5.6-luna"]:
             mismatches.append(
                 "allowed_models must be empty or exactly ['codex/gpt-5.6-luna']"
@@ -144,6 +148,24 @@ class MintConfig(StrictModel):
     period_seconds: float = 60.0
     mint_ratio: int = 10
     scoring_max_budget: float = Field(default=0.25, ge=0.0)
+    # auction: periodic second-price auction scored by the LLM grader stand-in.
+    # task_bounty: each submission is scored at once by hidden benchmark tests
+    # (Plan 24); only the first passing submission per task is paid.
+    mode: Literal["auction", "task_bounty"] = "auction"
+    task_bank_path: str | None = None
+    checker_timeout_seconds: float = Field(default=10.0, gt=0.0)
+
+    @model_validator(mode="after")
+    def validate_task_bounty(self) -> MintConfig:
+        if self.mode == "task_bounty" and not self.task_bank_path:
+            raise ValueError("mint.mode=task_bounty requires mint.task_bank_path")
+        return self
+
+
+class EconomyConfig(StrictModel):
+    # False closes trading between principals: reading another principal's
+    # artifacts and transferring to another principal are refused.
+    cross_principal_trading: bool = True
 
 
 class DashboardConfig(StrictModel):
@@ -168,6 +190,7 @@ class AppConfig(StrictModel):
     llm: LLMConfig = Field(default_factory=LLMConfig)
     contracts: ContractsConfig = Field(default_factory=ContractsConfig)
     mint: MintConfig = Field(default_factory=MintConfig)
+    economy: EconomyConfig = Field(default_factory=EconomyConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
