@@ -5,11 +5,11 @@ dependencies_reviewed: "2026-09-15"
 ---
 # Plan #23: Emergent Economic Interaction
 
-**Status:** Independently Signed Off — Brian review pending
+**Status:** ✅ Closed — plumbing evidence, not emergence (2026-10-05)
 **Type:** exploratory PoC iteration
 **Priority:** Critical
 **Blocked By:** None
-**Blocks:** Brian's interesting-behavior review
+**Blocks:** None (superseded by [Plan 24](24_external_score_vs_solo.md))
 
 ## Claim and Decision
 
@@ -179,3 +179,13 @@ claim. Independent sign-off is retained in
 `../evaluations/23_emergent_interaction_signoff.md`; it passes the first four
 pre-registered criteria and leaves the human-interest gate untouched. Brian's
 judgment of whether the behavior is actually interesting remains pending.
+
+## Closure (2026-10-05)
+
+Brian delegated the human-interest gate ("i trust yoru recommendations what
+ever they are"). Disposition: not accepted as an interesting-behavior exemplar.
+The reciprocal chain follows from this plan's own payoff guidance and
+complementary seeds (FAILURE_MODE_DOSSIER FM-01), and 5 of 14 decisions were
+event-log queries. The run stays valid evidence that the market plumbing,
+read memory, and custody work. [Plan 24](24_external_score_vs_solo.md) replaces
+the interest judgment with an outside score and a solo baseline.

@@ -9,7 +9,10 @@ paused dashboard-launch boundaries. The resumed Plan 21 run was invalidated by
 a deleted-worker-cwd failure concealed by substitute actions. Plan 22 repaired
 that boundary and passed both its authentic one-call canary and a fresh 14-call
 dashboard run. Plan 23 now has an independently signed-off reciprocal-interaction
-candidate; Brian's interesting-behavior review is the sole active frontier.
+candidate. On 2026-10-05 it was closed as plumbing evidence (its behavior
+traced to the seeded setup), and Plan 24 became the active frontier: an
+outside automatic score and a solo baseline replace the "is it interesting"
+judgment.
 
 ## Gap Summary
 
@@ -36,7 +39,8 @@ candidate; Brian's interesting-behavior review is the sole active frontier.
 | 20 | [Single-run archive reopen](20_single_run_archive_reopen.md) | Critical | ✅ Complete | Dashboard launch |
 | 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
 | 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | ✅ Complete — canary and 14-call run passed | Brian's usefulness review |
-| 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | Independently signed off; Brian review pending | Interesting-behavior decision |
+| 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | ✅ Closed — plumbing evidence, not emergence (2026-10-05) | - |
+| 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | 📋 Planned — M0 active | Further emergence or scale work |
 
 ## Status Key
 

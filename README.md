@@ -92,8 +92,9 @@ manifest and `interruption.json` preserve its integrity.
 - The opt-in Plan 10 `luna_structured_v1` path uses the exact
   `codex/gpt-5.6-luna` medium/CLI profile and a strict six-action structured
   envelope with no tools or MCP. Recovery, detached lifecycle, and a hard call
-  cap have passed authentic bounded runs. The current MVP frontier is one live,
-  economically meaningful Minimal-mode run; see `docs/MVP_ROADMAP.md`.
+  cap have passed authentic bounded runs. The current frontier is Plan 24:
+  an outside-scored mint and a trading-vs-solo comparison; see
+  `docs/MVP_ROADMAP.md`.
 - Agent-SDK syscalls now pass `max_retries=0` explicitly for `claude-code/*`, `codex/*`, and `openai-agents/*` models, matching side-effect-safe no-retry semantics while avoiding repeated retry-disabled warning spam.
 - Each principal boots with persistent cognitive artifacts (`*_strategy`, `*_state`, `*_notebook`). `llm.loop_cognition_mode=prescribed` retains assigned roles and the discover->read->produce->trade->mint objective cycle; `minimal` removes those prescriptions while retaining outcome history and resource state.
 - LLM syscall and loop-decision events retain the deterministic `llm_client` trace ID. `llm.provider_max_budget_usd`, `llm.provider_budget_reservation_usd`, `llm.num_retries`, and `llm.max_output_tokens` provide bounded evaluation controls without changing the default unlimited provider budget.
