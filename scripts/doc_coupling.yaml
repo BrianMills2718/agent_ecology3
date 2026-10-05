@@ -6,7 +6,7 @@ couplings:
       - "Makefile"
     docs:
       - "README.md"
-      - "docs/CHATGPT_FULL_CONTEXT.md"
+      - "docs/IMPLEMENTATION_BASELINE.md"
 
   - description: "Core runtime/config changes should refresh implementation baseline docs"
     sources:
@@ -24,4 +24,3 @@ couplings:
       - "config/config.yaml"
     docs:
       - "docs/RESOURCE_ACCOUNTING.md"
-      - "docs/ACCOUNTING_CONSTANTS.md"
