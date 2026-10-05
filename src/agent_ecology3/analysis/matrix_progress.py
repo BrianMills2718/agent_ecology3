@@ -54,7 +54,8 @@ def load_progress_rows(path: Path) -> tuple[list[dict[str, Any]], int]:
 def summarize_progress(rows: list[dict[str, Any]]) -> dict[str, Any]:
     aggregate = aggregate_metrics(rows)
     last = rows[-1] if rows else {}
-    last_metrics = last.get("metrics") if isinstance(last.get("metrics"), dict) else {}
+    metrics_raw = last.get("metrics")
+    last_metrics: dict[str, Any] = metrics_raw if isinstance(metrics_raw, dict) else {}
     return {
         "runs_completed": len(rows),
         "aggregate": aggregate,

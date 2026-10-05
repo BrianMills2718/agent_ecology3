@@ -738,17 +738,17 @@ def parse_intent_from_json(principal_id: str, json_str: str) -> ActionIntent | s
     if action_type_raw == ActionType.TRANSFER_RESOURCE.value:
         recipient_id = data.get("recipient_id")
         resource = data.get("resource")
-        amount = _coerce_float(data.get("amount"))
+        resource_amount = _coerce_float(data.get("amount"))
         memo = data.get("memo")
         if not isinstance(recipient_id, str) or not recipient_id:
             return "transfer_resource requires 'recipient_id'"
         if not isinstance(resource, str) or not resource:
             return "transfer_resource requires 'resource'"
-        if amount is None or amount <= 0:
+        if resource_amount is None or resource_amount <= 0:
             return "transfer_resource requires positive numeric 'amount'"
         if memo is not None and not isinstance(memo, str):
             return "transfer_resource memo must be string or null"
-        return TransferResourceIntent(principal_id, recipient_id, resource, amount, memo, reasoning)
+        return TransferResourceIntent(principal_id, recipient_id, resource, resource_amount, memo, reasoning)
 
     if action_type_raw == ActionType.MINT.value:
         recipient_id = data.get("recipient_id")

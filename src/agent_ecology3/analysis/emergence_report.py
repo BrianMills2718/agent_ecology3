@@ -9,9 +9,9 @@ import os
 import re
 import statistics
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 _ARTIFACT_OWNER_PREFIX = re.compile(r"^(alpha_\d+)_")
 
@@ -58,14 +58,14 @@ def summarize_events(path: Path) -> dict[str, Any]:
     errors: Counter[str] = Counter()
     query_types: Counter[str] = Counter()
     transfer_edges: Counter[tuple[str, str]] = Counter()
-    resource_transfer_edges: Counter[tuple[str, str, str]] = Counter()
+    resource_transfer_edges: defaultdict[tuple[str, str, str], float] = defaultdict(float)
     read_edges: Counter[tuple[str, str]] = Counter()
-    paid_consumption_edges: Counter[tuple[str, str]] = Counter()
+    paid_consumption_edges: defaultdict[tuple[str, str], float] = defaultdict(float)
     paid_consumption_edge_events: Counter[tuple[str, str]] = Counter()
-    artifact_cross_paid_revenue: Counter[str] = Counter()
+    artifact_cross_paid_revenue: defaultdict[str, float] = defaultdict(float)
     artifact_consumers: dict[str, set[str]] = {}
-    revenue_by_principal_artifact_type: dict[str, Counter[str]] = {}
-    value_by_decision_origin: Counter[str] = Counter()
+    revenue_by_principal_artifact_type: dict[str, defaultdict[str, float]] = {}
+    value_by_decision_origin: defaultdict[str, float] = defaultdict(float)
     forced_explore_reason_counts: Counter[str] = Counter()
     decision_origin_counts: Counter[str] = Counter()
     per_principal_decision_origin_counts: dict[str, Counter[str]] = {}
@@ -174,7 +174,7 @@ def summarize_events(path: Path) -> dict[str, Any]:
                         artifact_cross_paid_revenue[artifact_id] += read_price_paid
                         artifact_consumers.setdefault(artifact_id, set()).add(principal)
                         artifact_type = artifact_type_map.get(artifact_id, "unknown")
-                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, Counter())
+                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, defaultdict(float))
                         seller_revenue[artifact_type] += read_price_paid
                         origin = artifact_creation_origin.get(artifact_id, "unknown")
                         value_by_decision_origin[origin] += read_price_paid
@@ -194,11 +194,11 @@ def summarize_events(path: Path) -> dict[str, Any]:
                 sender = event.get("sender")
                 recipient = event.get("recipient")
                 resource = event.get("resource")
-                amount = float(event.get("amount") or 0.0)
+                resource_amount = float(event.get("amount") or 0.0)
                 if isinstance(sender, str) and isinstance(recipient, str) and isinstance(resource, str):
-                    resource_transfer_edges[(resource, sender, recipient)] += amount
+                    resource_transfer_edges[(resource, sender, recipient)] += resource_amount
                     if resource == "llm_budget":
-                        llm_budget_transfer_amount += amount
+                        llm_budget_transfer_amount += resource_amount
                 continue
 
             if event_type == "mint_submission":
@@ -325,7 +325,7 @@ def summarize_events(path: Path) -> dict[str, Any]:
                         artifact_cross_paid_revenue[artifact_id] += price_paid
                         artifact_consumers.setdefault(artifact_id, set()).add(principal)
                         artifact_type = artifact_type_map.get(artifact_id, "unknown")
-                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, Counter())
+                        seller_revenue = revenue_by_principal_artifact_type.setdefault(recipient, defaultdict(float))
                         seller_revenue[artifact_type] += price_paid
                         origin = artifact_creation_origin.get(artifact_id, "unknown")
                         value_by_decision_origin[origin] += price_paid
@@ -695,10 +695,13 @@ def _log_summary_to_llm_client(
                 trace_id=trace_id,
             )
 
-    return finish_run(
-        run_id=run_id,
-        summary_metrics=metrics,
-        status="completed",
+    return cast(
+        dict[str, Any],
+        finish_run(
+            run_id=run_id,
+            summary_metrics=metrics,
+            status="completed",
+        ),
     )
 
 
@@ -730,7 +733,7 @@ def _compare_experiments(*, llm_client_repo: str | None, run_ids: list[str]) -> 
     _ensure_llm_client_import(llm_client_repo)
     from llm_client import compare_runs
 
-    return compare_runs(run_ids)
+    return cast(dict[str, Any], compare_runs(run_ids))
 
 
 def _analyze_experiments(*, llm_client_repo: str | None, experiment_log: str | None) -> dict[str, Any]:
@@ -739,9 +742,9 @@ def _analyze_experiments(*, llm_client_repo: str | None, experiment_log: str | N
 
     report = analyze_history(experiment_log=experiment_log)
     if hasattr(report, "model_dump"):
-        return report.model_dump()
+        return cast(dict[str, Any], report.model_dump())
     if hasattr(report, "dict"):
-        return report.dict()
+        return cast(dict[str, Any], report.dict())
     return {"report": str(report)}
 
 
