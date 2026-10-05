@@ -199,10 +199,13 @@ instead of paying by length.
 4. **uv.** Commit `uv.lock`, ignore `*.egg-info`, and change the README quick
    start from `pip install -e .` and `~/projects/` to `uv sync` and the current
    path.
-5. **Registry (project-meta).** `PROJECT_GRAPH.json` still marks
-   `agent_ecology2` active and `agent_ecology3` supersedes nothing. Set
-   `agent_ecology3.supersedes = ["agent_ecology2"]` and mark agent_ecology2
-   superseded, through project-meta's own process.
+5. ~~**Registry (project-meta).**~~ **Dropped 2026-10-05.** Project Meta's
+   `supersedes` fields record only *completed* supersession, and
+   [LINEAGE_AND_RESTARTS.md](../LINEAGE_AND_RESTARTS.md) states AE2 remains the
+   full capability/reference line that AE3 has not replaced. Marking AE2
+   superseded would be false. The duplicate-authority risk stays covered by
+   that lineage document; revisit only if an AE2 capability AE3 needs is ported
+   or retired.
 
 **Progress (2026-10-05):** steps 1–4 done on branch `plan-24-m0-blockers`:
 run bundles in `docs/evaluations/evidence/run_bundles/`; mint raises
