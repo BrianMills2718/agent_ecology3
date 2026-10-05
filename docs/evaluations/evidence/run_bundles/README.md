@@ -13,5 +13,6 @@ recoverable record.
 | `plan24_v2_pair_1.tar.gz`, `plan24_v2_pair_2.tar.gz`, `plan24_v2_pair_3.tar.gz` | Plan 24 valid matched pairs (each holds `trading/` and `solo/`) |
 | `plan25_shakeout_run1.tar.gz` | Plan 25 4-agent scale shakeout |
 | `plan25_resident_probe2.tar.gz` | Plan 25 first resident-agent probe (2 agents, 2 turns) |
+| `plan25_resident_run1.tar.gz` | Plan 25 4-agent resident run (stopped at turn 10 by the Claude weekly limit) |
 
 Verify: `sha256sum -c SHA256SUMS`. Restore: `tar -xzf <bundle> -C ~/.local/state/agent_ecology3/`.
