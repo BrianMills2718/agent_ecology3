@@ -267,6 +267,8 @@ def test_review_shows_trading_vs_solo_readout(tmp_path: Path) -> None:
         {"artifact_id": "alpha_2_task_34", "seller": "alpha_2", "price": 2}
     ]
     assert by_id["trading"]["calls_by_principal"] == {"alpha_1": 3, "alpha_2": 1}
+    assert solved["bought_this_task"] is True
+    assert "1 solved task(s) were ones whose statement" in summary["economic_summary"]
 
 
 def test_loop_normalizer_preserves_agent_authored_artifact_type(tmp_path: Path) -> None:

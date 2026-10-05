@@ -588,7 +588,7 @@ _DASHBOARD_HTML = """<!doctype html>
             <div class=\"metric\"><b>${run.failures}</b><span>local failures</span></div>
             ${run.task_mode ? `<div class=\"metric\"><b>${run.tasks_passed}/8</b><span>tasks passed hidden tests</span></div><div class=\"metric\"><b>${run.scrip_minted}</b><span>scrip minted by checker</span></div><div class=\"metric\"><b>${run.purchases}</b><span>paid reads of the other's work</span></div>` : ''}
           </div>
-          ${run.task_mode ? `<div class=\"intent\">Solved: ${run.solved_tasks.length ? run.solved_tasks.map(t => `${escapeHtml(t.task_id)} by ${escapeHtml(t.solver)}${t.purchases_before.length ? ' after buying ' + t.purchases_before.map(p => escapeHtml(p.artifact_id)).join(', ') : ''}`).join('; ') : 'none'}</div>` : ''}
+          ${run.task_mode ? `<div class=\"intent\">Solved: ${run.solved_tasks.length ? run.solved_tasks.map(t => `${escapeHtml(t.task_id)} by ${escapeHtml(t.solver)}${t.bought_this_task ? ' (bought this task from the other agent)' : ''}`).join('; ') : 'none'}</div>` : ''}
           <div class=\"mix\">${Object.entries(run.action_counts).map(([name,count]) => `<span class=\"chip\">${escapeHtml(name)} × ${count}</span>`).join('')}</div>
         </article>`).join('');
       document.getElementById('economicSummary').textContent = summary.economic_summary;
@@ -839,17 +839,27 @@ def _summarize_task_outcomes(
             continue
         solver = event.get("principal_id")
         at = int(event.get("event_number", 0) or 0)
+        task_number = str(event.get("task_id") or "").rsplit("/", 1)[-1]
+        earlier = [
+            p for p in purchases
+            if p.get("principal_id") == solver and int(p.get("event_number", 0) or 0) <= at
+        ]
         solved.append(
             {
                 "task_id": event.get("task_id"),
                 "solver": solver,
                 "artifact_id": event.get("artifact_id"),
                 "scrip_minted": event.get("scrip_minted", 0),
+                # Every paid read by the solver before the solve (not
+                # necessarily of this task); see bought_this_task for that.
                 "purchases_before": [
                     {"artifact_id": p.get("artifact_id"), "seller": p.get("recipient"), "price": p.get("read_price_paid")}
-                    for p in purchases
-                    if p.get("principal_id") == solver and int(p.get("event_number", 0) or 0) <= at
+                    for p in earlier
                 ],
+                "bought_this_task": any(
+                    str(p.get("artifact_id") or "").endswith(f"_task_{task_number}")
+                    for p in earlier
+                ),
             }
         )
     calls: Counter[str] = Counter(str(d.get("principal_id")) for d in decisions)
@@ -919,7 +929,7 @@ def _summarize_task_pair(
         else "solo" if per_call(solo) > per_call(trading)
         else "tie"
     )
-    bought_then_solved = sum(1 for task in trading["solved_tasks"] if task["purchases_before"])
+    bought_then_solved = sum(1 for task in trading["solved_tasks"] if task["bought_this_task"])
     headline = (
         f"Trading open: {trading['tasks_passed']} tasks passed the hidden tests in "
         f"{trading['attempts']} decisions. Trading closed: {solo['tasks_passed']} in "
@@ -945,7 +955,8 @@ def _summarize_task_pair(
         "headline": headline,
         "economic_summary": (
             f"With trading open, agents made {trading['purchases']} paid reads of each "
-            f"other's artifacts; {bought_then_solved} solved task(s) followed a purchase. "
+            f"other's artifacts; {bought_then_solved} solved task(s) were ones whose statement "
+            "the solver had bought from the other agent. "
             f"Scrip minted by the checker: trading {trading['scrip_minted']}, "
             f"solo {solo['scrip_minted']}."
         ),

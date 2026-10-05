@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-05"
 ---
 # Plan #24: Outside-Scored Mint and Trading-vs-Solo Comparison
 
-**Status:** 🚧 In Progress — M0–M2 done; M3 next
+**Status:** ✅ Complete — stop rule applied: trading did not beat solo (project paused)
 **Type:** durable living plan (initiative redirect)
 **Priority:** Critical
 **Blocked By:** None
@@ -147,7 +147,7 @@ Brian reads trading-vs-solo result
 | M0 Repair blockers | **done 2026-10-05** (PRs #64, #66; `make check` green: 170 passed, mypy clean) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
 | M1 Landscape check | **done 2026-10-05: keep AE3** ([ADR 0002](../adr/0002-keep-ae3-kernel-for-trading-vs-solo.md)) | short adopt/compose/keep note in `docs/adr/`; start from the in-house `world-substrate` Concordia/Mesa spikes (active claim seen 2026-10-05) before external search | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
 | M2 Outside-score oracle + solo switch | **built 2026-10-05** (see M2 design; provider-free tests in `tests/test_plan24_task_bounty.py`) | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
-| M3 Matched-pair comparison | conditional on M2 (spend ceiling USD 5 and Luna low set by Brian) | one-call Luna-low canary, then dashboard readout of 3 pairs | stop rule below |
+| M3 Matched-pair comparison | **done 2026-10-05: trading won 0 of 3 valid pairs (tie, tie, solo) → stop rule: pause** | canary + 3 valid v2 pairs; readout on the dashboard Comparison tab | see M3 result |
 | M4 Live outside signals | deliberately_deferred | Reddit/GitHub-star scorer behind the same seam | M3 shows trading beats solo **and** Brian approves posting as him |
 
 **Stop rule (decided before any M3 data):** if, across three valid pairs with
@@ -311,8 +311,49 @@ five event queries may have used this channel; its closure stands either way.
 | Luna-low canary `plan24_canary_v1` | passed: trace `ae3/plan24_canary_v1/event_1/payer/alpha_1`, valid model-selected `read_artifact`, actual cost USD 0.00 (subscription), internal estimate USD 0.005091, 18,231 tokens, 10.5 s | `~/.local/state/agent_ecology3/plan24_canary_v1/` |
 | Pair 1 v1 (seed 24241) | **invalid — instrument defect.** Both runs completed 28/28 with no fallbacks, but the loop normalizer lowercased every agent-written artifact type (`solution:HumanEval/28` became `solution:humaneval/28`), so the checker matched no task: 0/8 submissions scored in each run. The raw model output was correct. Fixed by preserving agent-authored case (regression test) and case-insensitive task matching; acknowledgements bumped to v2. Estimated spend USD 0.41. Not counted toward the stop rule | `~/.local/state/agent_ecology3/plan24_pair_1/` |
 
+| v2 pair 1 (seed 24241) | **valid, tie.** Trading 6/8 tasks in 28 decisions, solo 6/8 in 28. Trading: 2 paid reads; 1 solve of a bought task (alpha_1 solved alpha_2's HumanEval/137 first; alpha_2's own later pass earned nothing) | `run_bundles/plan24_v2_pair_1.tar.gz` |
+| v2 pair 2 (seed 24242) | **valid, tie.** Trading 6/8, solo 6/8. Trading: 4 paid reads; 3 solves of bought tasks | `run_bundles/plan24_v2_pair_2.tar.gz` |
+| v2 pair 3 (seed 24243) | **valid, solo wins.** Trading 6/8, solo 7/8. Trading: 5 paid reads; 3 solves of bought tasks | `run_bundles/plan24_v2_pair_3.tar.gz` |
+
+All six v2 runs: 28/28 committed attempts, 0 fallbacks, 0 local failures, authentic
+custody. Calls bound in every run: each principal used all 14 decisions, and
+in every run except two at least one reachable task was still unsolved (alpha_2
+solo in pairs 2 and 3 had solved all four of its own tasks). Every run failed
+HumanEval/81 (a genuine wrong answer).
+
+**Spend:** actual provider cost USD 0.00 (subscription-included). Internal
+estimate: canary 0.0051 + invalid v1 pair 0.4102 + v2 pairs 1.2388 = **USD 1.654**
+of the USD 5 ceiling.
+
+## M3 result and stop rule
+
+**Stop rule applied: pause.** Trading solved more tasks per decision than solo
+in 0 of 3 valid pairs (tie, tie, solo; total 18 vs 19 tasks in 84 decisions
+each), short of the pre-set "at least two of three".
+
+What the traces show, descriptively (not a causal claim): when trading was
+open, agents did buy each other's task statements (11 paid reads across three
+runs), and 7 solved tasks were ones the solver had bought. But buying mostly
+moved a bounty from the task's owner to the buyer, who solved it first; it
+did not add solved tasks. Reading the other's statements also spent scarce
+decisions. Solo agents nearly exhausted their own four tasks (6–7 of 8
+overall), so the bank left trading at most 1–2 tasks of headroom.
+
+**Non-claims and limits:** two one-shot Luna-low policies, one 8-task bank,
+three seeds. The agents are stateless single calls inside AE3's own loop, not
+resident Codex or Claude Code agents with tools (FM-02/FM-07 and the dossier's
+first design constraint remain open); they could not run their code before
+submitting. The small bank gave trading little room to help. These limits
+narrow the negative result; they are not reasons to tune and rerun this plan.
+
+**Next (Brian's decision, per the stop rule):** either change the mechanism in
+a new plan, or stop. The recommended mechanism change, if continued: run each
+principal as a resident Codex or Claude Code agent that acts through the
+existing MCP bridge (`src/agent_ecology3/mcp/loop_action_server.py`), with a
+task bank large enough that one agent cannot reach most tasks alone, then
+repeat the same matched-pair readout and a stop rule fixed before data.
+
 ## Exact next action
 
-Run v2 pairs 1–3 (seeds 24241, 24242, 24243; trading and solo) into
-`~/.local/state/agent_ecology3/plan24_v2_pair_<n>/{trading,solo}`, then apply
-the stop rule.
+None inside this plan. Await Brian's continue-with-new-mechanism or stop
+decision (see "M3 result and stop rule").
