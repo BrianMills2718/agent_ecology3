@@ -46,9 +46,10 @@ scale it is about.
   matched pairs. Brian judged that setting too small to test a thesis about
   scale and long horizons, so it is not a verdict.
 - Current goal: get the system working and the agents behaving intelligently
-  so it can scale (Plan 25). In progress: a 4-agent scale shakeout run,
-  resident agents with their own memory (llm_client pin upgraded for session
-  resume), and a World Substrate living-view adapter for watching runs.
+  so it can scale (Plan 25). Working now: long-lived Codex agents that keep
+  memory and act through the kernel's MCP tool (8 agents × 20 turns completed,
+  80/80 tasks solved), and a World Substrate living view of each run. Not yet:
+  agents testing their own code, and tasks that build on each other.
 - `make check` passes (pytest and mypy), and preserved runs reopen in the
   dashboard from their committed evidence bundles.
 

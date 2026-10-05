@@ -31,6 +31,22 @@ DISALLOWED_BUILTIN_TOOLS = [
 ]
 
 
+SHELL_ITEM_TYPES = frozenset({"command_execution", "commandExecution"})
+
+
+def count_shell_commands(codex_items: list[Any]) -> int:
+    """Count shell commands in llm_client's completed Codex items.
+
+    llm_client returns each completed item directly (``item["type"]``); the
+    CLI stream spells it ``command_execution``, the app server
+    ``commandExecution``.
+    """
+    return sum(
+        1 for item in codex_items
+        if isinstance(item, dict) and item.get("type") in SHELL_ITEM_TYPES
+    )
+
+
 class ResidentRunError(RuntimeError):
     """An authentic resident turn failed; the run stops instead of substituting."""
 
@@ -292,12 +308,7 @@ async def run_agent_turn(
     agent.session_id = session_id
     agent.session_ids_seen.append(session_id)
     agent.turns_taken += 1
-    codex_events = getattr(result, "codex_events", None) or []
-    shell_commands = sum(
-        1 for event in codex_events
-        if isinstance(event, dict)
-        and (event.get("item") or {}).get("type") == "command_execution"
-    )
+    shell_commands = count_shell_commands(getattr(result, "codex_events", None) or [])
     builtin_calls = [] if model.startswith("codex/") else [
         call for call in (getattr(result, "tool_calls", None) or [])
         if isinstance(call, dict)
