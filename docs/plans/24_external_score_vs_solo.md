@@ -144,7 +144,7 @@ Brian reads trading-vs-solo result
 
 | Milestone | Planning state | Inspectable output | Promotion or replan trigger |
 |---|---|---|---|
-| M0 Repair blockers | **done 2026-10-05** (PR #64; mypy on `plan-24-m0-mypy`) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
+| M0 Repair blockers | **done 2026-10-05** (PRs #64, #66; `make check` green: 170 passed, mypy clean) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
 | M1 Landscape check | **done 2026-10-05: keep AE3** ([ADR 0002](../adr/0002-keep-ae3-kernel-for-trading-vs-solo.md)) | short adopt/compose/keep note in `docs/adr/`; start from the in-house `world-substrate` Concordia/Mesa spikes (active claim seen 2026-10-05) before external search | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
 | M2 Outside-score oracle + solo switch | next — fully specifiable after bounded design | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
 | M3 Matched-pair comparison | conditional on M2 (spend ceiling USD 5 and Luna low set by Brian) | one-call Luna-low canary, then dashboard readout of 3 pairs | stop rule below |
@@ -213,7 +213,7 @@ run bundles in `docs/evaluations/evidence/run_bundles/`; mint raises
 uv dev group, pinned reviewed llm_client, Makefile/README on uv. Found and fixed
 along the way: the llm_client revision check read the enclosing project's git
 HEAD whenever the venv sat inside a worktree. mypy had 27 pre-existing errors in
-untouched files; repaired on a separate `plan-24-m0-mypy` branch.
+untouched files; repaired in PR #66, which also fixed the MCP bridge import broken by mcp 2.x.
 
 **Focused check:** `make check` exit 0 with counts printed; `git ls-files
 docs/evaluations/evidence | grep -E 'plan(19|23)'` lists both bundles;
