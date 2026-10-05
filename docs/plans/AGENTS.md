@@ -40,7 +40,7 @@ judgment.
 | 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
 | 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | ✅ Complete — canary and 14-call run passed | Brian's usefulness review |
 | 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | ✅ Closed — plumbing evidence, not emergence (2026-10-05) | - |
-| 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | 📋 Planned — M0 active | Further emergence or scale work |
+| 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | 🚧 In Progress — M0 and M1 done; M2 next | Further emergence or scale work |
 
 ## Status Key
 

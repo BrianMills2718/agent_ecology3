@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-05"
 ---
 # Plan #24: Outside-Scored Mint and Trading-vs-Solo Comparison
 
-**Status:** 📋 Planned — M0 active
+**Status:** 🚧 In Progress — M0 and M1 done; M2 next
 **Type:** durable living plan (initiative redirect)
 **Priority:** Critical
 **Blocked By:** None
@@ -144,9 +144,9 @@ Brian reads trading-vs-solo result
 
 | Milestone | Planning state | Inspectable output | Promotion or replan trigger |
 |---|---|---|---|
-| M0 Repair blockers | fully_specifiable_now (active) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
-| M1 Landscape check | exploration_required | short adopt/compose/keep note in `docs/adr/`; start from the in-house `world-substrate` Concordia/Mesa spikes (active claim seen 2026-10-05) before external search | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
-| M2 Outside-score oracle + solo switch | conditional on M1 = keep AE3 | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
+| M0 Repair blockers | **done 2026-10-05** (PR #64; mypy on `plan-24-m0-mypy`) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
+| M1 Landscape check | **done 2026-10-05: keep AE3** ([ADR 0002](../adr/0002-keep-ae3-kernel-for-trading-vs-solo.md)) | short adopt/compose/keep note in `docs/adr/`; start from the in-house `world-substrate` Concordia/Mesa spikes (active claim seen 2026-10-05) before external search | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
+| M2 Outside-score oracle + solo switch | next — fully specifiable after bounded design | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
 | M3 Matched-pair comparison | conditional on M2 (spend ceiling USD 5 and Luna low set by Brian) | one-call Luna-low canary, then dashboard readout of 3 pairs | stop rule below |
 | M4 Live outside signals | deliberately_deferred | Reddit/GitHub-star scorer behind the same seam | M3 shows trading beats solo **and** Brian approves posting as him |
 
@@ -255,6 +255,7 @@ Step 1 copies; it never moves or deletes the originals.
 
 ## Exact next action
 
-Execute M0 step 1: pack the Plan 19 and Plan 23 run folders into
-`docs/evaluations/evidence/` with SHA256 sums and commit them on a
-`plan-24-m0-*` branch.
+Run `bounded-design` for M2: choose the benchmark task source (coding problems
+with hidden tests), the endowment split between the two agents, the
+checker-backed scorer behind `MintScorer`, the trading-off gate, and the
+Luna-low profile change; then implement provider-free first.
