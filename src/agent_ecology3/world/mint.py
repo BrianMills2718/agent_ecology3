@@ -47,8 +47,16 @@ class MintResult:
     resolved_at_event: int
 
 
+class MintScoringError(RuntimeError):
+    """The mint scorer could not produce an authentic score.
+
+    Raised instead of substituting a local score: a scoring failure must stop
+    the auction visibly rather than mint scrip from a fabricated value.
+    """
+
+
 class MintScorer:
-    """LLM-backed scorer with deterministic fallback."""
+    """LLM-backed scorer. Fails loud; never substitutes a local score."""
 
     def __init__(self, model: str, timeout_seconds: int, max_budget: float = 0.25) -> None:
         self.model = model
@@ -81,14 +89,11 @@ class MintScorer:
             self.last_error = None
             return parsed.score, parsed.reason
         except Exception as exc:
+            self.last_cost = 0.0
             self.last_error = f"{type(exc).__name__}: {exc}"
-
-        length_score = min(70, max(10, (len(content) + len(code)) // 120))
-        bonus = 20 if "def run(" in code else 0
-        score = max(0, min(100, length_score + bonus))
-        reason = f"fallback score based on artifact complexity after LLM failure: {self.last_error}"
-        self.last_cost = 0.0
-        return score, reason
+            raise MintScoringError(
+                f"mint scoring failed for {artifact_id}: {self.last_error}"
+            ) from exc
 
 
 class MintAuction:
@@ -244,6 +249,35 @@ class MintAuction:
         winner = submissions[0]
         second_price = submissions[1].bid if len(submissions) > 1 else self.minimum_bid
 
+        # Score before any ledger change so a scoring failure leaves balances
+        # exactly as they were (all bids refunded) and stops visibly.
+        artifact = self.artifacts.get(winner.artifact_id)
+        score: int | None = None
+        score_reason: str | None = None
+        if artifact is not None:
+            try:
+                score, score_reason = self.scorer.score_artifact(
+                    artifact.id,
+                    artifact.type,
+                    artifact.content,
+                    artifact.code,
+                )
+            except MintScoringError as exc:
+                for sub in submissions:
+                    self.ledger.credit_scrip(sub.principal_id, sub.bid)
+                self._submissions.clear()
+                self.logger.log(
+                    "mint_scoring_failed",
+                    {
+                        "event_number": self.event_number,
+                        "artifact_id": winner.artifact_id,
+                        "winner_id": winner.principal_id,
+                        "error": str(exc),
+                        "bids_refunded": {sub.principal_id: sub.bid for sub in submissions},
+                    },
+                )
+                raise
+
         for sub in submissions[1:]:
             self.ledger.credit_scrip(sub.principal_id, sub.bid)
 
@@ -251,19 +285,10 @@ class MintAuction:
         if refund > 0:
             self.ledger.credit_scrip(winner.principal_id, refund)
 
-        artifact = self.artifacts.get(winner.artifact_id)
-        if artifact is None:
-            score = None
-            score_reason = None
+        if artifact is None or score is None:
             minted = 0
             error = "winner artifact disappeared"
         else:
-            score, score_reason = self.scorer.score_artifact(
-                artifact.id,
-                artifact.type,
-                artifact.content,
-                artifact.code,
-            )
             minted = score // max(1, self.mint_ratio)
             error = None
             if minted > 0:
