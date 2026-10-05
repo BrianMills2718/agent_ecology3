@@ -130,3 +130,17 @@ def test_codex_options_use_persistent_home_with_preapproved_ae3_server(tmp_path:
     again = codex_call_kwargs(agent, "http://k", reasoning_effort="low")
     assert again["codex_session_mode"] == "resume" and again["codex_session_id"] == agent.session_id
     assert again["codex_home"] == first["codex_home"]
+
+
+def test_shell_command_counter_reads_llm_client_codex_item_shape() -> None:
+    """llm_client returns completed Codex items directly (item["type"]), not wrapped."""
+    from agent_ecology3.simulation.resident import count_shell_commands
+
+    items = [
+        {"type": "reasoning", "text": "plan"},
+        {"type": "command_execution", "command": "python -c 'print(1)'"},
+        {"type": "mcp_tool_call", "server": "ae3", "tool": "ae3_action"},
+        {"type": "commandExecution", "command": "pytest -q"},
+    ]
+    assert count_shell_commands(items) == 2
+    assert count_shell_commands([]) == 0

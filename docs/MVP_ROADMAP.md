@@ -84,7 +84,7 @@ them.
 | 3 | Fail-loud repeat-run boundary | direct blocker / **complete** | A durable worker stops invalid on the first authentic-boundary failure and never presents a substitute as model behavior | Satisfied by Plan 22 canary and fresh 14-call run |
 | 4 | Interesting emergent interaction | **closed 2026-10-05** | Superseded: "interesting" cannot test the thesis | Plan 23 retained as plumbing evidence; replaced by row 4a |
 | 4a | Outside-scored trading-vs-solo comparison | vertical / **complete 2026-10-05 (instrument)** | The dashboard shows, for three matched pairs, tasks solved by an outside checker per call with trading on vs off | Built and used once at toy scale; reuse as an observation lens, not a verdict |
-| 4b | Working, intelligent ecology at scale | vertical / **in progress (Plan 25)** | Resident agents that keep memory and test their own work run for a long horizon on work whose value compounds, without system bugs, and Brian can watch them in the World Substrate living view | Brian's direction 2026-10-05; Plan 25 steps 1-4 |
+| 4b | Working, intelligent ecology at scale | vertical / **in progress (Plan 25)** | Resident agents that keep memory (and, once enabled, test their own work) run for a long horizon on work whose value compounds, without system bugs, and Brian can watch them in the World Substrate living view | Brian's direction 2026-10-05; Plan 25 steps 1-4 |
 | 5 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | Brian cannot follow Plan 23 or a richer run from the list |
 | 6 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 7 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
@@ -131,29 +131,28 @@ question yet; it needs scale and long horizons ("a little village of 3 people
 trying to build a fire" does not need markets), so no stop rule or verdict is
 attached to runs for now. Runs are for finding bugs and judging agent behavior.
 
-Work in progress ([Plan 25](plans/25_scale_shakeout.md)):
+Status ([Plan 25](plans/25_scale_shakeout.md) holds the run log and evidence):
 
-1. **Shake out scale bugs with existing machinery.** First run: 4 agents, 120
-   decisions, 40 HumanEval tasks (`plan25_shakeout_run1`).
-2. **Real resident agents** (the main lever for intelligent behavior): each
-   agent is a long-lived Claude Agent SDK (or Codex) session that keeps its
-   own memory, can test its own work, and acts only through the
-   `ae3_action` MCP tool (`src/agent_ecology3/mcp/loop_action_server.py`).
-   The llm_client pin now supports session resume (PR #76); next the MCP
-   server must execute actions against the kernel and return the real result.
-3. **Work that compounds:** a task source whose later tasks build on earlier
-   artifacts (candidate: CodeFlowBench helper chains), with royalties when
+1. **Scale shakeout: done.** The 4-agent single-call run was clean; it found
+   that agents could not see claimed tasks (fixed).
+2. **Resident agents: working.** Each agent is a long-lived Codex (default,
+   ChatGPT subscription) or Claude Agent SDK session that keeps its own memory
+   and acts only through the `ae3_action` MCP tool, which the kernel executes
+   and answers. 8 agents × 20 turns completed cleanly and solved 80/80 tasks.
+   **Not yet true:** agents do not test their own code. Codex transcripts from
+   the 8-agent run contain only reasoning, messages and ae3 tool calls (no
+   shell commands), and Claude agents have every built-in tool disabled.
+   Letting agents run code before submitting is the next intelligence step.
+3. **Work that compounds: next.** A task source whose later tasks build on
+   earlier artifacts (CodeFlowBench helper chains), with royalties when
    someone's code is reused.
-4. **Watching it:** the dashboard's Interactions tab (Cytoscape) is a stopgap.
-   The chosen viewer is World Substrate's world-agnostic living view (Brian,
-   2026-10-05: viewer only). agent_ecology3 will emit a
-   `world-substrate-live-projection/v0` bundle plus a
-   `world-substrate-living-scene/v1` profile, pinned to world-substrate
-   `33bd121` and labelled "rendered with the World Substrate living view;
-   outcomes from agent_ecology3". World Substrate's renderer is frozen
-   (its Decision 006), so any missing market or payment primitive is a gap to
-   raise with Brian, and incremental live updates in that renderer are
-   unverified (start with periodically rebuilt bundles).
+4. **Watching it: done, one gap.** The dashboard's Living view renders runs in
+   World Substrate's world-agnostic living view (viewer only, pinned
+   `33bd121`, labelled "rendered with the World Substrate living view;
+   outcomes from agent_ecology3"): shared places, agents moving between them,
+   and each agent's turn note as a bubble; live pages jump to the latest
+   moment. Agents at the same place stack on one point, which needs a World
+   Substrate renderer primitive (its renderer is frozen, Decision 006).
 
 ## YAGNI guardrails
 
