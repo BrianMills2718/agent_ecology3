@@ -15,5 +15,6 @@ recoverable record.
 | `plan25_resident_probe2.tar.gz` | Plan 25 first resident-agent probe (2 agents, 2 turns) |
 | `plan25_resident_run1.tar.gz` | Plan 25 4-agent resident run (stopped at turn 10 by the Claude weekly limit) |
 | `plan25_resident_codex_probe3.tar.gz` | Plan 25 resident Codex/Luna probe (agents/ excluded: holds kernel tokens) |
+| `plan25_resident_codex_run1.tar.gz` | Plan 25 4-agent resident Codex/Luna run, 10 turns (agents/ excluded) |
 
 Verify: `sha256sum -c SHA256SUMS`. Restore: `tar -xzf <bundle> -C ~/.local/state/agent_ecology3/`.
