@@ -12,3 +12,12 @@ pair; a changed bank needs a new version and a new plan entry.
 
 Agents see only `prompt` (signature and docstring). `test` stays with the
 checker and is never written into the world.
+
+## Scale banks (Plan 25)
+
+- `humaneval_scale_v1.jsonl`: 40 tasks, `sorted(random.Random(25001).sample(pool, 40))`
+  where `pool` is HumanEval indices excluding the 8 Plan 24 tasks; alternating
+  owners alpha_1..alpha_4 (10 each).
+- `humaneval_scale8_v1.jsonl`: 80 tasks, `sorted(random.Random(25002).sample(pool, 80))`
+  from the same pool; alternating owners alpha_1..alpha_8 (10 each). Overlaps the
+  40-task bank; used for the 8-agent resident runs.
