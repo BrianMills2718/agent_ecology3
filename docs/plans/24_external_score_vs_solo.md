@@ -304,11 +304,15 @@ five event queries may have used this channel; its closure stands either way.
 - None open. Settled 2026-10-05: M3 spend ceiling USD 5 total (canary plus
   three matched pairs), and the model is Luna with **low** reasoning effort.
 
+## M3 run log
+
+| Run | Result | Evidence |
+|---|---|---|
+| Luna-low canary `plan24_canary_v1` | passed: trace `ae3/plan24_canary_v1/event_1/payer/alpha_1`, valid model-selected `read_artifact`, actual cost USD 0.00 (subscription), internal estimate USD 0.005091, 18,231 tokens, 10.5 s | `~/.local/state/agent_ecology3/plan24_canary_v1/` |
+| Pair 1 v1 (seed 24241) | **invalid — instrument defect.** Both runs completed 28/28 with no fallbacks, but the loop normalizer lowercased every agent-written artifact type (`solution:HumanEval/28` became `solution:humaneval/28`), so the checker matched no task: 0/8 submissions scored in each run. The raw model output was correct. Fixed by preserving agent-authored case (regression test) and case-insensitive task matching; acknowledgements bumped to v2. Estimated spend USD 0.41. Not counted toward the stop rule | `~/.local/state/agent_ecology3/plan24_pair_1/` |
+
 ## Exact next action
 
-M3: start the one-call Luna-low canary
-(`--acknowledgement plan24/luna-low/canary/v1 --target-attempts 1
---principal-count 2 --cognition-mode minimal --policy-seed 24241
---starting-llm-budget 1.0`), check its trace and cost, then run pairs 1–3
-(seeds 24241, 24242, 24243; trading then solo) into
-`~/.local/state/agent_ecology3/plan24_pair_<n>/{trading,solo}`.
+Run v2 pairs 1–3 (seeds 24241, 24242, 24243; trading and solo) into
+`~/.local/state/agent_ecology3/plan24_v2_pair_<n>/{trading,solo}`, then apply
+the stop rule.

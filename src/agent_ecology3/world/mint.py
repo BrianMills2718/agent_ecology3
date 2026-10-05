@@ -153,10 +153,13 @@ class TaskCheckerScorer(MintScorer):
         self.checker_timeout_seconds = timeout_seconds
 
     def task_id_for(self, artifact_type: str) -> str | None:
-        if not artifact_type.startswith(SOLUTION_TYPE_PREFIX):
+        if not artifact_type.casefold().startswith(SOLUTION_TYPE_PREFIX):
             return None
-        task_id = artifact_type[len(SOLUTION_TYPE_PREFIX):].strip()
-        return task_id if task_id in self.tasks else None
+        wanted = artifact_type[len(SOLUTION_TYPE_PREFIX):].strip().casefold()
+        for task_id in self.tasks:
+            if task_id.casefold() == wanted:
+                return task_id
+        return None
 
     def score_artifact(self, artifact_id: str, artifact_type: str, content: str, code: str) -> tuple[int, str]:
         self.last_cost = 0.0

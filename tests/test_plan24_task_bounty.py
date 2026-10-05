@@ -78,6 +78,7 @@ def test_checker_passes_fails_and_rejects_unknown_tasks() -> None:
     assert score == 0 and "names no task" in reason
     score, reason = scorer.score_artifact("a", "solution:HumanEval/0", CONCAT_OK, "")
     assert score == 0 and "names no task" in reason
+    assert scorer.score_artifact("a", "solution:humaneval/28", CONCAT_OK, "")[0] == 100
 
 
 def test_checker_times_out_as_a_failed_solution() -> None:
@@ -199,7 +200,7 @@ def _receipt_dir(tmp_path: Path, condition: str, events: list[dict[str, Any]]) -
     log_path = data_dir / "events.jsonl"
     log_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
     receipt = {
-        "acknowledgement": f"plan24/luna-low/task-bounty/{condition}/v1",
+        "acknowledgement": f"plan24/luna-low/task-bounty/{condition}/v2",
         "model": "codex/gpt-5.6-luna",
         "recovery": {"committed_attempts": 4, "target_attempts": 4, "lifecycle_state": "complete"},
         "world_state": {"balances": {}, "artifact_count": 0, "log_path": str(log_path)},
@@ -266,3 +267,21 @@ def test_review_shows_trading_vs_solo_readout(tmp_path: Path) -> None:
         {"artifact_id": "alpha_2_task_34", "seller": "alpha_2", "price": 2}
     ]
     assert by_id["trading"]["calls_by_principal"] == {"alpha_1": 3, "alpha_2": 1}
+
+
+def test_loop_normalizer_preserves_agent_authored_artifact_type(tmp_path: Path) -> None:
+    """Plan 24 pair 1 was invalidated by the loop lowercasing artifact types."""
+    world = World(_config(tmp_path), run_id="plan24_case")
+    namespace: dict[str, Any] = {}
+    exec(compile(world._default_loop_code("alpha_1", 0), "loop", "exec"), namespace)
+    decision, reason = namespace["_normalize_loop_decision"](
+        {
+            "action_type": "write_artifact",
+            "artifact_id": "alpha_1_sol",
+            "artifact_type": "solution:HumanEval/28",
+            "content": CONCAT_OK,
+        },
+        {},
+    )
+    assert reason is None
+    assert decision["artifact_type"] == "solution:HumanEval/28"
