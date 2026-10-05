@@ -14,9 +14,9 @@ topics:
   - title: "Roadmap and current status"
     path: "docs/MVP_ROADMAP.md"
     answers: "What is the goal, what is done, and what comes next?"
-  - title: "Active plan (Plan 24)"
+  - title: "Latest plan (Plan 24)"
     path: "docs/plans/24_external_score_vs_solo.md"
-    answers: "Do agents solve more tasks per model call when they can trade than when they work alone?"
+    answers: "How are agents scored by an outside checker, and what did the toy-scale trading-vs-solo comparison show?"
   - title: "Implementation reference"
     path: "docs/IMPLEMENTATION_BASELINE.md"
     answers: "Which module owns what, and how is a run started and reopened?"
@@ -35,28 +35,26 @@ and a limited model budget, buy and sell artifacts (pieces of text they write)
 from each other, and earn new scrip from a mint. Each
 decision is logged, and a finished run can be reopened read-only in a browser
 dashboard. The workbench itself is complete; the project's central bet (that
-trading makes the same agents more productive) has not been tested yet, and
-the current plan exists to test it.
+trading makes the same agents more productive) has not been tested at the
+scale it is about.
 
 ## State as of 2026-10-05
-- Active. Plan 24 work landed on `main` on 2026-10-05 (PRs #63-#69), and the
-  roadmap's selected frontier is Plan 24.
-- Plan 24 milestones M0-M2 are done: the mint now pays only when an automatic
-  checker confirms a task was solved, and trading between agents can be
-  switched off. M3, three matched trading-vs-solo pairs judged by a pre-set
-  stop rule, is under way: the first pair was invalidated because a bug hid
-  correct answers from the checker, and the bug was fixed (PR #69). Plan 24
-  records each pair's result.
-- `make check` passes (pytest and mypy), and a preserved run reopens in the
-  dashboard from its committed evidence bundle (checked 2026-10-05).
-- Known limit: every result so far is a single bounded run; no comparative or
-  general emergence claim is supported yet.
+- Active. Plan 24 (PRs #63-#71) built an outside checker that pays only for
+  solved HumanEval tasks, a switch that turns trading off, and a
+  trading-vs-solo comparison view in the dashboard.
+- At toy scale (2 agents, 28 decisions, 8 tasks) trading gave no gain in three
+  matched pairs. Brian judged that setting too small to test a thesis about
+  scale and long horizons, so it is not a verdict.
+- Next: a long-running ecology with many resident agents on work whose value
+  compounds; the roadmap's selected frontier owns its scope.
+- `make check` passes (pytest and mypy), and preserved runs reopen in the
+  dashboard from their committed evidence bundles.
 
 ## Where to go next
 | If you want to... | Read |
 |---|---|
 | Know the goal, status, and next work | [MVP roadmap](../docs/MVP_ROADMAP.md) |
-| See the active experiment and its stop rule | [Plan 24](../docs/plans/24_external_score_vs_solo.md) |
+| See the outside checker and the toy-scale comparison | [Plan 24](../docs/plans/24_external_score_vs_solo.md) |
 | Run a simulation or reopen a run | [README](../README.md) |
 | Find which module owns what | [Implementation reference](../docs/IMPLEMENTATION_BASELINE.md) |
 | Understand resource accounting | [Resource accounting](../docs/RESOURCE_ACCOUNTING.md) |

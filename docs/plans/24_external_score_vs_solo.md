@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-05"
 ---
 # Plan #24: Outside-Scored Mint and Trading-vs-Solo Comparison
 
-**Status:** ✅ Complete — stop rule applied: trading did not beat solo (project paused)
+**Status:** ✅ Complete — instrument built; toy-scale comparison showed no trading gain
 **Type:** durable living plan (initiative redirect)
 **Priority:** Critical
 **Blocked By:** None
@@ -147,7 +147,7 @@ Brian reads trading-vs-solo result
 | M0 Repair blockers | **done 2026-10-05** (PRs #64, #66; `make check` green: 170 passed, mypy clean) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
 | M1 Landscape check | **done 2026-10-05: keep AE3** ([ADR 0002](../adr/0002-keep-ae3-kernel-for-trading-vs-solo.md)) | short adopt/compose/keep note in `docs/adr/`; start from the in-house `world-substrate` Concordia/Mesa spikes (active claim seen 2026-10-05) before external search | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
 | M2 Outside-score oracle + solo switch | **built 2026-10-05** (see M2 design; provider-free tests in `tests/test_plan24_task_bounty.py`) | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
-| M3 Matched-pair comparison | **done 2026-10-05: trading won 0 of 3 valid pairs (tie, tie, solo) → stop rule: pause** | canary + 3 valid v2 pairs; readout on the dashboard Comparison tab | see M3 result |
+| M3 Matched-pair comparison | **done 2026-10-05: trading won 0 of 3 valid pairs (tie, tie, solo); toy scale, not a thesis verdict** | canary + 3 valid v2 pairs; readout on the dashboard Comparison tab | see M3 result |
 | M4 Live outside signals | deliberately_deferred | Reddit/GitHub-star scorer behind the same seam | M3 shows trading beats solo **and** Brian approves posting as him |
 
 **Stop rule (decided before any M3 data):** if, across three valid pairs with
@@ -327,7 +327,7 @@ of the USD 5 ceiling.
 
 ## M3 result and stop rule
 
-**Stop rule applied: pause.** Trading solved more tasks per decision than solo
+**Stop rule outcome (as pre-set): no trading gain.** Trading solved more tasks per decision than solo
 in 0 of 3 valid pairs (tie, tie, solo; total 18 vs 19 tasks in 84 decisions
 each), short of the pre-set "at least two of three".
 
@@ -346,7 +346,9 @@ first design constraint remain open); they could not run their code before
 submitting. The small bank gave trading little room to help. These limits
 narrow the negative result; they are not reasons to tune and rerun this plan.
 
-**Next (Brian's decision, per the stop rule):** either change the mechanism in
+**Scope correction (Brian, 2026-10-05):** the stop rule was set too strongly. This setting (2 agents, 28 decisions, 8 independent tasks) leaves no room for division of labor or compounding, so it cannot test a thesis about scale and long horizons. Read the result as "no gain in a three-person village," not as evidence against the thesis, and do not pause the project on it. The roadmap now selects a long-running ecology at scale.
+
+**Superseded next-step options (kept for the record):** either change the mechanism in
 a new plan, or stop. The recommended mechanism change, if continued: run each
 principal as a resident Codex or Claude Code agent that acts through the
 existing MCP bridge (`src/agent_ecology3/mcp/loop_action_server.py`), with a
@@ -355,5 +357,5 @@ repeat the same matched-pair readout and a stop rule fixed before data.
 
 ## Exact next action
 
-None inside this plan. Await Brian's continue-with-new-mechanism or stop
-decision (see "M3 result and stop rule").
+None inside this plan. The next plan is the roadmap's long-running ecology at
+scale (capability 4b).

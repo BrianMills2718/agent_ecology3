@@ -15,12 +15,13 @@ constraints it carries from that rebuild, are in
 
 The roadmap is the authority for outcome, status, and next work:
 [docs/MVP_ROADMAP.md](docs/MVP_ROADMAP.md). In short: the local workbench is
-complete (launch, watch, reopen a run), but the project's central bet is
-untested. The active work is
-[Plan 24](docs/plans/24_external_score_vs_solo.md): score agents with an
-automatic outside checker and test whether the same agents solve more tasks
-per model call when they can trade than when they work alone. Plan 24 owns its
-current milestone and stop rule.
+complete (launch, watch, reopen a run), and
+[Plan 24](docs/plans/24_external_score_vs_solo.md) added an automatic outside
+checker that pays agents for solved benchmark tasks, a switch that turns
+trading off, and a trading-vs-solo comparison view. At toy scale (2 agents, 28
+decisions) trading gave no gain, which is expected: the project's bet is that
+cooperation pays only at scale and over long horizons. The next work is a
+long-running ecology at scale; the roadmap owns its scope.
 
 ## Quick start
 
@@ -56,7 +57,7 @@ plan that owns a run gives its exact command and spend limit.
 | If you want to... | Read |
 |---|---|
 | Know the goal, status, and what comes next | [docs/MVP_ROADMAP.md](docs/MVP_ROADMAP.md) |
-| See the active plan | [docs/plans/24_external_score_vs_solo.md](docs/plans/24_external_score_vs_solo.md) |
+| See the latest completed plan (outside checker, trading switch) | [docs/plans/24_external_score_vs_solo.md](docs/plans/24_external_score_vs_solo.md) |
 | Browse all plans and their status | [docs/plans/AGENTS.md](docs/plans/AGENTS.md) |
 | Understand how the code is organized and how runs work | [docs/IMPLEMENTATION_BASELINE.md](docs/IMPLEMENTATION_BASELINE.md) |
 | Understand resource accounting and its constants | [docs/RESOURCE_ACCOUNTING.md](docs/RESOURCE_ACCOUNTING.md) |

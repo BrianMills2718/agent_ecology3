@@ -12,8 +12,9 @@ dashboard run. Plan 23 now has an independently signed-off reciprocal-interactio
 candidate. On 2026-10-05 it was closed as plumbing evidence (its behavior
 traced to the seeded setup), and Plan 24 replaced the "is it interesting"
 judgment with an outside automatic score and a solo baseline. Plan 24 finished
-the same day: trading beat solo in 0 of 3 valid pairs, so its stop rule paused
-the project pending Brian's continue-or-stop decision.
+the same day. At toy scale (2 agents, 28 decisions) trading beat solo in 0 of 3
+pairs. Brian judged that setting too small to test a thesis about scale and long
+horizons, so the roadmap now selects a long-running ecology at scale.
 
 ## Gap Summary
 
@@ -41,7 +42,7 @@ the project pending Brian's continue-or-stop decision.
 | 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
 | 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | ✅ Complete — canary and 14-call run passed | Brian's usefulness review |
 | 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | ✅ Closed — plumbing evidence, not emergence (2026-10-05) | - |
-| 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | ✅ Complete — stop rule applied: trading did not beat solo (project paused) | Further emergence or scale work |
+| 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | ✅ Complete — instrument built; toy-scale comparison showed no trading gain | Further emergence or scale work |
 
 ## Status Key
 
