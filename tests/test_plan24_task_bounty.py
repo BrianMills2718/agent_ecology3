@@ -323,3 +323,18 @@ def test_interaction_graph_projects_trades_and_solves(tmp_path: Path) -> None:
     assert edges["solved:alpha_1->HumanEval/34"]["kind"] == "solved"
     assert edges["attempted:alpha_2->HumanEval/34"]["weight"] == 1
     assert graph["summary"] == {"agents": 2, "paid_reads": 2, "tasks_solved": 1, "failed_attempts": 1}
+
+
+def test_claimed_task_is_marked_on_its_statement_listing(tmp_path: Path) -> None:
+    world = World(_config(tmp_path), run_id="plan25_claimed")
+    world.artifacts.write(
+        "alpha_2_task_28", "task_statement", "statement", created_by="alpha_2", owner="alpha_2",
+        read_price=2, metadata={"plan24_task_id": "HumanEval/28"},
+    )
+    _write(world, "alpha_1", "alpha_1_sol", "solution:HumanEval/28", CONCAT_OK)
+    listing = world.query_handler.execute("artifacts", {"_principal_id": "alpha_1", "readable_only": True})
+    assert "bounty_claimed_by" not in {k for row in listing["results"] for k in row}
+    world.execute_action_data("alpha_1", {"action_type": "submit_to_mint", "artifact_id": "alpha_1_sol", "bid": 1})
+    listing = world.query_handler.execute("artifacts", {"_principal_id": "alpha_1", "readable_only": True})
+    row = next(r for r in listing["results"] if r["id"] == "alpha_2_task_28")
+    assert row["bounty_claimed_by"] == "alpha_1"
