@@ -5,15 +5,21 @@ doc_role: active_authority
 authority: canonical
 status: active
 delivery_maturity: local_prototype
-current_stage: repeatable_local_workbench
+current_stage: outside_scored_comparison
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-10-05
 ```
 
 This is the current-direction front door for Agent Ecology 3. It preserves the
 completed MVP as the canonical exemplar and selects the shortest path toward a
 repeatable local agent-ecology workbench. Completed plans and evaluations are
 evidence; they do not define the next priority.
+
+**2026-10-05 redirect:** the frontier no longer waits on a judgment of whether a
+run is *interesting*. Runs are now judged by an outside automatic score and a
+solo baseline: did the same agents earn more by trading than by working alone?
+[Plan 24](plans/24_external_score_vs_solo.md) is the living plan for that
+redirect and owns its milestones, stop rule, and active slice.
 
 ## Outcome and operating bias
 
@@ -39,8 +45,8 @@ them.
 |---|---|
 | Technical execution | Plan 23 run 3 passed its frozen 14-call reciprocal-interaction rubric with authentic Luna actions and bounded purchased-content memory |
 | Stakeholder reviewability | The Plan 23 candidate reopens read-only in the existing Ecosystem dashboard with its reciprocal read-create-buy chain and artifact contents visible |
-| Stakeholder outcome | **Local MVP complete; interesting-behavior candidate pending review**: the workbench is repeatable, while Brian has not yet accepted Plan 23 as interesting |
-| Independent evidence | Plan 19 is independently signed off for the bounded local-MVP claim; Plan 23 independent eval-decision sign-off remains pending |
+| Stakeholder outcome | **Local MVP complete; thesis untested**: the workbench is repeatable; Plan 23 was closed as plumbing evidence, not emergence (seeded setup, FM-01). No run yet measures trading against a solo baseline |
+| Independent evidence | Plan 19 and Plan 23 are independently signed off for their bounded technical claims |
 | Operational state | Plan 23 run 3 completed 14/14, survived worker shutdown, and reopens from its durable receipt; Plan 21 remains preserved negative evidence |
 | Claim boundary | One trace-grounded reciprocal-interaction candidate; no causal, comparative, population, seed-robustness, or general emergence claim |
 
@@ -75,7 +81,8 @@ them.
 | 1 | Reopen any preserved run | direct blocker / **complete** | After shutting down the original worker, a fresh process lists and opens the single Plan 19 receipt read-only with the same 14 actions, balances, artifacts, lifecycle, and evidence; zero model calls | Satisfied by Plan 20 |
 | 2 | Launch another bounded run from the existing dashboard | vertical / **complete** | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Satisfied by Plan 21 |
 | 3 | Fail-loud repeat-run boundary | direct blocker / **complete** | A durable worker stops invalid on the first authentic-boundary failure and never presents a substitute as model behavior | Satisfied by Plan 22 canary and fresh 14-call run |
-| 4 | Interesting emergent interaction | candidate / **human decision required** | A valid run contains endogenous paid use, a trace-grounded adaptation chain, at least three action types, no action above 60%, and behavior Brian finds interesting | Plan 23 passes technically; independent sign-off and Brian review remain |
+| 4 | Interesting emergent interaction | **closed 2026-10-05** | Superseded: "interesting" cannot test the thesis | Plan 23 retained as plumbing evidence; replaced by row 4a |
+| 4a | Outside-scored trading-vs-solo comparison | vertical / **active (Plan 24)** | The dashboard shows, for three matched pairs, tasks solved by an outside checker per call with trading on vs off | Plan 24 M0–M3; Plan 24 stop rule decides continue or pause |
 | 5 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | Brian cannot follow Plan 23 or a richer run from the list |
 | 6 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 7 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
@@ -100,7 +107,11 @@ controls activate only at capability 5.
 6. Observe one newly launched valid run through the same screen. **Complete.**
 7. Repair the reproduced repetitive-strategy and missing-read-memory defects,
    then obtain one rubric-passing reciprocal-interaction candidate. **Complete.**
-8. Obtain independent sign-off and Brian's interesting-behavior judgment.
+8. ~~Obtain independent sign-off and Brian's interesting-behavior judgment.~~
+   Sign-off done; the judgment was replaced on 2026-10-05 by step 8a.
+8a. Follow [Plan 24](plans/24_external_score_vs_solo.md): repair blockers,
+   one-hour landscape check, outside-score oracle and solo switch, then three
+   matched pairs under a pre-set stop rule.
 9. Select scenario exploration, comparison, or larger ecologies based on the
    next concrete operator question—not because infrastructure exists.
 
@@ -112,35 +123,25 @@ preserved Plan 23 candidate.
 
 ## Selected execution frontier
 
-**Goal:** Have Brian judge whether the trace-grounded reciprocal market behavior
-in the Plan 23 candidate is interesting enough to accept as the next exemplar.
+**Goal:** Plan 24 milestone M0 — make cited run evidence durable in git, make a
+mint scoring failure stop the run instead of paying by length, and turn
+`make check` green. Then M1 (one-hour landscape check), M2 (outside-score
+oracle plus solo switch, via bounded design), and M3 (three matched pairs,
+after Brian sets a spend ceiling).
 
 Backward path:
 
 ```text
-Brian accepts the interesting-behavior exemplar
-  <- Brian reviews the reopened Plan 23 activity and artifact contents
-  <- an independent verifier fails to break the frozen evaluation signal
-  <- run 3 passes authentic custody, endogenous use, adaptation, and diversity
-  <- purchased content reaches bounded private memory for the next Luna turn
+Brian reads trading-vs-solo result on the dashboard
+  <- matched-pair readout from run receipts
+  <- mint pays from an outside checker; solo condition disables trading
+  <- task bank with automatic answer checks and matched endowments
+  <- M0 blockers repaired (durable evidence, fail-loud mint, green checks)
 ```
 
-The implementation boundary is complete; the remaining frontier is independent
-verification and stakeholder acceptance. Existing capabilities apply as follows:
-
-| Capability | Canonical seam | Disposition | Adoption proof |
-|---|---|---|---|
-| Operator UI | existing Ecosystem dashboard | accepted implementation | Completed run shows 14 readable decisions and preserves raw Evidence |
-| Worker lifecycle | recoverable paused worker | accepted implementation | Durable run reopens after the original worker exits |
-| Spend boundary | hard call cap, fixed Luna profile, explicit Resume | preserved | Canary passed before exactly 14 repeat-run dispatches |
-| Cognitive feedback | existing private state/notebook | extended | Purchased content appears in the buyer's next prompt and affects later output |
-
-**Next decision handoff:** Independently verify the frozen Plan 23 readout, then
-Brian reviews `plan23_emergent_v2_run3` and decides whether the behavior is
-interesting. If accepted, adopt it as the current outcome exemplar and select
-the next conditional capability from a concrete operator question. If rejected,
-repair only the specific behavior or comprehension defect observed. No graph,
-deployment, or production hardening is required first.
+The AI-grader mint stays as a labelled stand-in for future live signals
+(Reddit upvotes, GitHub stars), which are deliberately deferred until a
+matched-pair comparison shows trading beats solo.
 
 ## YAGNI guardrails
 
@@ -167,6 +168,7 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
 | Dashboard and receipt disagree | Treat the dashboard as untrusted and repair adoption before another run |
 | Launch requires many configuration choices | Freeze one useful profile; defer general scenario authoring |
 | Another authentic run produces no useful interaction | Revisit opportunity discoverability before visualization or scale |
+| Trading does not beat solo in at least two of three valid pairs | Apply the Plan 24 stop rule: record the negative result and pause; no prompt tuning |
 | Richer activity is hard to explain | Promote the compact economic summary; graph only if still needed |
 | Work spends two increments on tests/docs/infrastructure without a new visible operator capability | Return immediately to the selected browser journey |
 | A remote or multi-user consumer appears | Replan maturity and activate only the necessary pilot controls |
@@ -178,7 +180,7 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
 - [Plan 19](plans/19_live_economic_mvp.md) and its
   [independent sign-off](evaluations/19_live_economic_mvp_signoff.md) own the
   completed MVP implementation and evidence.
-- [Plan index](plans/CLAUDE.md) is navigation and historical status.
+- [Plan index](plans/AGENTS.md) is navigation and historical status.
 - [Lineage and restarts](LINEAGE_AND_RESTARTS.md) remains authoritative for
   AE1/AE2/AE3 lineage and restart failure history.
 - [Plan 20](plans/20_single_run_archive_reopen.md) owns the completed archive
@@ -188,4 +190,7 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
 - [Plan 22](plans/22_fail_loud_authentic_runs.md) owns the fail-loud repair,
   authentic canary, repeat-run receipt, and durable reopen evidence.
 - [Plan 23](plans/23_emergent_interaction.md) owns the reciprocal-interaction
-  rubric, read-memory repair, candidate receipt, and pending acceptance gates.
+  rubric, read-memory repair, and candidate receipt; closed 2026-10-05 as
+  plumbing evidence.
+- [Plan 24](plans/24_external_score_vs_solo.md) owns the outside-scored
+  comparison milestones, stop rule, and active slice.
