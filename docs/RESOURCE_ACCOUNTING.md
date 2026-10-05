@@ -1,85 +1,59 @@
-# Resource Accounting: Real vs Pseudo
+# Resource Accounting
 
-Date: 2026-02-23
+Decided: 2026-02-23. Constants last verified against code: 2026-10-05.
 
-## Question
+This is the one reference for how AE3 charges scarce resources and which
+numbers drive that charge. It absorbed the former `ACCOUNTING_CONSTANTS.md`
+(recover with `git show 28574ed:docs/ACCOUNTING_CONSTANTS.md`).
 
-Should Agent Ecology 3 use real resource accounting, pseudo approximations, or a mix?
+## Decision: hybrid, measured first
 
-## Option A: Real accounting everywhere
+AE3 measures real usage where it is cheap and reliable, and uses explicit,
+calibrated estimates only where exact accounting is unavailable. Full real
+accounting everywhere cost more integration work than its value; full
+estimates everywhere were easier to game and drifted from real economics.
 
-Definition:
-- Measure actual usage whenever possible (real token usage, real call counts, real execution time, real bytes).
+| Resource | Charged from |
+|---|---|
+| LLM calls | Real call count |
+| LLM tokens | Provider-reported tokens; `chars / 4` estimate when absent |
+| `llm_budget` | Real billed marginal cost; in subscription-included billing, an estimated charge so scarcity still binds |
+| CPU | Measured process CPU seconds |
+| Disk | Real UTF-8 byte counts |
 
-Pros:
-1. Better economic realism and incentive integrity.
-2. Fewer strategy exploits from predictable approximations.
-3. Better auditability for experiments.
+Guardrails: keep both `estimated_*` and `actual_*` values when available,
+make every fallback formula explicit, and never mix units under one metric
+name.
 
-Cons:
-1. Higher implementation complexity and more integration points.
-2. Vendor/API dependency for exact values.
-3. More edge cases (missing usage fields, retries, partial failures).
+## How one LLM syscall is charged
 
-## Option B: Pseudo approximations everywhere
+`World._prepare_llm_syscall` reserves an estimated budget and token amount
+before the call; `_settle_llm_syscall` reconciles it against measured usage
+and cost afterwards; `_fail_llm_syscall` releases the reservation on failure
+(all in `src/agent_ecology3/world/world.py`). The synchronous and async
+syscall routes share these functions, so their accounting cannot fork.
+Agent-SDK models (`claude-code/*`, `codex/*`, `openai-agents/*`) are called
+with `max_retries=0` so a side-effecting call is never silently repeated.
 
-Definition:
-- Use deterministic estimates (chars->tokens, fixed call cost, fixed CPU weights, static disk factors).
+`cost` and `marginal_cost` are distinct: `cost` is the attributed cost of the
+call, `marginal_cost` the incremental spend (a cache hit is `0`). In
+subscription-included billing the provider may report zero USD while
+`llm_budget` still depletes through `llm.subscription_budget_charge_mode`.
 
-Pros:
-1. Simple and stable implementation.
-2. Easy to test and reproduce.
-3. Lower integration coupling.
+## Constants
 
-Cons:
-1. Lower realism.
-2. Easier to game if agents infer cost formula.
-3. Potential drift from real-world economics.
+| Name | Value | Location | Change it when |
+|---|---:|---|---|
+| Token preflight estimate | `max(20, chars // 4)` | `world.py` `_estimate_tokens` | Logged `actual_tokens` show systematic estimation error |
+| Cost preflight estimate | `max(0.0002, est_tokens / 1000 * 0.003)` | `world.py` `_prepare_llm_syscall` | Reservations routinely differ a lot from settled cost |
+| `llm.subscription_budget_charge_mode` | `estimated` (`actual`, `estimated`, `none`) | `config/config.yaml`, `src/agent_ecology3/config.py` | Subscription-mode runs become unconstrained or starved |
+| `llm.subscription_estimated_cost_multiplier` | `1.0` | same | Scarcity is too weak or too strong for the experiment |
+| `resources.rate_limits.llm_calls_per_window` | `120` | same | Throughput tuning or provider rate limits change |
+| `resources.rate_limits.llm_tokens_per_window` | `200000` | same | Model context or profile changes |
+| `resources.rate_limits.cpu_seconds_per_window` | `12.0` | same | Runtime load profile changes |
+| `LLM_CLIENT_AGENT_BILLING_MODE` default | `subscription` | `llm_client` `sdk/agents.py` (pinned revision in `pyproject.toml`) | Agent-SDK workflows move to API-key metering |
+| `FALLBACK_COST_FLOOR_USD_PER_TOKEN` | `0.000001` | `llm_client` `utils/cost_utils.py` | Fallback estimates prove too high or low in reconciliation |
 
-## Option C (Recommended): Hybrid measured-first accounting
-
-Definition:
-- Use real measurements where they are cheap/reliable.
-- Use calibrated approximations where exact accounting is expensive or unavailable.
-
-Recommended split:
-1. LLM calls: real call count + real usage/cost when provider returns usage; fallback estimate when absent.
-2. LLM tokens: provider-reported tokens when available; fallback `chars/4` estimate.
-3. LLM budget: real billed cost when available; in subscription-included mode, settle against configurable estimated units so budget scarcity can still bind.
-4. CPU: measured process CPU seconds (already available).
-5. Disk: real UTF-8 byte counts (already available).
-
-Why this is best here:
-1. Keeps core architecture simple.
-2. Preserves realism where it matters most (LLM economics).
-3. Avoids over-engineering for weak-signal metrics.
-
-## Effort Comparison (rough)
-
-1. Full-real everywhere: `medium-high`.
-2. Full-pseudo everywhere: `low`.
-3. Hybrid measured-first: `low-medium`.
-
-Given expected impact, hybrid provides most value per engineering hour.
-
-## Guardrails to keep pseudo realistic
-
-1. Store both `estimated_*` and `actual_*` when available.
-2. Track per-run estimation error for calibration.
-3. Make fallback formulas explicit and versioned.
-4. Never silently mix units; enforce typed metric names.
-
-## Verification Note
-
-Last verified: 2026-08-11
-
-- `world.call_llm_as_syscall` now passes `max_retries=0` explicitly for agent-SDK models.
-- This does not change accounting semantics; it only removes repeated retry-disabled warning noise while preserving side-effect-safe no-retry behavior.
-- `world.call_llm_as_syscall` and `world.call_llm_as_syscall_async` now share
-  `_prepare_llm_syscall`, `_llm_call_kwargs`, `_settle_llm_syscall`, and
-  `_fail_llm_syscall`. Both routes reserve the same estimated budget/tokens,
-  reconcile the same measured usage/cost, and retain the same trace fields.
-- Async cancellation refunds the in-flight reservation and re-raises the
-  cancellation; normal runner shutdown drains the call instead of cancelling
-  it. Evaluation 05 observed 32 serial calls for USD 0.0359061 without changing
-  these accounting rules.
+The experiment configs beside `config/config.yaml` (for example
+`config/config.luna_recovery_gate.yaml`) can override the config-backed values;
+read the config a run was started with, not only the defaults above.

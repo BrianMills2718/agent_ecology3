@@ -4,7 +4,7 @@ Observed problems, concerns, and technical debt. Items start as **unconfirmed**
 observations and get triaged through investigation into confirmed issues, plans,
 or dismissed.
 
-**Last reviewed:** 2026-08-12
+**Last reviewed:** 2026-10-05
 
 ---
 
@@ -23,16 +23,7 @@ or dismissed.
 
 ## Unconfirmed
 
-(Add observations here with enough context to investigate later)
-
-### ISSUE-001: (Title)
-
-**Observed:** (date)
-**Status:** `unconfirmed`
-
-(What was observed. Why it might be a problem.)
-
-**To investigate:** (What would confirm or dismiss this.)
+(Add observations here with enough context to investigate later.)
 
 ---
 
@@ -44,25 +35,7 @@ or dismissed.
 
 ## Confirmed
 
-### ISSUE-001: Paid evaluation worker is not session-durable
-
-**Observed:** 2026-08-12
-**Status:** `confirmed`
-
-Evaluation 07's paid worker ended without graceful finalization after 189
-settled attempts. Raw events and per-attempt checkpoints survived, but the
-world/scheduler process did not, so the frozen no-rerun contract prohibited
-recovery of the partial seed-condition cell. Separately, a cancelled settled
-attempt in `pair_02/prescribed` produced an event without a linked
-loop-decision/custody record.
-
-**Required before another paid behavioral assay:** use a durable process
-supervisor independent of the interactive agent session; make settlement,
-decision/failure classification, cost, and custody persistence atomic; and
-prove recovery from cancellation at each persistence boundary without
-repeating a provider attempt. Any repaired assay must use a new evaluation
-number. See `docs/evaluations/07_behavioral_comparison.md` and
-`docs/LINEAGE_AND_RESTARTS.md`.
+(None.)
 
 ---
 
@@ -70,7 +43,7 @@ number. See `docs/evaluations/07_behavioral_comparison.md` and
 
 | ID | Description | Resolution | Date |
 |----|-------------|------------|------|
-| - | - | - | - |
+| ISSUE-001 | Paid evaluation worker was not session-durable (Evaluation 07 ended mid-run; settlement and custody persistence were not atomic) | Plan 10 (WU-10-05) added a detached supervisor, an atomic per-attempt checkpoint (`dispatching -> provider_settled -> applying -> committed`), and replay of a settled response instead of a new provider call; Plan 22 moved durable workers off removable worktree paths. Later paid runs (Evaluations 14-15, Plans 19-24) used that worker (`scripts/run_recoverable_evaluation.py`). | 2026-10-05 |
 
 ---
 

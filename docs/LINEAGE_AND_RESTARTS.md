@@ -1,7 +1,7 @@
 # Agent Ecology Repository Lineage and Restart Lessons
 
 **Status:** Current orientation
-**Reviewed:** 2026-08-11
+**Reviewed:** 2026-08-11 (standing rebuild constraints added 2026-10-05)
 **Reviewed revisions:**
 
 - `agent_ecology`: `720920732373292d1353be9a1f8066016b6f5aa8`
@@ -96,10 +96,10 @@ current experiment needs it; do not restart from its codebase.
 
 ### Documented restart reason
 
-AE3's [rewrite scope](REWRITE_SCOPE.md) and
-[full-context handoff](CHATGPT_FULL_CONTEXT.md) state that AE3 was a clean
+AE3's [rewrite scope][rewrite-scope] and
+[full-context handoff][full-context] state that AE3 was a clean
 rebuild because AE2 had accumulated code smell and architecture sprawl. Six
-approved removals made that diagnosis concrete:
+removals, approved by Brian on 2026-02-20, made that diagnosis concrete:
 
 1. runtime-adjacent governance/process scaffolding;
 2. compatibility shims and one-off dispatch paths;
@@ -108,9 +108,53 @@ approved removals made that diagnosis concrete:
 5. dormant subsystems in the default boot path; and
 6. broad backward-config compatibility.
 
-The [removal sequence](REMOVAL_SEQUENCE.md) is the index; the six
-`REMOVAL_*.md` files hold the detailed AE2 code observations and accepted AE3
-direction.
+The [removal sequence][removal-sequence] was the index; the six removal
+records held the detailed AE2 code observations. Those planning records were
+retired from the working tree on 2026-10-05 after their binding content was
+promoted below; the links here open them at the last commit that contained
+them.
+
+### Standing constraints from the rebuild
+
+These still bind AE3 unless a later ADR or the active plan changes them. Each
+was checked against the code on 2026-10-05.
+
+1. **No process tooling in the runtime path** (Removal 01). Plan, worktree,
+   and governance helpers live under `scripts/meta/`; no module under
+   `src/agent_ecology3/` imports them.
+2. **No compatibility shims** (Removal 02). One typed config, one action
+   vocabulary, no deprecated aliases in the core parser, and no silent
+   provider-guess fallback in accounting paths. (Normalizing common LLM
+   output variants into the canonical action is input parsing, not a shim.)
+3. **One path per concern** (Removal 03). Resources go through `Ledger` and
+   `RateTracker`; invocation through the executor/action path; permissions
+   through one contract engine; LLM accounting through the shared
+   `llm_client`, with the world only reconciling budget and rate usage.
+4. **One bounded dashboard** (Removal 04). A single FastAPI dashboard
+   (`src/agent_ecology3/dashboard/`, inventoried in `ui/registry.yaml`); every
+   displayed metric maps to one canonical event or state source; add a view
+   only for a concrete operator question. The roadmap's YAGNI list repeats
+   this ("no second dashboard").
+5. **Small default boot path** (Removal 05). External capabilities, the
+   secondary invocation registry, and the rich resource-metrics provider stay
+   out of default boot. *Partly superseded:* Removal 05 also kept the
+   task-based mint out of the core path; Plan 24 M2 deliberately added an
+   outside-scored `task_bounty` mint mode (`mint.mode` in
+   `src/agent_ecology3/config.py`) for the trading-vs-solo comparison.
+6. **Strict config schema** (Removal 06). Every config model rejects unknown
+   keys (`extra="forbid"` in `src/agent_ecology3/config.py`); AE2-era keys
+   fail validation instead of being aliased.
+
+The operator principles recorded in the full-context handoff also remain
+binding design constraints:
+
+- contracts govern access rights; "owner" is not the rights model;
+- scarce resources are allocated first and then reallocated by contracts or
+  trade, and kernel fairness for its own sake is not a goal;
+- do not script the target behavior and call it emergence;
+- keep the architecture simple until evidence demands more; and
+- prefer measured accounting over approximation when the effort is similar
+  (see [Resource Accounting](RESOURCE_ACCOUNTING.md)).
 
 ### Observed support for that decision
 
@@ -118,7 +162,7 @@ direction.
    under `src/world` alone. Resource control, invocation, kernel queries,
    permissions, and LLM accounting each acquired overlapping wrappers or
    stores, as catalogued in
-   [Removal 03](REMOVAL_03_BOUNDARY_MERGE.md).
+   [Removal 03][removal-03].
 2. **Large deletions were needed while AE2 was still evolving.** Its history
    records removal of roughly 29,000 lines of a legacy agent system, roughly
    6,800 lines of a dead dashboard generation, and another roughly 4,200 lines
@@ -198,7 +242,8 @@ These are observed risks, not reasons to restart AE3 now.
    therefore remains unresolved, now with terminal partial evidence rather than
    an unexecuted design.
 3. **Historical empirical claims are not self-contained in Git.** The README
-   and `CHATGPT_FULL_CONTEXT.md` name run IDs and summary files, but a clean
+   and the retired [full-context handoff][full-context] name run IDs and
+   summary files, but a clean
    clone contains no tracked logs or summary JSON. Treat those claims as a
    historical handoff until their registry records or immutable evidence are
    reopened.
@@ -299,6 +344,14 @@ Evaluation 07's verifier now resolves changed production files to the immutable
 input copies already retained in its evidence bundle, so later AE3 development
 does not require rewriting the frozen hashes or mutating the terminal evidence.
 
+**Update 2026-10-05.** The paragraph above records the 2026-08 position. The
+rest of Plan 10 resolved it: the separately authorized Luna canary passed and
+the recoverable worker with atomic per-attempt custody was accepted (ISSUE-001
+in `ISSUES.md` is resolved). Plans 19-23 then delivered the local workbench,
+and the current comparison attempt is Plan 24's outside-scored trading-vs-solo
+experiment; see [the roadmap](MVP_ROADMAP.md) for its state. The five-point bar
+above still governs any decision to declare AE3 the successor.
+
 If AE3 produces that evidence while retaining the essential contract/resource
 semantics needed for subsequent experiments, decide explicitly whether to mark
 AE2 superseded or keep it as a separately active reference runtime. Until then,
@@ -307,11 +360,11 @@ rewrite.
 
 ## Detailed Evidence Map
 
-- Structural rebuild decision: [REWRITE_SCOPE.md](REWRITE_SCOPE.md)
-- Removal order and rationale: [REMOVAL_SEQUENCE.md](REMOVAL_SEQUENCE.md)
-- Duplicated AE2 boundaries: [REMOVAL_03_BOUNDARY_MERGE.md](REMOVAL_03_BOUNDARY_MERGE.md)
+- Structural rebuild decision (retired, pinned): [REWRITE_SCOPE.md][rewrite-scope]
+- Removal order and rationale (retired, pinned): [REMOVAL_SEQUENCE.md][removal-sequence]
+- Duplicated AE2 boundaries (retired, pinned): [REMOVAL_03_BOUNDARY_MERGE.md][removal-03]
 - Implemented AE3 scope: [IMPLEMENTATION_BASELINE.md](IMPLEMENTATION_BASELINE.md)
-- Historical AE3 experiments and caveats: [CHATGPT_FULL_CONTEXT.md](CHATGPT_FULL_CONTEXT.md)
+- Historical AE3 experiments and caveats (retired, pinned): [CHATGPT_FULL_CONTEXT.md][full-context]
 - Inconclusive prescription-ablation result and evidence: [Evaluation 04](evaluations/04_prescription_ablation.md)
 - One-shot provider/tool qualification and classifier failure: [Evaluation 05](evaluations/05_provider_tool_qualification.md)
 - Terminal paired behavioral attempt and interruption evidence: [Evaluation 07](evaluations/07_behavioral_comparison.md)
@@ -319,3 +372,12 @@ rewrite.
 - AE2 behavioral observations: [`SIMULATION_LEARNINGS.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/SIMULATION_LEARNINGS.md)
 - AE2 V1 gate: [`V1_ACCEPTANCE.md` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology2/blob/33bbb6de0142435412c02316bd5a43f5733954d8/docs/V1_ACCEPTANCE.md)
 - AE1 mechanism code: [`agent_ecology` at the reviewed commit](https://github.com/BrianMills2718/agent_ecology/tree/720920732373292d1353be9a1f8066016b6f5aa8)
+- Retired removal records 01-06: recover any of them with
+  `git show 28574ed:docs/REMOVAL_0N_<name>.md` (for example
+  [Removal 04, dashboard sprawl][removal-04]).
+
+[rewrite-scope]: https://github.com/BrianMills2718/agent_ecology3/blob/28574ed2a65870e8657c5c16e16b7fdd872cc71e/docs/REWRITE_SCOPE.md
+[removal-sequence]: https://github.com/BrianMills2718/agent_ecology3/blob/28574ed2a65870e8657c5c16e16b7fdd872cc71e/docs/REMOVAL_SEQUENCE.md
+[removal-03]: https://github.com/BrianMills2718/agent_ecology3/blob/28574ed2a65870e8657c5c16e16b7fdd872cc71e/docs/REMOVAL_03_BOUNDARY_MERGE.md
+[removal-04]: https://github.com/BrianMills2718/agent_ecology3/blob/28574ed2a65870e8657c5c16e16b7fdd872cc71e/docs/REMOVAL_04_DASHBOARD_SPRAWL.md
+[full-context]: https://github.com/BrianMills2718/agent_ecology3/blob/28574ed2a65870e8657c5c16e16b7fdd872cc71e/docs/CHATGPT_FULL_CONTEXT.md

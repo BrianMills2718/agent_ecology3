@@ -1,6 +1,6 @@
 ---
 doc-role: wiki-manifest
-freshness: 2026-06-25
+freshness: 2026-10-05
 ---
 
 # Wiki Manifest — Agent Ecology 3
@@ -13,5 +13,5 @@ description: >
 sources:
   - path: ../README.md
     role: overview
-  - path: ../CLAUDE.md
+  - path: ../AGENTS.md
     role: instructions

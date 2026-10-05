@@ -6,7 +6,6 @@ ADRs document significant architectural decisions.
 
 | # | Title | Status | Date |
 |---|-------|--------|------|
-| 0001 | Use ADRs | Accepted | YYYY-MM-DD |
 | 0002 | [Keep the AE3 kernel for the trading-vs-solo comparison](0002-keep-ae3-kernel-for-trading-vs-solo.md) | Accepted | 2026-10-05 |
 
 ## ADR Lifecycle
@@ -51,4 +50,7 @@ What becomes easier or harder as a result of this decision?
 
 ## Related
 
-- `meta-process/patterns/07_adr.md` - Full ADR pattern
+- Full ADR pattern: `patterns/07_adr.md` in the shared
+  [enforced-planning](https://github.com/BrianMills2718/enforced-planning) repository
+- Binding decisions that predate this index (the 2026-02 rebuild removals):
+  [Lineage and Restarts](../LINEAGE_AND_RESTARTS.md#standing-constraints-from-the-rebuild)

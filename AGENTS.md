@@ -12,7 +12,7 @@ make status              # Git status
 ### During Work
 ```bash
 make test                # Run tests
-make check               # All checks (test, mypy, doc-coupling)
+make check               # All checks (pytest, mypy)
 ```
 
 ### Finishing Work
@@ -71,7 +71,7 @@ agent_ecology3/
 ### Process Awareness
 - If you're doing something not covered by the meta-process (no pattern, no
   template, no convention), treat it as a signal:
-  - Either the meta-process has a gap — record it in `meta-process/ISSUES.md`
+  - Either the meta-process has a gap — record it in `ISSUES.md`
   - Or you're deviating from process — stop and ask before continuing
 - Don't silently invent new conventions. Make them explicit.
 
@@ -112,7 +112,8 @@ agent_ecology3/
 
 | Doc | Purpose |
 |-----|---------|
-| `README.md` | Full documentation |
+| `README.md` | Front door: status pointer, quick start, documentation map |
+| `docs/MVP_ROADMAP.md` | Outcome, current status, and next work (authority) |
 | `docs/plans/AGENTS.md` | Plan index |
 | `scripts/AGENTS.md` | Script reference |
 
@@ -124,7 +125,7 @@ This repo uses worktree-based isolation for concurrent AI instances.
 **Before starting work:**
 1. Check existing claims: `python scripts/meta/worktree-coordination/check_claims.py --list`
 2. Claim your work: `python scripts/meta/worktree-coordination/check_claims.py --claim --feature <name> --task "description"`
-3. Create a worktree: `make worktree` (or `git worktree add worktrees/plan-N-desc`)
+3. Create a worktree: `git worktree add worktrees/plan-N-desc`
 4. Work in the worktree, not the main directory
 
 **Before committing:**
