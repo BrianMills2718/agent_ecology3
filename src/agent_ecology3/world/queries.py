@@ -76,6 +76,11 @@ class KernelQueryHandler:
                 "created_by": artifact.created_by,
                 "executable": artifact.executable,
                 "read_price": artifact.read_price,
+                **(
+                    {"bounty_claimed_by": artifact.metadata["bounty_claimed_by"]}
+                    if "bounty_claimed_by" in artifact.metadata
+                    else {}
+                ),
                 "invoke_price": artifact.invoke_price,
                 "content_size": len(artifact.content),
                 "code_preview": artifact.code[:220] if artifact.code else "",

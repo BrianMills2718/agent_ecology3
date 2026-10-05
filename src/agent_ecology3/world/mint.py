@@ -302,6 +302,11 @@ class MintAuction:
         if score > 0 and task_id is not None and claimed_by is None:
             minted = score // max(1, self.mint_ratio)
             self._claimed_tasks[task_id] = principal_id
+            # Make the claim visible on the task's statement so agents stop
+            # re-solving finished tasks (Plan 25 shakeout: 7 wasted passes).
+            for statement in self.artifacts.artifacts.values():
+                if statement.metadata.get("plan24_task_id") == task_id:
+                    statement.metadata["bounty_claimed_by"] = principal_id
             if minted > 0:
                 self.ledger.credit_scrip(principal_id, minted)
         elif score > 0 and claimed_by is not None:

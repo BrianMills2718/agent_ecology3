@@ -24,7 +24,7 @@ rule or thesis verdict.
 
 | Step | State | Evidence |
 |---|---|---|
-| Scale shakeout run 1 (4 agents, 120 decisions) | running | `plan25_shakeout_run1`; PR #73 |
+| Scale shakeout run 1 (4 agents, 120 decisions) | done — clean; one visibility bug fixed | `run_bundles/plan25_shakeout_run1.tar.gz`; PR #73 |
 | Live interaction graph (stopgap viewer) | done | Interactions tab, PR #75 |
 | llm_client pin with session resume | done | `ea550d2`, PR #76 |
 | `ae3_action` MCP server executes against the kernel and returns the result | next | see "Toward the target" |
@@ -108,3 +108,4 @@ unverified Codeforces redistribution terms.
 
 | Run | Result | Evidence |
 |---|---|---|
+| `plan25_shakeout_run1` (seed 25001) | **System: clean.** 120/120 decisions committed, all model-selected (`llm_valid`), 0 local failures, 30 decisions per agent, prompt 21-26k tokens, median call 11.6 s, estimated internal charge USD 2.30 (actual USD 0, subscription). **Behavior: mechanical.** Actions were only read (42), write (39), submit (39); 28 of 40 tasks solved (8/7/6/7 per agent), 4 failed hidden tests, 9 paid cross-agent reads, no queries or transfers. **Bug found:** 7 passing submissions earned nothing because the task was already claimed and agents could not see claims; fixed by marking `bounty_claimed_by` on the task statement and in the artifact listing. | `run_bundles/plan25_shakeout_run1.tar.gz` |

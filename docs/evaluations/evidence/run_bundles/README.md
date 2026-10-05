@@ -11,5 +11,6 @@ recoverable record.
 | `plan24_canary_v1.tar.gz` | Plan 24 Luna-low canary |
 | `plan24_pair_1.tar.gz` | Plan 24 v1 pair 1 — invalid (artifact-type lowercasing defect) |
 | `plan24_v2_pair_1.tar.gz`, `plan24_v2_pair_2.tar.gz`, `plan24_v2_pair_3.tar.gz` | Plan 24 valid matched pairs (each holds `trading/` and `solo/`) |
+| `plan25_shakeout_run1.tar.gz` | Plan 25 4-agent scale shakeout |
 
 Verify: `sha256sum -c SHA256SUMS`. Restore: `tar -xzf <bundle> -C ~/.local/state/agent_ecology3/`.
