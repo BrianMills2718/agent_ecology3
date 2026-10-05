@@ -175,6 +175,11 @@ def shared_client_source_status() -> tuple[str | None, bool]:
     if not isinstance(module_path, str) or not module_path:
         return None, False
     location = Path(module_path).resolve().parent
+    installed = _installed_vcs_revision(location)
+    if installed is not None:
+        # Installed from an immutable Git commit (PEP 610): the package files
+        # cannot carry uncommitted edits, so the source is clean by construction.
+        return installed, True
     try:
         root_result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
@@ -188,6 +193,10 @@ def shared_client_source_status() -> tuple[str | None, bool]:
     if root_result.returncode != 0 or not root_result.stdout.strip():
         return None, False
     root = Path(root_result.stdout.strip())
+    if (root / "llm_client").resolve() != location:
+        # The enclosing repository is not llm_client's own checkout (for
+        # example a virtualenv inside another project's worktree).
+        return None, False
     try:
         revision_result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -210,6 +219,40 @@ def shared_client_source_status() -> tuple[str | None, bool]:
         revision = None
     clean = status_result.returncode == 0 and not status_result.stdout.strip()
     return revision, clean
+
+
+def _installed_vcs_revision(package_dir: Path) -> str | None:
+    """Return the commit an installed llm-client was built from, if recorded.
+
+    Only trusts a PEP 610 ``direct_url.json`` whose distribution owns
+    ``package_dir``; editable or index installs return ``None``.
+    """
+
+    from importlib import metadata
+
+    try:
+        dist = metadata.distribution("llm-client")
+    except metadata.PackageNotFoundError:
+        return None
+    raw = dist.read_text("direct_url.json")
+    if not raw:
+        return None
+    try:
+        direct_url = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(direct_url, dict) or direct_url.get("dir_info", {}).get("editable"):
+        return None
+    vcs_info = direct_url.get("vcs_info")
+    if not isinstance(vcs_info, dict) or vcs_info.get("vcs") != "git":
+        return None
+    commit = vcs_info.get("commit_id")
+    if not isinstance(commit, str) or len(commit) != 40:
+        return None
+    owned = Path(str(dist.locate_file("llm_client"))).resolve()
+    if owned != package_dir:
+        return None
+    return commit
 
 
 def validate_luna_action_for_principal(

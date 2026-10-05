@@ -145,9 +145,9 @@ Brian reads trading-vs-solo result
 | Milestone | Planning state | Inspectable output | Promotion or replan trigger |
 |---|---|---|---|
 | M0 Repair blockers | fully_specifiable_now (active) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
-| M1 Landscape check | exploration_required | short adopt/compose/keep note in `docs/adr/` | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
+| M1 Landscape check | exploration_required | short adopt/compose/keep note in `docs/adr/`; start from the in-house `world-substrate` Concordia/Mesa spikes (active claim seen 2026-10-05) before external search | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
 | M2 Outside-score oracle + solo switch | conditional on M1 = keep AE3 | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
-| M3 Matched-pair comparison | human_decision_required (spend ceiling) | dashboard readout of 3 pairs | stop rule below |
+| M3 Matched-pair comparison | conditional on M2 (spend ceiling USD 5 and Luna low set by Brian) | one-call Luna-low canary, then dashboard readout of 3 pairs | stop rule below |
 | M4 Live outside signals | deliberately_deferred | Reddit/GitHub-star scorer behind the same seam | M3 shows trading beats solo **and** Brian approves posting as him |
 
 **Stop rule (decided before any M3 data):** if, across three valid pairs with
@@ -199,10 +199,21 @@ instead of paying by length.
 4. **uv.** Commit `uv.lock`, ignore `*.egg-info`, and change the README quick
    start from `pip install -e .` and `~/projects/` to `uv sync` and the current
    path.
-5. **Registry (project-meta).** `PROJECT_GRAPH.json` still marks
-   `agent_ecology2` active and `agent_ecology3` supersedes nothing. Set
-   `agent_ecology3.supersedes = ["agent_ecology2"]` and mark agent_ecology2
-   superseded, through project-meta's own process.
+5. ~~**Registry (project-meta).**~~ **Dropped 2026-10-05.** Project Meta's
+   `supersedes` fields record only *completed* supersession, and
+   [LINEAGE_AND_RESTARTS.md](../LINEAGE_AND_RESTARTS.md) states AE2 remains the
+   full capability/reference line that AE3 has not replaced. Marking AE2
+   superseded would be false. The duplicate-authority risk stays covered by
+   that lineage document; revisit only if an AE2 capability AE3 needs is ported
+   or retired.
+
+**Progress (2026-10-05):** steps 1–4 done on branch `plan-24-m0-blockers`:
+run bundles in `docs/evaluations/evidence/run_bundles/`; mint raises
+`MintScoringError` and refunds all bids; `uv run pytest` 170 passed, 0 failed;
+uv dev group, pinned reviewed llm_client, Makefile/README on uv. Found and fixed
+along the way: the llm_client revision check read the enclosing project's git
+HEAD whenever the venv sat inside a worktree. mypy had 27 pre-existing errors in
+untouched files; repaired on a separate `plan-24-m0-mypy` branch.
 
 **Focused check:** `make check` exit 0 with counts printed; `git ls-files
 docs/evaluations/evidence | grep -E 'plan(19|23)'` lists both bundles;
@@ -224,6 +235,8 @@ Step 1 copies; it never moves or deletes the originals.
 | Use an existing task bank, not a hand-written one | agent_decided_reversible | integrate-before-build; final choice in M2 bounded design |
 | Different endowments per agent | assumption | trading can only help if agents hold different useful things; the endowment is the manipulation, stated openly, not hidden in prompts. If wrong (agents never trade even when it pays), that is the negative result |
 | Three pairs, no significance test | agent_decided_reversible | decides continue/pause for a prototype; a stronger claim would need its own plan |
+| M3 spend ceiling USD 5 | human_set (Brian, 2026-10-05: "$5 is fine") | covers one canary and three matched pairs |
+| Model: Luna, low reasoning effort | human_set (Brian, 2026-10-05: "lets use luna low thinking") | the `luna_structured_v1` profile in `config.py` currently pins `reasoning_effort="medium"`; M2 widens it to allow `low` and M3 starts with a one-call low-effort canary before any pair |
 | Landscape check before M2 | agent_decided_reversible | no prior survey of Concordia, Magentic Marketplace, GovSim, or similar exists in AE2/AE3 docs (searched 2026-10-05); FM-07 is open |
 
 ## Evidence and current state
@@ -237,9 +250,8 @@ Step 1 copies; it never moves or deletes the originals.
 
 ## Human decisions
 
-- **M3 spend ceiling** (needed before M3, not before M0–M2). Recommendation:
-  USD 5 total for the canary plus three matched pairs. If unanswered, M0–M2
-  proceed and M3 does not start.
+- None open. Settled 2026-10-05: M3 spend ceiling USD 5 total (canary plus
+  three matched pairs), and the model is Luna with **low** reasoning effort.
 
 ## Exact next action
 

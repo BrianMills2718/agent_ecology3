@@ -172,7 +172,8 @@ visible economic artifacts, working artifact-content inspection, and the raw
 Evidence view after refresh with zero console errors or failed requests. After
 the worker exited, a separate read-only process reopened the durable run with
 the same 14 decisions and artifacts. The authoritative run directory is
-`/home/brian/.local/state/agent_ecology3/plan23_emergent_v2_run3/`.
+`/home/brian/.local/state/agent_ecology3/plan23_emergent_v2_run3/` (durable copy:
+[run bundle](../evaluations/evidence/run_bundles/plan23_emergent_v2_run3.tar.gz)).
 
 This is a technically passing exploratory candidate, not a general emergence
 claim. Independent sign-off is retained in

@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict
 
 from ..config import AppConfig, load_config
 from ..world.luna_actions import (
+    _installed_vcs_revision,
     LUNA_ACTION_TYPES,
     LUNA_MODEL,
     LunaLoopDecisionV1,
@@ -529,7 +530,9 @@ def build_provider_free_preflight(
         prompt = f"{system_prompt}\n\n{prompt}"
 
     client_root = Path(llm_client_repo).resolve()
-    client_revision = _git_revision(client_root)
+    client_revision = _installed_vcs_revision(client_root / "llm_client") or _git_revision(
+        client_root
+    )
     isolated_home: str | None = None
     with tempfile.TemporaryDirectory(prefix="ae3_luna_preflight_workspace_") as workspace:
         workspace_path = Path(workspace)

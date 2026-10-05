@@ -18,3 +18,4 @@ logs/
 
 # Editor/system
 .DS_Store
+*.egg-info/

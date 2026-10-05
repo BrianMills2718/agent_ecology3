@@ -18,10 +18,11 @@ All six approved removals from AE2 are applied as AE3 design constraints:
 ## Quick Start
 
 ```bash
-cd /home/brian/projects/agent_ecology3
-pip install -e .
-python run.py --duration 120
-# or: agent-ecology3 --duration 120
+cd ~/code/agent_ecology3
+uv sync            # installs the reviewed llm_client pin and dev tools
+uv run python run.py --duration 120
+# or: uv run agent-ecology3 --duration 120
+make check         # tests + mypy through uv
 ```
 
 ## CLI

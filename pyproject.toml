@@ -15,6 +15,8 @@ dependencies = [
   "fastapi>=0.111.0",
   "uvicorn>=0.30.0",
   "mcp>=1.26.0",
+  # Reviewed shared-client revision (RUNTIME_REVIEWED_LLM_CLIENT_REVISION).
+  "llm-client[codex] @ git+https://github.com/BrianMills2718/llm_client.git@286715784f1d535d6dfcd2c867ca678d666e27d5",
 ]
 
 [project.scripts]
@@ -30,7 +32,7 @@ where = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-rfE"
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 
 [tool.mypy]
 python_version = "3.11"
@@ -40,3 +42,11 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
 strict_optional = true
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0.0",
+  "mypy>=1.10",
+  "types-PyYAML",
+  "httpx>=0.27",
+]
