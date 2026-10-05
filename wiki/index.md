@@ -45,8 +45,10 @@ scale it is about.
 - At toy scale (2 agents, 28 decisions, 8 tasks) trading gave no gain in three
   matched pairs. Brian judged that setting too small to test a thesis about
   scale and long horizons, so it is not a verdict.
-- Next: a long-running ecology with many resident agents on work whose value
-  compounds; the roadmap's selected frontier owns its scope.
+- Current goal: get the system working and the agents behaving intelligently
+  so it can scale (Plan 25). In progress: a 4-agent scale shakeout run,
+  resident agents with their own memory (llm_client pin upgraded for session
+  resume), and a World Substrate living-view adapter for watching runs.
 - `make check` passes (pytest and mypy), and preserved runs reopen in the
   dashboard from their committed evidence bundles.
 

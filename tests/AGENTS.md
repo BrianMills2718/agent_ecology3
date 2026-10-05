@@ -6,10 +6,10 @@ The pytest suite is flat under `tests/`.
 
 ```bash
 # All tests
-pytest tests/ -v
+uv run pytest tests/ -v
 
 # Single test
-pytest tests/test_runtime_smoke.py -q
+uv run pytest tests/test_runtime_smoke.py
 ```
 
 ## Conventions
@@ -19,5 +19,5 @@ pytest tests/test_runtime_smoke.py -q
 
 ## Adding Tests
 
-Run the focused file for the changed behavior, then `pytest tests/ -v` before
+Run the focused file for the changed behavior, then `uv run pytest tests/ -v` before
 claiming full-suite verification.

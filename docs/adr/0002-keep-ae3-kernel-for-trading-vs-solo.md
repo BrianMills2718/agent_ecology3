@@ -45,3 +45,13 @@ hand-written bank.
 - https://arxiv.org/pdf/2606.16613 (CoffeeBench)
 - https://aclanthology.org/2025.acl-long.421/ (MultiAgentBench)
 - `~/code/world-substrate/docs/research/competitive-landscape-2026-09.md`
+
+## Addendum (2026-10-05): in-house option missed
+
+This review checked outside frameworks only. It missed World Substrate
+(`~/code/world-substrate`), Brian's own engine in which agents state intents
+and installed mechanics decide consequences, with a world-agnostic living view,
+replay and branching. Brian chose to use only its living view for now (an
+adapter that emits its projection bundle). Running the economy on World
+Substrate's engine remains unevaluated; consider it before growing AE3's own
+kernel substantially for scale.
