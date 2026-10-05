@@ -84,7 +84,7 @@ them.
 | 3 | Fail-loud repeat-run boundary | direct blocker / **complete** | A durable worker stops invalid on the first authentic-boundary failure and never presents a substitute as model behavior | Satisfied by Plan 22 canary and fresh 14-call run |
 | 4 | Interesting emergent interaction | **closed 2026-10-05** | Superseded: "interesting" cannot test the thesis | Plan 23 retained as plumbing evidence; replaced by row 4a |
 | 4a | Outside-scored trading-vs-solo comparison | vertical / **complete 2026-10-05 (instrument)** | The dashboard shows, for three matched pairs, tasks solved by an outside checker per call with trading on vs off | Built and used once at toy scale; reuse as an observation lens, not a verdict |
-| 4b | Long-running ecology at scale | vertical / **next** | Many resident agents run for a long horizon on work whose value compounds (later tasks build on earlier artifacts), and Brian can watch who specializes, trades and builds on whom | Brian's direction 2026-10-05; scope set in the next plan |
+| 4b | Working, intelligent ecology at scale | vertical / **in progress (Plan 25)** | Resident agents that keep memory and test their own work run for a long horizon on work whose value compounds, without system bugs, and Brian can watch them in the World Substrate living view | Brian's direction 2026-10-05; Plan 25 steps 1-4 |
 | 5 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | Brian cannot follow Plan 23 or a richer run from the list |
 | 6 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 7 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
@@ -125,29 +125,35 @@ preserved Plan 23 candidate.
 
 ## Selected execution frontier
 
-**Direction (Brian, 2026-10-05):** the benefits of cooperation should appear
-only at scale and over long horizons ("a little village of 3 people trying to
-build a fire" does not need markets). So the next work builds toward a large,
-long-running ecology and observes it. It does not run more small comparisons
-to rule on the thesis.
+**Current goal (Brian, 2026-10-05):** get the system working and the agents
+behaving intelligently, so it can scale. Whether cooperation pays is not the
+question yet; it needs scale and long horizons ("a little village of 3 people
+trying to build a fire" does not need markets), so no stop rule or verdict is
+attached to runs for now. Runs are for finding bugs and judging agent behavior.
 
-What that needs, from Plan 24's traces and the failure dossier:
+Work in progress ([Plan 25](plans/25_scale_shakeout.md)):
 
-- **Many agents running for a long time:** tens of agents over hours or days
-  rather than 2 agents for 28 decisions.
-- **Real resident agents:** each agent is a Codex or Claude Code session
-  acting through the existing MCP bridge
-  (`src/agent_ecology3/mcp/loop_action_server.py`), so it can test its own work
-  and keep its own memory (FM-02/FM-07; dossier design constraint 1).
-- **Work whose value compounds:** later tasks get easier with earlier
-  artifacts (shared helpers, tools, data), so building on others' work can pay
-  off over time. Independent one-shot tasks cannot show this.
-- **The outside checker stays the source of new value** (Plan 24's
-  `TaskCheckerScorer`), and the Comparison and Ecosystem views stay the way to
-  watch it.
-
-The next plan sets the concrete scale, horizon and task source. No stop rule or
-verdict is attached until there is a run worth observing.
+1. **Shake out scale bugs with existing machinery.** First run: 4 agents, 120
+   decisions, 40 HumanEval tasks (`plan25_shakeout_run1`).
+2. **Real resident agents** (the main lever for intelligent behavior): each
+   agent is a long-lived Claude Agent SDK (or Codex) session that keeps its
+   own memory, can test its own work, and acts only through the
+   `ae3_action` MCP tool (`src/agent_ecology3/mcp/loop_action_server.py`).
+   The llm_client pin now supports session resume (PR #76); next the MCP
+   server must execute actions against the kernel and return the real result.
+3. **Work that compounds:** a task source whose later tasks build on earlier
+   artifacts (candidate: CodeFlowBench helper chains), with royalties when
+   someone's code is reused.
+4. **Watching it:** the dashboard's Interactions tab (Cytoscape) is a stopgap.
+   The chosen viewer is World Substrate's world-agnostic living view (Brian,
+   2026-10-05: viewer only). agent_ecology3 will emit a
+   `world-substrate-live-projection/v0` bundle plus a
+   `world-substrate-living-scene/v1` profile, pinned to world-substrate
+   `33bd121` and labelled "rendered with the World Substrate living view;
+   outcomes from agent_ecology3". World Substrate's renderer is frozen
+   (its Decision 006), so any missing market or payment primitive is a gap to
+   raise with Brian, and incremental live updates in that renderer are
+   unverified (start with periodically rebuilt bundles).
 
 ## YAGNI guardrails
 

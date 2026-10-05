@@ -13,11 +13,44 @@ dependencies_reviewed: "2026-10-05"
 
 ## Why
 
-Brian (2026-10-05): cooperation should pay only at scale and over long
-horizons, and subscription capacity and bugs get worked out on smaller runs
-first ("just start the runs now if we are ready"). This plan runs
-progressively larger and longer ecologies to find what breaks. It is an
-observation and bug-finding plan: no stop rule or thesis verdict.
+Brian (2026-10-05): the current goal is to get the system working and the
+agents behaving intelligently so it can scale; whether cooperation pays is a
+later question that needs scale and long horizons. Subscription capacity and
+bugs get worked out on smaller runs first ("just start the runs now if we are
+ready"). Runs here are for finding bugs and judging agent behavior: no stop
+rule or thesis verdict.
+
+## Progress
+
+| Step | State | Evidence |
+|---|---|---|
+| Scale shakeout run 1 (4 agents, 120 decisions) | running | `plan25_shakeout_run1`; PR #73 |
+| Live interaction graph (stopgap viewer) | done | Interactions tab, PR #75 |
+| llm_client pin with session resume | done | `ea550d2`, PR #76 |
+| `ae3_action` MCP server executes against the kernel and returns the result | next | see "Toward the target" |
+| World Substrate living-view adapter | chosen (Brian: viewer only) | contracts and conditions below |
+| Compounding task source (CodeFlowBench) | researched | see "Toward the target" |
+
+## World Substrate living view (viewer only)
+
+Agreed with the World Substrate session on 2026-10-05:
+
+- Target `world-substrate-live-projection/v0` (initial snapshot plus ordered
+  events with stable ids and leaf `changes`; applying the changes in order must
+  reproduce the final state and hash) and a `world-substrate-living-scene/v1`
+  profile, using the generic primitives in
+  `docs/contracts/composed-living-scene-v1.md` (in world-substrate). Validate
+  with `load_scene_contract()` and the frame builder against
+  `tests/fixtures/living_scene/`. Do not target the legacy
+  `evidence/renders/waltzman-demo-v0.html`.
+- Pin world-substrate `33bd121`; do not edit world-substrate.
+- Label the view "rendered with the World Substrate living view; outcomes from
+  agent_ecology3": these are agent_ecology3 transitions, not World Substrate
+  Engine commits.
+- World Substrate froze renderer growth (its Decision 006). A missing market or
+  payment primitive is a gap to raise with Brian. Incremental live updates in
+  the generic renderer are unverified; start with periodically rebuilt
+  retained bundles.
 
 ## Run 1: 4-agent shakeout (now)
 
