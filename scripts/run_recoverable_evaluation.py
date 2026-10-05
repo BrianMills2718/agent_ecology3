@@ -102,12 +102,20 @@ PLAN24_PRINCIPAL_COUNT = 2
 PLAN24_POLICY_SEEDS = (24241, 24242, 24243)
 PLAN24_STARTING_BUDGET = 1.0
 PLAN24_TASK_BANK = REPO_ROOT / "config" / "tasks" / "humaneval_plan24_v1.jsonl"
+# Plan 25: scale bug-shakeout (more agents, longer horizon, bigger bank).
+PLAN25_SHAKEOUT_ACKNOWLEDGEMENT = "plan25/luna-low/scale-shakeout/v1"
+PLAN25_PRINCIPAL_COUNT = 4
+PLAN25_TARGET_ATTEMPTS = 120
+PLAN25_POLICY_SEED = 25001
+PLAN25_STARTING_BUDGET = 1.0
+PLAN25_SNAPSHOT_ARTIFACT_LIMIT = 80
+PLAN25_TASK_BANK = REPO_ROOT / "config" / "tasks" / "humaneval_scale_v1.jsonl"
 DEFAULT_RUN_ID = "plan10_luna_dashboard_poc_v1"
 
 
 def _plan24_condition(acknowledgement: str) -> str | None:
-    """Return 'trading' or 'solo' for a Plan 24 run (the canary uses trading)."""
-    if acknowledgement == PLAN24_CANARY_ACKNOWLEDGEMENT:
+    """Return 'trading' or 'solo' for a task-bounty run (canary and Plan 25 trade)."""
+    if acknowledgement in (PLAN24_CANARY_ACKNOWLEDGEMENT, PLAN25_SHAKEOUT_ACKNOWLEDGEMENT):
         return "trading"
     for condition, ack in PLAN24_ACKNOWLEDGEMENTS.items():
         if acknowledgement == ack:
@@ -203,6 +211,7 @@ def _configure(
     reasoning_effort: Literal["low", "medium"] = "medium",
     task_bank_path: Path | None = None,
     cross_principal_trading: bool = True,
+    snapshot_artifact_limit: int = 24,
 ) -> AppConfig:
     config = load_config(config_path)
     config.principals.count = principal_count
@@ -249,6 +258,7 @@ def _configure(
     config.llm.structured_response_model = "LunaLoopDecisionV1"
     config.llm.expected_billing_mode = "subscription_included"
     config.economy.cross_principal_trading = cross_principal_trading
+    config.llm.loop_snapshot_artifact_limit = snapshot_artifact_limit
     if task_bank_path is not None:
         config.mint.enabled = True
         config.mint.mode = "task_bounty"
@@ -305,7 +315,34 @@ def _post_json(url: str) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {"success": False, "error": "invalid response"}
 
 
+def _task_bank_for(acknowledgement: str) -> Path:
+    return (
+        PLAN25_TASK_BANK
+        if acknowledgement == PLAN25_SHAKEOUT_ACKNOWLEDGEMENT
+        else PLAN24_TASK_BANK
+    )
+
+
 def _validate_start_contract(args: argparse.Namespace) -> None:
+    if args.acknowledgement == PLAN25_SHAKEOUT_ACKNOWLEDGEMENT:
+        if (
+            args.target_attempts != PLAN25_TARGET_ATTEMPTS
+            or args.principal_count != PLAN25_PRINCIPAL_COUNT
+            or args.cognition_mode != "minimal"
+            or args.policy_seed != PLAN25_POLICY_SEED
+            or not math.isclose(
+                float(args.starting_llm_budget or -1),
+                PLAN25_STARTING_BUDGET,
+                rel_tol=0.0,
+                abs_tol=1e-12,
+            )
+        ):
+            raise RuntimeError(
+                f"Plan 25 shakeout requires {PLAN25_TARGET_ATTEMPTS} attempts, "
+                f"{PLAN25_PRINCIPAL_COUNT} principals, Minimal cognition, seed "
+                f"{PLAN25_POLICY_SEED}, and starting_llm_budget={PLAN25_STARTING_BUDGET}"
+            )
+        return
     if _plan24_condition(args.acknowledgement) is not None:
         expected_attempts = (
             PLAN24_CANARY_TARGET_ATTEMPTS
@@ -565,7 +602,7 @@ def _seed_emergent_opportunities(world: RecoverableLoopWorld) -> list[str]:
     return [item[0] for item in opportunities]
 
 
-def _seed_task_bank(world: RecoverableLoopWorld) -> list[str]:
+def _seed_task_bank(world: RecoverableLoopWorld, bank_path: Path = PLAN24_TASK_BANK) -> list[str]:
     """Endow each principal with its frozen task statements (Plan 24).
 
     Only the signature and docstring are written; hidden tests stay with the
@@ -573,10 +610,15 @@ def _seed_task_bank(world: RecoverableLoopWorld) -> list[str]:
     """
     from agent_ecology3.world.mint import load_task_bank
 
-    if world.principal_ids != ["alpha_1", "alpha_2"]:
-        raise RuntimeError("Plan 24 scenario requires exactly alpha_1 and alpha_2")
+    tasks = load_task_bank(bank_path)
+    owners = {task.owner for task in tasks.values()}
+    if owners != set(world.principal_ids):
+        raise RuntimeError(
+            f"task bank owners {sorted(owners)} must equal the run's principals "
+            f"{sorted(world.principal_ids)}"
+        )
     written: list[str] = []
-    for task in load_task_bank(PLAN24_TASK_BANK).values():
+    for task in tasks.values():
         number = task.task_id.split("/")[-1]
         artifact_id = f"{task.owner}_task_{number}"
         content = (
@@ -815,8 +857,13 @@ async def _serve(args: argparse.Namespace) -> None:
             else None
         ),
         reasoning_effort="low" if plan24_condition is not None else "medium",
-        task_bank_path=PLAN24_TASK_BANK if plan24_condition is not None else None,
+        task_bank_path=_task_bank_for(args.acknowledgement) if plan24_condition is not None else None,
         cross_principal_trading=plan24_condition != "solo",
+        snapshot_artifact_limit=(
+            PLAN25_SNAPSHOT_ARTIFACT_LIMIT
+            if args.acknowledgement == PLAN25_SHAKEOUT_ACKNOWLEDGEMENT
+            else 24
+        ),
     )
     world, coordinator = build_recoverable_world(
         config,
@@ -836,7 +883,7 @@ async def _serve(args: argparse.Namespace) -> None:
     }:
         _seed_emergent_opportunities(world)
     elif plan24_condition is not None:
-        _seed_task_bank(world)
+        _seed_task_bank(world, _task_bank_for(args.acknowledgement))
     runner = SimulationRunner(world)
     coordinator.publish_status(
         "running" if args.start_running else "paused",

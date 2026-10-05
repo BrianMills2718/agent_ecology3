@@ -76,6 +76,9 @@ class LLMConfig(StrictModel):
     loop_cognition_mode: Literal["prescribed", "minimal"] = "prescribed"
     loop_prompt_template_path: str | None = None
     loop_prompt_feedback_enabled: bool = True
+    # Artifacts listed in each loop prompt; scale runs need more than 24 so
+    # seeded task statements stay visible (Plan 25).
+    loop_snapshot_artifact_limit: int = Field(default=24, ge=1, le=500)
     loop_action_gate_enabled: bool = True
     loop_action_failure_policy: Literal[
         "recovery_fallback", "fail_closed_no_substitute"
