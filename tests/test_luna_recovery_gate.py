@@ -108,7 +108,7 @@ def test_luna_route_requires_exact_medium_cli_profile() -> None:
 
     for field, invalid in (
         ("default_model", "codex/gpt-5.6-terra"),
-        ("reasoning_effort", "low"),
+        ("reasoning_effort", "high"),
         ("codex_transport", "auto"),
         ("codex_sandbox_mode", "workspace-write"),
         ("codex_approval_policy", "on-request"),
@@ -623,7 +623,7 @@ def test_luna_dispatch_revalidates_mutated_profile_before_reservation(
 ) -> None:
     world = _configured_world(tmp_path)
     before_budget = world.ledger.get_llm_budget("alpha_1")
-    world.config.llm.reasoning_effort = "low"
+    world.config.llm.reasoning_effort = "high"
 
     result = world.call_llm_as_syscall(
         payer_id="alpha_1",

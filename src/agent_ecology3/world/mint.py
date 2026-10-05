@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 from importlib import import_module
+import json
+import re
+import subprocess
+import sys
+import tempfile
 import time
 import uuid
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Any
 
@@ -96,6 +102,99 @@ class MintScorer:
             ) from exc
 
 
+SOLUTION_TYPE_PREFIX = "solution:"
+_FENCE = re.compile(r"^\s*```[A-Za-z0-9_+-]*\s*\n(?P<body>.*?)\n\s*```\s*$", re.DOTALL)
+
+
+@dataclass(frozen=True)
+class BenchmarkTask:
+    task_id: str
+    owner: str
+    entry_point: str
+    prompt: str
+    test: str
+
+
+def load_task_bank(path: str | Path) -> dict[str, BenchmarkTask]:
+    """Load a frozen JSONL task bank (Plan 24); fails loud on malformed rows."""
+
+    tasks: dict[str, BenchmarkTask] = {}
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        task = BenchmarkTask(
+            task_id=str(row["task_id"]),
+            owner=str(row["owner"]),
+            entry_point=str(row["entry_point"]),
+            prompt=str(row["prompt"]),
+            test=str(row["test"]),
+        )
+        if task.task_id in tasks:
+            raise ValueError(f"duplicate task id in bank: {task.task_id}")
+        tasks[task.task_id] = task
+    if not tasks:
+        raise ValueError(f"task bank {path} is empty")
+    return tasks
+
+
+class TaskCheckerScorer(MintScorer):
+    """Score a solution artifact by running a benchmark task's hidden tests.
+
+    The task is named by the artifact type ``solution:<task_id>``. Passing all
+    hidden tests scores 100; failing, timing out, or naming no known task
+    scores 0 with the reason. Only a failure of the checker itself raises
+    ``MintScoringError``. No model call is made.
+    """
+
+    def __init__(self, tasks: dict[str, BenchmarkTask], timeout_seconds: float) -> None:
+        super().__init__(model="checker:benchmark-hidden-tests", timeout_seconds=int(timeout_seconds))
+        self.tasks = tasks
+        self.checker_timeout_seconds = timeout_seconds
+
+    def task_id_for(self, artifact_type: str) -> str | None:
+        if not artifact_type.startswith(SOLUTION_TYPE_PREFIX):
+            return None
+        task_id = artifact_type[len(SOLUTION_TYPE_PREFIX):].strip()
+        return task_id if task_id in self.tasks else None
+
+    def score_artifact(self, artifact_id: str, artifact_type: str, content: str, code: str) -> tuple[int, str]:
+        self.last_cost = 0.0
+        self.last_error = None
+        task_id = self.task_id_for(artifact_type)
+        if task_id is None:
+            return 0, (
+                f"artifact_type {artifact_type!r} names no task; use "
+                f"'{SOLUTION_TYPE_PREFIX}<task_id>' with a known task id"
+            )
+        task = self.tasks[task_id]
+        source = code if code.strip() else content
+        fenced = _FENCE.match(source)
+        if fenced is not None:
+            source = fenced.group("body")
+        program = f"{source}\n\n{task.test}\n\ncheck({task.entry_point})\n"
+        try:
+            with tempfile.TemporaryDirectory(prefix="ae3_checker_") as workdir:
+                completed = subprocess.run(
+                    [sys.executable, "-I", "-c", program],
+                    cwd=workdir,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.checker_timeout_seconds,
+                    check=False,
+                )
+        except subprocess.TimeoutExpired:
+            return 0, f"{task_id}: hidden tests timed out after {self.checker_timeout_seconds}s"
+        except OSError as exc:
+            self.last_error = f"{type(exc).__name__}: {exc}"
+            raise MintScoringError(f"checker could not run for {artifact_id}: {self.last_error}") from exc
+        if completed.returncode == 0:
+            return 100, f"{task_id}: passed all hidden tests"
+        detail = (completed.stderr or completed.stdout).strip().splitlines()
+        last = detail[-1][:200] if detail else f"exit {completed.returncode}"
+        return 0, f"{task_id}: failed hidden tests ({last})"
+
+
 class MintAuction:
     def __init__(
         self,
@@ -124,6 +223,7 @@ class MintAuction:
         self.scorer = scorer
 
         self._submissions: dict[str, MintSubmission] = {}
+        self._claimed_tasks: dict[str, str] = {}
         self._history: list[MintResult] = []
         self._start_time = time.time()
         self._auction_started_at: float | None = None
@@ -172,6 +272,50 @@ class MintAuction:
             },
         )
         return submission_id
+
+    def score_now(self, principal_id: str, artifact_id: str, bid: int) -> dict[str, Any]:
+        """Task-bounty resolution: score one submission immediately (Plan 24).
+
+        The bid is checked for affordability and fully refunded; nothing moves
+        to other principals. Only the first passing submission per task is
+        paid ``score // mint_ratio`` scrip.
+        """
+        artifact = self.artifacts.get(artifact_id)
+        if artifact is None or artifact.deleted:
+            raise ValueError(f"artifact '{artifact_id}' not found")
+        if bid < self.minimum_bid:
+            raise ValueError(f"bid must be >= {self.minimum_bid}")
+        if not self.ledger.can_afford_scrip(principal_id, bid):
+            raise ValueError("insufficient scrip for bid")
+        writer = artifact.auth_state.get("writer")
+        principal = artifact.auth_state.get("principal")
+        if principal_id not in {artifact.owner, writer, principal}:
+            raise ValueError("submitter is not authorized for artifact")
+        score, reason = self.scorer.score_artifact(artifact.id, artifact.type, artifact.content, artifact.code)
+        task_id_for = getattr(self.scorer, "task_id_for", None)
+        task_id = task_id_for(artifact.type) if callable(task_id_for) else None
+        minted = 0
+        claimed_by = self._claimed_tasks.get(task_id) if task_id else None
+        if score > 0 and task_id is not None and claimed_by is None:
+            minted = score // max(1, self.mint_ratio)
+            self._claimed_tasks[task_id] = principal_id
+            if minted > 0:
+                self.ledger.credit_scrip(principal_id, minted)
+        elif score > 0 and claimed_by is not None:
+            reason = f"{reason}; bounty already claimed by {claimed_by}"
+        payload = {
+            "event_number": self.event_number,
+            "principal_id": principal_id,
+            "artifact_id": artifact.id,
+            "task_id": task_id,
+            "passed": score >= 100,
+            "score": score,
+            "reason": reason,
+            "scrip_minted": minted,
+            "first_claim": minted > 0,
+        }
+        self.logger.log("task_bounty_scored", payload)
+        return payload
 
     def cancel(self, principal_id: str, submission_id: str) -> bool:
         submission = self._submissions.get(submission_id)

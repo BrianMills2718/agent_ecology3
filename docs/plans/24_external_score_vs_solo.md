@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-05"
 ---
 # Plan #24: Outside-Scored Mint and Trading-vs-Solo Comparison
 
-**Status:** 🚧 In Progress — M0 and M1 done; M2 next
+**Status:** 🚧 In Progress — M0–M2 done; M3 next
 **Type:** durable living plan (initiative redirect)
 **Priority:** Critical
 **Blocked By:** None
@@ -146,7 +146,7 @@ Brian reads trading-vs-solo result
 |---|---|---|---|
 | M0 Repair blockers | **done 2026-10-05** (PRs #64, #66; `make check` green: 170 passed, mypy clean) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
 | M1 Landscape check | **done 2026-10-05: keep AE3** ([ADR 0002](../adr/0002-keep-ae3-kernel-for-trading-vs-solo.md)) | short adopt/compose/keep note in `docs/adr/`; start from the in-house `world-substrate` Concordia/Mesa spikes (active claim seen 2026-10-05) before external search | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
-| M2 Outside-score oracle + solo switch | next — fully specifiable after bounded design | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
+| M2 Outside-score oracle + solo switch | **built 2026-10-05** (see M2 design; provider-free tests in `tests/test_plan24_task_bounty.py`) | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
 | M3 Matched-pair comparison | conditional on M2 (spend ceiling USD 5 and Luna low set by Brian) | one-call Luna-low canary, then dashboard readout of 3 pairs | stop rule below |
 | M4 Live outside signals | deliberately_deferred | Reddit/GitHub-star scorer behind the same seam | M3 shows trading beats solo **and** Brian approves posting as him |
 
@@ -224,6 +224,57 @@ Step 1 copies; it never moves or deletes the originals.
 
 ---
 
+## M2 design (bounded-design, 2026-10-05)
+
+**Route:** durable_solo, Standard depth (changes the mint, permission, and
+Luna-profile contracts). This plan stays the single authority.
+
+**Task bank (adopted, not written):** 8 HumanEval tasks frozen in
+`config/tasks/humaneval_plan24_v1.jsonl` (selection rule and license in
+`config/tasks/README.md`). Agents see only the signature and docstring; hidden
+tests stay with the checker.
+
+**Why trading can help two copies of one model (the manipulation, stated
+openly):** each principal is endowed with 4 task statements as artifacts it
+owns, priced at 2 scrip to read. A principal can only solve a task whose
+statement it has read. Calls are the binding scarcity: 14 decisions each (28
+per run), while a task costs 2 calls to solve (write, submit) for its owner and
+3 for a buyer (read, write, submit). Solo agents can reach at most their own 4
+tasks; trading agents can also buy the other's statements or solutions. Whether
+they do is the question. Both conditions get identical rules text except one
+sentence saying whether trading between principals is open.
+
+**Contracts:**
+
+| Seam | Change | Disposition |
+|---|---|---|
+| `MintScorer` (`world/mint.py`) | `TaskCheckerScorer` runs the hidden tests for the task named by the artifact type `solution:<task_id>` in an isolated `python -I` subprocess with a timeout; pass = 100, fail or timeout = 0 with the reason; checker infrastructure failure raises `MintScoringError` | extend |
+| Mint resolution | `mint.mode: task_bounty` scores each submission immediately, refunds the bid, pays `score // mint_ratio` (10 scrip) only to the first passing submission per task, logs `task_bounty_scored` | extend (auction mode unchanged) |
+| Permissions | `economy.cross_principal_trading: false` makes `ContractEngine.check` deny reading another principal's artifacts (so they also disappear from the readable listing) and makes transfers to other principals fail with `trading_disabled`; no substitute action | extend |
+| Luna profile | `luna_structured_v1` accepts `reasoning_effort` `low` or `medium` | extend |
+| Launcher | Plan 24 acknowledgements for the canary (1 attempt) and the trading/solo conditions (28 attempts, 2 principals, Minimal, Luna low, seeds 24241–24243 one per pair) | extend |
+| Review | the existing matched-pair review accepts `trading`/`solo` and shows tasks passed by the checker, scrip minted, calls, and purchases that preceded each solved task | extend |
+
+**Validity rules (frozen before pairs):** a run is valid when all 28 attempts
+commit with authentic custody, zero fallbacks, and no `MintScoringError`.
+Calls bind when a principal's 14 decisions are used while an unsolved task
+whose statement it could reach remains. A pair is valid when both runs are
+valid. Any model-selected action failure (including a solo agent trying to read
+the other's artifact) invalidates that run, per AGENTS.md.
+
+**Checks:** provider-free tests for the checker (pass, fail, timeout, unknown
+task, infra failure), first-claim-only payout, the solo permission gate, the
+Luna-low profile, and the review summary; `make check` green.
+
+**Non-goals:** auction redesign, new UI, more tasks, more principals.
+
+**Found while building M2 (fixed, both conditions):** two free side channels let
+agents see priced content without paying. `query_kernel artifact` returned an
+artifact's full content, and `query_kernel events` returned raw log entries
+containing every read and written artifact's content. Queries now withhold
+priced or unreadable content and events drop content and model I/O. Plan 23's
+five event queries may have used this channel; its closure stands either way.
+
 ## Decisions and assumptions
 
 | Choice | Disposition | Reason / evidence |
@@ -255,7 +306,9 @@ Step 1 copies; it never moves or deletes the originals.
 
 ## Exact next action
 
-Run `bounded-design` for M2: choose the benchmark task source (coding problems
-with hidden tests), the endowment split between the two agents, the
-checker-backed scorer behind `MintScorer`, the trading-off gate, and the
-Luna-low profile change; then implement provider-free first.
+M3: start the one-call Luna-low canary
+(`--acknowledgement plan24/luna-low/canary/v1 --target-attempts 1
+--principal-count 2 --cognition-mode minimal --policy-seed 24241
+--starting-llm-budget 1.0`), check its trace and cost, then run pairs 1–3
+(seeds 24241, 24242, 24243; trading then solo) into
+`~/.local/state/agent_ecology3/plan24_pair_<n>/{trading,solo}`.

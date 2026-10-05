@@ -35,7 +35,7 @@ from .delegation import DelegationManager
 from .executor import get_executor
 from .ledger import Ledger
 from .logger import EventLogger, SummarySnapshot
-from .mint import MintAuction, MintScorer
+from .mint import MintAuction, MintScorer, TaskCheckerScorer, load_task_bank
 from .queries import KernelQueryHandler
 from .rates import RateTracker
 
@@ -305,6 +305,7 @@ class World:
             self.artifacts,
             self.ledger,
             default_when_missing=config.contracts.default_when_missing,
+            cross_principal_trading=config.economy.cross_principal_trading,
         )
         self.delegation_manager = DelegationManager()
         self.executor = get_executor(timeout_seconds=max(3, config.llm.timeout_seconds))
@@ -1798,11 +1799,19 @@ async def run():
 
     def _bootstrap_mint_systems(self) -> None:
         if self.config.mint.enabled:
-            scorer = MintScorer(
-                model=self.config.llm.default_model,
-                timeout_seconds=self.config.llm.timeout_seconds,
-                max_budget=self.config.mint.scoring_max_budget,
-            )
+            scorer: MintScorer
+            if self.config.mint.mode == "task_bounty":
+                assert self.config.mint.task_bank_path is not None
+                scorer = TaskCheckerScorer(
+                    load_task_bank(self.config.mint.task_bank_path),
+                    timeout_seconds=self.config.mint.checker_timeout_seconds,
+                )
+            else:
+                scorer = MintScorer(
+                    model=self.config.llm.default_model,
+                    timeout_seconds=self.config.llm.timeout_seconds,
+                    max_budget=self.config.mint.scoring_max_budget,
+                )
             self.mint_auction = MintAuction(
                 ledger=self.ledger,
                 artifacts=self.artifacts,
@@ -2816,7 +2825,7 @@ async def run():
         }
 
     def tick(self) -> None:
-        if self.mint_auction is not None:
+        if self.mint_auction is not None and self.config.mint.mode == "auction":
             _ = self.mint_auction.update()
 
     def get_llm_syscall_count(self) -> int:

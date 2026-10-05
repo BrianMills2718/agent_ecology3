@@ -133,7 +133,7 @@ def test_runner_monitor_remains_responsive_during_slow_async_syscall(tmp_path) -
 
         async def _heartbeat() -> None:
             nonlocal heartbeat_count
-            while not runner._stop_requested:
+            while not release.is_set():
                 heartbeat_count += 1
                 await asyncio.sleep(0.01)
 
@@ -142,12 +142,16 @@ def test_runner_monitor_remains_responsive_during_slow_async_syscall(tmp_path) -
         run_task = asyncio.create_task(runner.run(duration=0.05))
         heartbeat_task = asyncio.create_task(_heartbeat())
         await asyncio.wait_for(started.wait(), timeout=0.5)
-        await asyncio.sleep(0.12)
+        at_start = heartbeat_count
 
-        # A blocked event loop yields ~0-1 ticks; ~12 are expected unloaded.
-        # Require a margin that proves responsiveness without load flakiness.
-        assert heartbeat_count >= 3
-        assert runner._stop_requested is True
+        async def _ticks_and_stop_while_pending() -> None:
+            # The syscall stays pending until release, so these can only be
+            # reached if the event loop keeps running during it. Waiting on
+            # the condition (not a fixed sleep) keeps this load-independent.
+            while heartbeat_count < at_start + 5 or not runner._stop_requested:
+                await asyncio.sleep(0.01)
+
+        await asyncio.wait_for(_ticks_and_stop_while_pending(), timeout=5.0)
         assert run_task.done() is False
 
         release.set()

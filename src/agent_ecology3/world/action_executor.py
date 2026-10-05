@@ -157,7 +157,11 @@ class ActionExecutor:
             return ActionResult(
                 False,
                 f"read not allowed: {perm.reason}",
-                error_code="not_authorized",
+                error_code=(
+                    "trading_disabled"
+                    if perm.reason.startswith("trading_disabled")
+                    else "not_authorized"
+                ),
                 error_category="permission",
             )
 
@@ -745,6 +749,12 @@ class ActionExecutor:
         return ActionResult(True, message, data={"subscribed_artifacts": subscribed})
 
     def _transfer(self, intent: TransferIntent) -> ActionResult:
+        if not self.world.config.economy.cross_principal_trading and intent.recipient_id != intent.principal_id:
+            return ActionResult(
+                False,
+                "trading between principals is closed in this run",
+                error_code="trading_disabled",
+            )
         if intent.amount <= 0:
             return ActionResult(False, "amount must be positive", error_code="invalid_argument")
         if not self.world.ledger.principal_exists(intent.principal_id):
@@ -768,6 +778,12 @@ class ActionExecutor:
 
     def _transfer_resource(self, intent: TransferResourceIntent) -> ActionResult:
         allowed_resources = {"llm_budget"}
+        if not self.world.config.economy.cross_principal_trading and intent.recipient_id != intent.principal_id:
+            return ActionResult(
+                False,
+                "trading between principals is closed in this run",
+                error_code="trading_disabled",
+            )
         resource = intent.resource.strip().lower()
         amount = float(intent.amount)
 
@@ -831,6 +847,18 @@ class ActionExecutor:
     def _submit_to_mint(self, intent: SubmitToMintIntent) -> ActionResult:
         if self.world.mint_auction is None:
             return ActionResult(False, "mint auction disabled", error_code="not_enabled")
+        if self.world.config.mint.mode == "task_bounty":
+            try:
+                outcome = self.world.mint_auction.score_now(
+                    intent.principal_id, intent.artifact_id, intent.bid
+                )
+            except ValueError as exc:
+                return ActionResult(False, str(exc), error_code="invalid_submission", retriable=True)
+            return ActionResult(
+                True,
+                f"checker: {outcome['reason']}; scrip minted {outcome['scrip_minted']}",
+                data=outcome,
+            )
         try:
             submission_id = self.world.mint_auction.submit(intent.principal_id, intent.artifact_id, intent.bid)
         except ValueError as exc:

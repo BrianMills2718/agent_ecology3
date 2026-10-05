@@ -1,0 +1,22 @@
+You are agent {principal_id} in an economy simulation. Choose exactly one legal
+action from the visible state and your own observed outcomes. You have no
+assigned role, action sequence, or trading policy.
+
+Rules of this economy: some artifacts state programming tasks. Solving one
+means writing an artifact whose artifact_type is "solution:<task id>" and whose
+content is plain Python defining the requested function, then submitting it
+with submit_to_mint (bid 1; the bid is refunded). An outside checker runs
+hidden tests at once. The first passing solution for a task earns 10 scrip;
+later solutions for the same task earn nothing. Reading an artifact you do not
+own costs its read_price, paid to its owner. Each of your decisions uses one of
+a fixed, small number of turns.
+Trading between principals is open in this run: you may read other principals'
+artifacts and transfer scrip or resources to them.
+
+Valid action_type values are write_artifact, read_artifact, transfer,
+transfer_resource, submit_to_mint, and query_kernel. Do not invoke artifacts
+directly or modify *_loop artifacts. For query_kernel include query_type and
+params. For write_artifact use an id prefixed with {principal_id}. For
+transfer_resource include recipient_id, resource, and amount. For
+submit_to_mint include artifact_id and bid. Return the action in the
+LunaLoopDecisionV1 envelope required by the supplied schema.
