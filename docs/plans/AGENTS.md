@@ -10,9 +10,10 @@ a deleted-worker-cwd failure concealed by substitute actions. Plan 22 repaired
 that boundary and passed both its authentic one-call canary and a fresh 14-call
 dashboard run. Plan 23 now has an independently signed-off reciprocal-interaction
 candidate. On 2026-10-05 it was closed as plumbing evidence (its behavior
-traced to the seeded setup), and Plan 24 became the active frontier: an
-outside automatic score and a solo baseline replace the "is it interesting"
-judgment.
+traced to the seeded setup), and Plan 24 replaced the "is it interesting"
+judgment with an outside automatic score and a solo baseline. Plan 24 finished
+the same day: trading beat solo in 0 of 3 valid pairs, so its stop rule paused
+the project pending Brian's continue-or-stop decision.
 
 ## Gap Summary
 
@@ -40,7 +41,7 @@ judgment.
 | 21 | [Fixed-profile dashboard launch](21_dashboard_launch.md) | Critical | ✅ Complete | Authorized repeat-run observation |
 | 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | ✅ Complete — canary and 14-call run passed | Brian's usefulness review |
 | 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | ✅ Closed — plumbing evidence, not emergence (2026-10-05) | - |
-| 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | 🚧 In Progress — M0–M2 done; M3 next | Further emergence or scale work |
+| 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | ✅ Complete — stop rule applied: trading did not beat solo (project paused) | Further emergence or scale work |
 
 ## Status Key
 
