@@ -145,7 +145,7 @@ Brian reads trading-vs-solo result
 | Milestone | Planning state | Inspectable output | Promotion or replan trigger |
 |---|---|---|---|
 | M0 Repair blockers | fully_specifiable_now (active) | evidence bundles in git; mint fails loud; `make check` green | all M0 checks pass |
-| M1 Landscape check | exploration_required | short adopt/compose/keep note in `docs/adr/` | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
+| M1 Landscape check | exploration_required | short adopt/compose/keep note in `docs/adr/`; start from the in-house `world-substrate` Concordia/Mesa spikes (active claim seen 2026-10-05) before external search | if Concordia, Magentic Marketplace, or similar runs the comparison with less work than M2, replan M2 onto it |
 | M2 Outside-score oracle + solo switch | conditional on M1 = keep AE3 | provider-free fixture run where mint pays only on checker pass, and a solo run with zero trading | goes through `bounded-design` first: task bank choice and endowment design are material |
 | M3 Matched-pair comparison | conditional on M2 (spend ceiling USD 5 and Luna low set by Brian) | one-call Luna-low canary, then dashboard readout of 3 pairs | stop rule below |
 | M4 Live outside signals | deliberately_deferred | Reddit/GitHub-star scorer behind the same seam | M3 shows trading beats solo **and** Brian approves posting as him |
