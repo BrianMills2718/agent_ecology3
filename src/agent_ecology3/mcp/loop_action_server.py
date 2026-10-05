@@ -6,6 +6,10 @@ action payload in tool-call form so AE3 can parse and execute it.
 
 from __future__ import annotations
 
+import json
+import os
+import urllib.error
+import urllib.request
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer
@@ -85,10 +89,36 @@ def ae3_action(
         query_type=query_type,
         params=params,
     )
-    return {
-        "ok": True,
-        "action": payload,
-    }
+    kernel_url = os.environ.get("AE3_KERNEL_URL")
+    if not kernel_url:
+        # Legacy loop mode: the world parses the echoed tool call afterwards.
+        return {
+            "ok": True,
+            "action": payload,
+        }
+    return _execute_on_kernel(kernel_url, payload)
+
+
+def _execute_on_kernel(kernel_url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """Resident mode: the kernel executes the action and returns the real outcome.
+
+    The acting principal comes from this server's launch environment, never
+    from tool arguments, so an agent can only act as itself.
+    """
+    principal_id = os.environ["AE3_PRINCIPAL_ID"]
+    token = os.environ["AE3_AGENT_TOKEN"]
+    request = urllib.request.Request(
+        f"{kernel_url.rstrip('/')}/agent-act/{principal_id}",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            result: dict[str, Any] = json.loads(response.read().decode("utf-8"))
+            return result
+    except urllib.error.HTTPError as exc:
+        return {"success": False, "error": f"kernel refused action: HTTP {exc.code}", "error_code": "kernel_refused"}
 
 
 def main() -> None:

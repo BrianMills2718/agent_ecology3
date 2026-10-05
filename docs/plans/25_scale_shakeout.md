@@ -27,7 +27,8 @@ rule or thesis verdict.
 | Scale shakeout run 1 (4 agents, 120 decisions) | done — clean; one visibility bug fixed | `run_bundles/plan25_shakeout_run1.tar.gz`; PR #73 |
 | Live interaction graph (stopgap viewer) | done | Interactions tab, PR #75 |
 | llm_client pin with session resume | done | `ea550d2`, PR #76 |
-| `ae3_action` MCP server executes against the kernel and returns the result | next | see "Toward the target" |
+| `ae3_action` MCP server executes against the kernel and returns the result | done | `src/agent_ecology3/mcp/loop_action_server.py` forwards to `/agent-act/<principal>` |
+| Resident runner (resumed Claude Agent SDK sessions, ae3_action only) | done; first live probe passed | `scripts/run_resident_ecology.py`, `src/agent_ecology3/simulation/resident.py`; `run_bundles/plan25_resident_probe2.tar.gz` |
 | World Substrate living-view adapter | chosen (Brian: viewer only) | contracts and conditions below |
 | Compounding task source (CodeFlowBench) | researched | see "Toward the target" |
 
@@ -108,4 +109,5 @@ unverified Codeforces redistribution terms.
 
 | Run | Result | Evidence |
 |---|---|---|
+| `plan25_resident_probe2` (2 resident `claude-code/sonnet` agents, 2 turns, 2 actions per turn, 8-task bank) | **Passed all four checks.** Same session id every turn per agent; every world change is a `resident_action` kernel receipt from the agent's ae3_action call; 0 built-in tool calls; memory carried over (alpha_1's turn-1 note "next turn I'll write and submit task 28" was carried out in turn 2 and passed the hidden tests). Turns took 32 s and 13 s. Cost source: subscription. A first attempt (`probe1`) failed fast because the new llm_client requires `model_justification` for non-default models; fixed. | `run_bundles/plan25_resident_probe2.tar.gz` |
 | `plan25_shakeout_run1` (seed 25001) | **System: clean.** 120/120 decisions committed, all model-selected (`llm_valid`), 0 local failures, 30 decisions per agent, prompt 21-26k tokens, median call 11.6 s, estimated internal charge USD 2.30 (actual USD 0, subscription). **Behavior: mechanical.** Actions were only read (42), write (39), submit (39); 28 of 40 tasks solved (8/7/6/7 per agent), 4 failed hidden tests, 9 paid cross-agent reads, no queries or transfers. **Bug found:** 7 passing submissions earned nothing because the task was already claimed and agents could not see claims; fixed by marking `bounty_claimed_by` on the task statement and in the artifact listing. | `run_bundles/plan25_shakeout_run1.tar.gz` |
