@@ -41,6 +41,7 @@ class ResidentAgent:
     token: str
     workdir: Path
     session_id: str | None = None
+    codex_home: str | None = None
     turns_taken: int = 0
     actions_this_turn: int = 0
     session_ids_seen: list[str] = field(default_factory=list)
@@ -153,6 +154,66 @@ You have no assigned role or strategy; decide for yourself.
 """
 
 
+def _ae3_mcp_server(agent: ResidentAgent, kernel_url: str) -> dict[str, Any]:
+    return {
+        "type": "stdio",
+        "command": sys.executable,
+        "args": [str(MCP_SERVER_SCRIPT)],
+        "env": {
+            "PYTHONUNBUFFERED": "1",
+            "AE3_KERNEL_URL": kernel_url,
+            "AE3_PRINCIPAL_ID": agent.principal_id,
+            "AE3_AGENT_TOKEN": agent.token,
+        },
+    }
+
+
+def codex_call_kwargs(agent: ResidentAgent, kernel_url: str, *, reasoning_effort: str) -> dict[str, Any]:
+    """Codex CLI options (llm_client built-ins): persistent per-agent home with the
+    ae3 MCP server, read-only sandbox, never-ask approvals, resumed session."""
+    if agent.codex_home is None:
+        from llm_client.sdk.agents_codex import _create_codex_home
+
+        import shutil
+
+        created = _create_codex_home({"ae3": _ae3_mcp_server(agent, kernel_url)})
+        # Keep the session home with the run (Codex refuses helpers under /tmp,
+        # and the session must survive the turn).
+        target = agent.workdir / "codex_home"
+        shutil.move(created, target)
+        # Under approval_policy=never Codex rejects MCP calls that need approval;
+        # pre-approve only this server's tools (the kernel is the authority).
+        config_path = target / ".codex" / "config.toml"
+        config = config_path.read_text(encoding="utf-8")
+        header = '[mcp_servers."ae3"]\n'
+        if header not in config:
+            raise ResidentRunError("codex home is missing the ae3 MCP server table")
+        config_path.write_text(
+            config.replace(header, header + 'default_tools_approval_mode = "approve"\n', 1),
+            encoding="utf-8",
+        )
+        agent.codex_home = str(target)
+    kwargs: dict[str, Any] = {
+        "codex_home": agent.codex_home,
+        "codex_transport": "cli",
+        "reasoning_effort": reasoning_effort,
+        "working_directory": str(agent.workdir),
+        "sandbox_mode": "read-only",
+        "approval_policy": "never",
+        "skip_git_repo_check": True,
+        "fallback_models": [],
+        # No wall-clock cutoff: a turn is bounded by the kernel's per-turn
+        # action limit, not a timer (an agent turn makes several tool calls).
+        "agent_hard_timeout": 0,
+    }
+    if agent.session_id:
+        kwargs["codex_session_mode"] = "resume"
+        kwargs["codex_session_id"] = agent.session_id
+    else:
+        kwargs["codex_session_mode"] = "fresh"
+    return kwargs
+
+
 def agent_call_kwargs(agent: ResidentAgent, kernel_url: str, *, max_turns: int) -> dict[str, Any]:
     """Claude Agent SDK options: only the ae3 MCP tool, no built-ins, resumed session."""
     kwargs: dict[str, Any] = {
@@ -190,6 +251,7 @@ async def run_agent_turn(
     kernel_url: str,
     run_id: str,
     acall_llm: Any,
+    reasoning_effort: str = "low",
 ) -> dict[str, Any]:
     """One resumed turn for one agent. Raises ResidentRunError on any failure."""
     agent.actions_this_turn = 0
@@ -208,12 +270,17 @@ async def run_agent_turn(
             max_budget=0,
             num_retries=0,
             model_justification=kernel.world.config.llm.model_justification,
-            **agent_call_kwargs(agent, kernel_url, max_turns=kernel.actions_per_turn * 2 + 2),
+            **(
+                codex_call_kwargs(agent, kernel_url, reasoning_effort=reasoning_effort)
+                if model.startswith("codex/")
+                else agent_call_kwargs(agent, kernel_url, max_turns=kernel.actions_per_turn * 2 + 2)
+            ),
         )
     except Exception as exc:  # noqa: BLE001 - surface the original boundary error
         raise ResidentRunError(f"{agent.principal_id} turn {kernel.turn} failed: {type(exc).__name__}: {exc}") from exc
     usage = getattr(result, "usage", {}) or {}
-    session_id = usage.get("session_id")
+    raw = getattr(result, "raw_response", None)
+    session_id = usage.get("session_id") or (raw.get("session_id") if isinstance(raw, dict) else None)
     if not isinstance(session_id, str) or not session_id:
         raise ResidentRunError(f"{agent.principal_id} turn {kernel.turn}: no session id returned")
     if agent.session_id is not None and session_id != agent.session_id:
@@ -225,7 +292,13 @@ async def run_agent_turn(
     agent.session_id = session_id
     agent.session_ids_seen.append(session_id)
     agent.turns_taken += 1
-    builtin_calls = [
+    codex_events = getattr(result, "codex_events", None) or []
+    shell_commands = sum(
+        1 for event in codex_events
+        if isinstance(event, dict)
+        and (event.get("item") or {}).get("type") == "command_execution"
+    )
+    builtin_calls = [] if model.startswith("codex/") else [
         call for call in (getattr(result, "tool_calls", None) or [])
         if isinstance(call, dict)
         and str((call.get("function") or {}).get("name") or call.get("name") or "") not in ("", AE3_TOOL_NAME, "ae3_action")
@@ -242,6 +315,7 @@ async def run_agent_turn(
             "num_turns": usage.get("num_turns"),
             "duration_ms": usage.get("duration_ms"),
             "builtin_tool_calls": len(builtin_calls),
+            "sandboxed_shell_commands": shell_commands,
             "note": note[:2000],
             "finish_reason": getattr(result, "finish_reason", None),
             "cost": getattr(result, "cost", None),
