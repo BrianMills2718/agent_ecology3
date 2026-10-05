@@ -15,7 +15,7 @@ from .actions import ActionIntent, parse_intent_from_json
 LUNA_MODEL = "codex/gpt-5.6-luna"
 LUNA_RESPONSE_MODEL = "LunaLoopDecisionV1"
 LUNA_SCHEMA_VERSION = "luna_loop_decision.v1"
-REVIEWED_LLM_CLIENT_REVISION = "286715784f1d535d6dfcd2c867ca678d666e27d5"
+REVIEWED_LLM_CLIENT_REVISION = "ea550d2d4b8463798d973d2899bc9ebf5e07201f"
 LUNA_ACTION_TYPES = (
     "write_artifact",
     "read_artifact",

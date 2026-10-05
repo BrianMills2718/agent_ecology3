@@ -25,7 +25,7 @@ from ..world.luna_actions import (
 )
 from ..world.world import World
 
-REVIEWED_LLM_CLIENT_REVISION = "286715784f1d535d6dfcd2c867ca678d666e27d5"
+REVIEWED_LLM_CLIENT_REVISION = "ea550d2d4b8463798d973d2899bc9ebf5e07201f"
 LIVE_CANARY_ACKNOWLEDGEMENT: Literal["plan10/luna-medium/canary/v1"] = (
     "plan10/luna-medium/canary/v1"
 )
