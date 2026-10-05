@@ -15,6 +15,7 @@ from agent_ecology3.viz.world_substrate_view import (
     LABEL,
     RULE_PAID_READ,
     RULE_SOLVED,
+    RULE_NOTE,
     RULE_UNPAID,
     WORLD_SUBSTRATE_REPO,
     _material_hash,
@@ -46,13 +47,17 @@ def test_projection_replays_to_final_state_and_hash() -> None:
     bundle = build_projection(EVENTS, run_id="t", principals=["alpha_1", "alpha_2"],
                               task_ids=["HumanEval/34"], starting_scrip=100)
     assert bundle["schema_version"] == "world-substrate-live-projection/v0"
-    assert [e["rule_id"] for e in bundle["events"]] == [RULE_PAID_READ, RULE_SOLVED, RULE_UNPAID]
+    assert [e["rule_id"] for e in bundle["events"]] == [
+        f"{RULE_PAID_READ}.alpha_1", f"{RULE_SOLVED}.alpha_1", f"{RULE_UNPAID}.alpha_2"
+    ]
     world = _replay(bundle)
     members = {p: world["entities"][p]["components"]["member"] for p in ("alpha_1", "alpha_2")}
-    assert members["alpha_1"] == {"scrip": 108, "solved": 1, "bought": 1, "sold": 0}
+    assert {k: members["alpha_1"][k] for k in ("scrip", "solved", "bought", "sold")} == {
+        "scrip": 108, "solved": 1, "bought": 1, "sold": 0
+    }
     assert members["alpha_2"]["scrip"] == 102 and members["alpha_2"]["sold"] == 1
-    task = world["entities"]["task-HumanEval-34"]["components"]["resource"]
-    assert task["current"] == 1 and task["solver"] == "alpha_1"
+    board = world["entities"]["task-board"]["components"]["resource"]
+    assert board["current"] == 1 and board["last_solved"] == "HumanEval/34 by alpha_1"
     assert bundle["projection_final_hash"] == _material_hash(world)
 
 
@@ -63,7 +68,23 @@ def test_profile_is_living_scene_v1_with_truthful_label() -> None:
     assert profile["schema_version"] == "world-substrate-living-scene/v1"
     assert profile["world"] == bundle["world_id"]
     assert profile["note"] == LABEL
-    assert set(profile["event_visuals"]) == {"ae3.market.paid_read", "ae3.market.transfer", "ae3.mint.task_solved", "ae3.mint.submission_unpaid"}
+    visuals = profile["event_visuals"]
+    assert f"{RULE_PAID_READ}.alpha_1" in visuals and f"{RULE_NOTE}.alpha_2" in visuals
+    moves = [op for op in visuals[f"{RULE_SOLVED}.alpha_1"]["operations"] if op["op"] == "actor.move_to"]
+    assert moves == [{"op": "actor.move_to", "actor": "alpha_1", "entity": "checker", "animation_ms": 450}]
+
+
+def test_resident_turn_note_becomes_public_message_at_the_workbench() -> None:
+    events = [{"event_type": "resident_turn", "event_number": 9, "principal_id": "alpha_2", "turn": 1,
+               "note": "Plan: solve task 34 next turn."}]
+    bundle = build_projection(events, run_id="t", principals=["alpha_1", "alpha_2"],
+                              task_ids=["HumanEval/34"], starting_scrip=100)
+    world = _replay(bundle)
+    info = world["entities"]["note-1"]["components"]["information"]
+    delivery = world["entities"]["note-1-delivery"]["components"]["delivery"]
+    assert info["visibility"] == "public" and info["active"] is True and info["source_id"] == "alpha_2"
+    assert info["content"] == "Plan: solve task 34 next turn."
+    assert delivery["recipient_id"] == "bench-alpha_2" and delivery["status"] == "delivered"
 
 
 @pytest.mark.skipif(not (WORLD_SUBSTRATE_REPO / ".git").exists(), reason="world-substrate checkout not present")
