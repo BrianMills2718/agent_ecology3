@@ -304,3 +304,22 @@ def test_scale_task_bank_assigns_ten_tasks_to_each_of_four_principals() -> None:
         f"alpha_{n}": 10 for n in (1, 2, 3, 4)
     }
     assert not set(bank) & set(load_task_bank(BANK))
+
+
+def test_interaction_graph_projects_trades_and_solves(tmp_path: Path) -> None:
+    from agent_ecology3.dashboard.server import _interaction_graph
+
+    events = [
+        {"event_type": "artifact_read", "principal_id": "alpha_1", "recipient": "alpha_2", "read_price_paid": 2},
+        {"event_type": "artifact_read", "principal_id": "alpha_1", "recipient": "alpha_2", "read_price_paid": 2},
+        {"event_type": "artifact_read", "principal_id": "alpha_2", "recipient": "alpha_2", "read_price_paid": 2},
+        {"event_type": "task_bounty_scored", "principal_id": "alpha_1", "task_id": "HumanEval/34", "first_claim": True},
+        {"event_type": "task_bounty_scored", "principal_id": "alpha_2", "task_id": "HumanEval/34", "first_claim": False},
+    ]
+    graph = _interaction_graph(events, {"principals": ["alpha_1", "alpha_2"], "balances": {"alpha_1": {"scrip": 106}}})
+    edges = {edge["id"]: edge for edge in graph["edges"]}
+    assert edges["bought:alpha_1->alpha_2"]["weight"] == 2
+    assert "bought:alpha_2->alpha_2" not in edges
+    assert edges["solved:alpha_1->HumanEval/34"]["kind"] == "solved"
+    assert edges["attempted:alpha_2->HumanEval/34"]["weight"] == 1
+    assert graph["summary"] == {"agents": 2, "paid_reads": 2, "tasks_solved": 1, "failed_attempts": 1}
