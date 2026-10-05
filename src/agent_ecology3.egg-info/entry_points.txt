@@ -1,2 +1,0 @@
-[console_scripts]
-agent-ecology3 = agent_ecology3.cli:main

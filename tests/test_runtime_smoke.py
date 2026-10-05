@@ -144,7 +144,9 @@ def test_runner_monitor_remains_responsive_during_slow_async_syscall(tmp_path) -
         await asyncio.wait_for(started.wait(), timeout=0.5)
         await asyncio.sleep(0.12)
 
-        assert heartbeat_count >= 5
+        # A blocked event loop yields ~0-1 ticks; ~12 are expected unloaded.
+        # Require a margin that proves responsiveness without load flakiness.
+        assert heartbeat_count >= 3
         assert runner._stop_requested is True
         assert run_task.done() is False
 

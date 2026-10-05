@@ -17,17 +17,17 @@ status:  ## Show git status
 .PHONY: test test-quick check
 
 test:  ## Run pytest
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 test-quick:  ## Run pytest (no traceback)
-	pytest tests/ -q --tb=no
+	uv run pytest tests/ --tb=no
 
 check:  ## Run all checks (test, mypy)
 	@echo "Running tests..."
-	@pytest tests/ -q --tb=short
+	uv run pytest tests/ --tb=short
 	@echo ""
 	@echo "Running mypy..."
-	@mypy src/ --ignore-missing-imports
+	uv run mypy src/ --ignore-missing-imports
 	@echo ""
 	@echo "All checks passed!"
 
@@ -171,24 +171,6 @@ PR_AUTO_EXPECTED_REPO ?= $(notdir $(CURDIR))
 
 status:  ## Show git status
 	@git status --short --branch
-
-# --- During Implementation ---
-.PHONY: test test-quick check
-
-test:  ## Run pytest
-	pytest tests/ -v
-
-test-quick:  ## Run pytest (no traceback)
-	pytest tests/ -q --tb=no
-
-check:  ## Run all checks (test, mypy, lint)
-	@echo "Running tests..."
-	@pytest tests/ -q --tb=short
-	@echo ""
-	@echo "Running mypy..."
-	@mypy src/ --ignore-missing-imports
-	@echo ""
-	@echo "All checks passed!"
 
 # --- PR Workflow ---
 .PHONY: pr-ready pr merge finish pr-auto-check pr-auto
