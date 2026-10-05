@@ -45,7 +45,7 @@ them.
 |---|---|
 | Technical execution | Plan 23 run 3 passed its frozen 14-call reciprocal-interaction rubric with authentic Luna actions and bounded purchased-content memory |
 | Stakeholder reviewability | The Plan 23 candidate reopens read-only in the existing Ecosystem dashboard with its reciprocal read-create-buy chain and artifact contents visible |
-| Stakeholder outcome | **Thesis tested once, negative; project paused.** Plan 24 ran three valid outside-scored matched pairs (2 Luna-low agents, 8 HumanEval tasks, 28 decisions each): trading solved more per decision in 0 of 3 (tie, tie, solo; 18 vs 19 tasks). Agents bought each other's tasks but mostly took bounties from the owner rather than adding solved tasks |
+| Stakeholder outcome | **Thesis not yet tested at its scale.** Plan 24's outside-scored checker, trading switch and comparison view work. Its tiny setting (2 agents, 28 decisions, 8 independent tasks) showed no trading gain (tie, tie, solo), but that setting leaves no room for division of labor or compounding, so it does not test the thesis, which concerns scale and long horizons (Brian, 2026-10-05) |
 | Independent evidence | Plan 19 and Plan 23 are independently signed off for their bounded technical claims |
 | Operational state | Plan 23 run 3 completed 14/14, survived worker shutdown, and reopens from its durable receipt; Plan 21 remains preserved negative evidence |
 | Claim boundary | One trace-grounded reciprocal-interaction candidate; no causal, comparative, population, seed-robustness, or general emergence claim |
@@ -83,7 +83,8 @@ them.
 | 2 | Launch another bounded run from the existing dashboard | vertical / **complete** | Brian starts a fixed-profile run paused, sees model/call ceiling/exposure, and reaches the live Ecosystem view without using a CLI; no dispatch occurs before explicit Resume | Satisfied by Plan 21 |
 | 3 | Fail-loud repeat-run boundary | direct blocker / **complete** | A durable worker stops invalid on the first authentic-boundary failure and never presents a substitute as model behavior | Satisfied by Plan 22 canary and fresh 14-call run |
 | 4 | Interesting emergent interaction | **closed 2026-10-05** | Superseded: "interesting" cannot test the thesis | Plan 23 retained as plumbing evidence; replaced by row 4a |
-| 4a | Outside-scored trading-vs-solo comparison | vertical / **complete 2026-10-05 — negative** | The dashboard shows, for three matched pairs, tasks solved by an outside checker per call with trading on vs off | Stop rule applied: pause. Next is Brian's continue-with-new-mechanism or stop decision |
+| 4a | Outside-scored trading-vs-solo comparison | vertical / **complete 2026-10-05 (instrument)** | The dashboard shows, for three matched pairs, tasks solved by an outside checker per call with trading on vs off | Built and used once at toy scale; reuse as an observation lens, not a verdict |
+| 4b | Long-running ecology at scale | vertical / **next** | Many resident agents run for a long horizon on work whose value compounds (later tasks build on earlier artifacts), and Brian can watch who specializes, trades and builds on whom | Brian's direction 2026-10-05; scope set in the next plan |
 | 5 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | Brian cannot follow Plan 23 or a richer run from the list |
 | 6 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 7 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
@@ -124,22 +125,29 @@ preserved Plan 23 candidate.
 
 ## Selected execution frontier
 
-**Paused by Plan 24's stop rule (2026-10-05).** No executable goal is selected.
-The next step is Brian's decision:
+**Direction (Brian, 2026-10-05):** the benefits of cooperation should appear
+only at scale and over long horizons ("a little village of 3 people trying to
+build a fire" does not need markets). So the next work builds toward a large,
+long-running ecology and observes it. It does not run more small comparisons
+to rule on the thesis.
 
-- **Change the mechanism (recommended if continuing):** run each principal as a
-  resident Codex or Claude Code agent acting through the existing MCP bridge
-  (`src/agent_ecology3/mcp/loop_action_server.py`), so agents can test their
-  own code and keep their own memory (closes FM-02/FM-07 and the dossier's
-  first design constraint), with a task bank large enough that one agent cannot
-  reach most tasks alone. Repeat the same matched-pair readout under a new plan
-  and a stop rule fixed before data.
-- **Stop:** keep the workbench and evidence as they are.
+What that needs, from Plan 24's traces and the failure dossier:
 
-Evidence for this pause: [Plan 24](plans/24_external_score_vs_solo.md) "M3
-result and stop rule", the run bundles under
-`evaluations/evidence/run_bundles/`, and each pair's Comparison tab
-(`scripts/run_recoverable_evaluation.py review --data-dir <pair dir>`).
+- **Many agents running for a long time:** tens of agents over hours or days
+  rather than 2 agents for 28 decisions.
+- **Real resident agents:** each agent is a Codex or Claude Code session
+  acting through the existing MCP bridge
+  (`src/agent_ecology3/mcp/loop_action_server.py`), so it can test its own work
+  and keep its own memory (FM-02/FM-07; dossier design constraint 1).
+- **Work whose value compounds:** later tasks get easier with earlier
+  artifacts (shared helpers, tools, data), so building on others' work can pay
+  off over time. Independent one-shot tasks cannot show this.
+- **The outside checker stays the source of new value** (Plan 24's
+  `TaskCheckerScorer`), and the Comparison and Ecosystem views stay the way to
+  watch it.
+
+The next plan sets the concrete scale, horizon and task source. No stop rule or
+verdict is attached until there is a run worth observing.
 
 ## YAGNI guardrails
 
@@ -166,7 +174,7 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
 | Dashboard and receipt disagree | Treat the dashboard as untrusted and repair adoption before another run |
 | Launch requires many configuration choices | Freeze one useful profile; defer general scenario authoring |
 | Another authentic run produces no useful interaction | Revisit opportunity discoverability before visualization or scale |
-| Trading does not beat solo in at least two of three valid pairs | Apply the Plan 24 stop rule: record the negative result and pause; no prompt tuning |
+| A small, short comparison shows no cooperation gain | Not evidence against the thesis (wrong niche); scale and lengthen before judging |
 | Richer activity is hard to explain | Promote the compact economic summary; graph only if still needed |
 | Work spends two increments on tests/docs/infrastructure without a new visible operator capability | Return immediately to the selected browser journey |
 | A remote or multi-user consumer appears | Replan maturity and activate only the necessary pilot controls |
