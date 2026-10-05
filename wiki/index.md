@@ -1,40 +1,87 @@
+---
+title: Agent Ecology 3
+type: index
+authority: derived
+updated: 2026-10-05
+entry:
+  answers: "What Agent Ecology 3 is, whether it is still being worked on, what the current experiment is, how to run or reopen a run, and where its decisions and past results live."
+  not_when: "You want the older full-featured runtime (see agent_ecology2) or the shared LLM client itself (see llm_client)."
+  aliases: [AE3, agent_ecology3]
+  status: active
+  as_of: 2026-10-05
+  authority: docs/MVP_ROADMAP.md
+topics:
+  - title: "Roadmap and current status"
+    path: "docs/MVP_ROADMAP.md"
+    answers: "What is the goal, what is done, and what comes next?"
+  - title: "Active plan (Plan 24)"
+    path: "docs/plans/24_external_score_vs_solo.md"
+    answers: "Do agents solve more tasks per model call when they can trade than when they work alone?"
+  - title: "Implementation reference"
+    path: "docs/IMPLEMENTATION_BASELINE.md"
+    answers: "Which module owns what, and how is a run started and reopened?"
+  - title: "Lineage and standing constraints"
+    path: "docs/LINEAGE_AND_RESTARTS.md"
+    answers: "Why do three Agent Ecology repositories exist, and which rebuild rules still bind?"
+  - title: "Failure-mode dossier"
+    path: "docs/FAILURE_MODE_DOSSIER.md"
+    answers: "Which failures have already happened across AE1-AE3, and how are they prevented?"
+---
 # Agent Ecology 3
 
-Routing stub generated under Plan #268 (project-meta) from this repository's own declared metadata. It states what is known and what is not; it does not invent purpose or status.
+Agent Ecology 3 (AE3) is Brian's local workbench for running small economies of
+LLM agents under scarce resources: agents spend scrip (the in-world currency)
+and a limited model budget, buy and sell artifacts (pieces of text they write)
+from each other, and earn new scrip from a mint. Each
+decision is logged, and a finished run can be reopened read-only in a browser
+dashboard. The workbench itself is complete; the project's central bet (that
+trading makes the same agents more productive) has not been tested yet, and
+the current plan exists to test it.
 
-## Purpose
+## State as of 2026-10-05
+- Active. Plan 24 work landed on `main` on 2026-10-05 (PRs #63-#69), and the
+  roadmap's selected frontier is Plan 24.
+- Plan 24 milestones M0-M2 are done: the mint now pays only when an automatic
+  checker confirms a task was solved, and trading between agents can be
+  switched off. M3, three matched trading-vs-solo pairs judged by a pre-set
+  stop rule, is under way: the first pair was invalidated because a bug hid
+  correct answers from the checker, and the bug was fixed (PR #69). Plan 24
+  records each pair's result.
+- `make check` passes (pytest and mypy), and a preserved run reopens in the
+  dashboard from its committed evidence bundle (checked 2026-10-05).
+- Known limit: every result so far is a single bounded run; no comparative or
+  general emergence claim is supported yet.
 
-Clean-room Agent Ecology kernel for scarce-resource multi-agent experiments with contract artifacts, autonomous loops, JSONL observability, and scarcity-matrix evaluation.
+## Where to go next
+| If you want to... | Read |
+|---|---|
+| Know the goal, status, and next work | [MVP roadmap](../docs/MVP_ROADMAP.md) |
+| See the active experiment and its stop rule | [Plan 24](../docs/plans/24_external_score_vs_solo.md) |
+| Run a simulation or reopen a run | [README](../README.md) |
+| Find which module owns what | [Implementation reference](../docs/IMPLEMENTATION_BASELINE.md) |
+| Understand resource accounting | [Resource accounting](../docs/RESOURCE_ACCOUNTING.md) |
+| Know why AE3 exists and which rebuild rules still bind | [Lineage and restarts](../docs/LINEAGE_AND_RESTARTS.md) |
+| Avoid a known failure | [Failure-mode dossier](../docs/FAILURE_MODE_DOSSIER.md) |
+| Read architecture decisions | [ADR index](../docs/adr/AGENTS.md) |
+| Browse plans and their status | [Plan index](../docs/plans/AGENTS.md) |
+| Work here as an agent | [AGENTS.md](../AGENTS.md) |
 
-## Declared scope
+## Open concerns
+No GitHub issues are open for this repository's documentation. Known gaps
+from the 2026-10-05 sweep are listed in the description of the
+`docs-consolidation-2026-10-05` pull request; `ISSUES.md` holds the
+repository's own issue register.
 
-- **Domains:** multi-agent, simulation, mechanism-design, agent-economy
-- **Capabilities:** clean-kernel, resource-accounting, contract-driven-artifacts, autonomous-artifact-loops, scarcity-matrix, emergence-reporting, llm-client-experiment-logging, fastapi-dashboard
-- **Depends on:** llm_client
-
-## Read next
-
-- [Operating rules](../AGENTS.md)
-- [Project overview](../README.md)
-- [Active plan queue](../docs/plans/AGENTS.md)
-
-## Coverage and unknowns
-
-This stub is a routing floor (Plan #268 `route_only` profile), not enrichment. Known gaps: no declared roadmap or current-state authority; no declared architecture-decision index.
-
-| gap | who closes it |
-| --- | --- |
-| no declared roadmap or current-state authority | the repository owner; Plan #254 orders enrichment |
-| no declared architecture-decision index | the repository owner |
+## History (on demand)
+On 2026-10-05 the February 2026 rewrite-planning records
+(`docs/REWRITE_SCOPE.md`, `docs/REMOVAL_SEQUENCE.md`, `docs/REMOVAL_01..06_*.md`),
+the ChatGPT context handoff (`docs/CHATGPT_FULL_CONTEXT.md`),
+`docs/ACCOUNTING_CONSTANTS.md`, and the vendored process-pattern library
+(`docs/meta-patterns/`) were removed. Their binding content moved into the
+lineage, accounting, and implementation documents above. Recover any of them
+with `git log --all -- <path>` and `git show 28574ed:<path>`. Completed plans
+and evaluations stay in `docs/plans/` and `docs/evaluations/` as evidence.
 
 ## If this page did not answer your question
-
-Find the answer, then **add the route here before you finish the work that made you look**. A wiki that is only ever read decays; this is the only mechanism by which it improves, and the gap is cheapest to close while you still have the answer in front of you.
-
-- Add **where the answer lives**, not an essay.
-- If what you found contradicts this page, fix it or mark it stale — leaving both is worse than either.
-- If the answer belongs to a native authority, link that authority rather than copying its content here.
-
-Read this page before searching the repository. A search returns lines that matched a pattern and says nothing about whether they are current or binding.
-
-_Generated by `project-meta/scripts/generate_wiki_routing_stub.py` for Plan #268. Re-run to refresh after this repository's native surfaces change; do not hand-author prose into this file._
+Find the answer, then add the route here before finishing the task that made
+you look. Link the native authority; do not copy it.
