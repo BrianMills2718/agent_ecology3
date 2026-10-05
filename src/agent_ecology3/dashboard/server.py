@@ -15,6 +15,7 @@ _DASHBOARD_HTML = """<!doctype html>
 <html lang=\"en\">
 <head>
   <meta charset=\"utf-8\" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <link rel=\"icon\" href=\"data:,\" />
   <title>Agent Ecology 3 Review</title>
@@ -260,6 +261,7 @@ _DASHBOARD_HTML = """<!doctype html>
     <nav class=\"workspace-nav\" id=\"workspaceNav\" aria-label=\"Dashboard views\">
       <div class=\"tabs\">
         <button class=\"tab active\" id=\"ecosystemTab\" onclick=\"showView('ecosystem')\">Ecosystem</button>
+        <button class=\"tab\" id=\"graphTab\" onclick=\"showView('graph')\">Interactions</button>
         <button class=\"tab\" id=\"comparisonTab\" onclick=\"showView('comparison')\">Comparison</button>
         <button class=\"tab\" id=\"evidenceTab\" onclick=\"showView('evidence')\">Evidence</button>
       </div>
@@ -305,6 +307,13 @@ _DASHBOARD_HTML = """<!doctype html>
         <h2>What happened, decision by decision</h2>
         <p class=\"quiet\">Each column is one condition in the matched pair. Red decisions failed locally; no substitute action was silently used.</p>
         <div style=\"overflow-x:auto\"><table class=\"timeline\"><thead><tr><th>#</th><th id=\"timelineLeft\">Prescribed</th><th id=\"timelineRight\">Minimal</th></tr></thead><tbody id=\"timelineBody\"></tbody></table></div>
+      </section>
+    </main>
+    <main class="review" id="graphView">
+      <section class="review-section">
+        <h2>Who traded with whom, and what got solved</h2>
+        <p class="quiet" id="graphSummary">Circles are agents (size = scrip). Blue arrows run from buyer to seller (thicker = more paid reads). Squares are tasks: an orange arrow means that agent solved it first; a dashed grey arrow means a failed or unpaid attempt. Updates live while a run is going.</p>
+        <div id="interactionGraph" style="height:620px;border-radius:12px;background:var(--panel, #111827)"></div>
       </section>
     </main>
     <main class=\"review\" id=\"evidenceView\">
@@ -415,12 +424,52 @@ _DASHBOARD_HTML = """<!doctype html>
 
     function showView(view) {
       selectedView = view;
-      const surfaces = {ecosystem: 'operatorView', comparison: 'reviewView', evidence: 'evidenceView'};
+      const surfaces = {ecosystem: 'operatorView', graph: 'graphView', comparison: 'reviewView', evidence: 'evidenceView'};
       for (const [name, id] of Object.entries(surfaces)) {
         document.getElementById(id).classList.toggle('visible', name === view);
         document.getElementById(`${name}Tab`).classList.toggle('active', name === view);
       }
       if (view !== 'ecosystem' && replayTimer) toggleReplay();
+      if (view === 'graph') refreshGraph();
+    }
+
+    let graphCy = null;
+    async function refreshGraph() {
+      if (typeof cytoscape === 'undefined') {
+        document.getElementById('graphSummary').textContent = 'Graph library failed to load (needs network access to cdnjs.cloudflare.com).';
+        return;
+      }
+      const runParam = (typeof selectedRun === 'string' && selectedRun) ? `?run=${encodeURIComponent(selectedRun)}` : '';
+      const graph = await fetchJson('/interaction-graph' + runParam);
+      if (!graph || !graph.nodes) return;
+      const elements = [
+        ...graph.nodes.map(n => ({group: 'nodes', data: {...n}})),
+        ...graph.edges.map(e => ({group: 'edges', data: {...e}})),
+      ];
+      if (!graphCy) {
+        graphCy = cytoscape({
+          container: document.getElementById('interactionGraph'),
+          elements,
+          style: [
+            {selector: 'node', style: {'label': 'data(label)', 'color': '#e5e7eb', 'font-size': 11, 'text-valign': 'bottom', 'text-margin-y': 4}},
+            {selector: 'node[kind = "agent"]', style: {'shape': 'ellipse', 'background-color': '#3b82f6', 'width': 'mapData(scrip, 0, 300, 24, 70)', 'height': 'mapData(scrip, 0, 300, 24, 70)'}},
+            {selector: 'node[kind = "task"]', style: {'shape': 'round-rectangle', 'background-color': '#6b7280', 'width': 16, 'height': 16, 'font-size': 8}},
+            {selector: 'node[kind = "task"][?solved]', style: {'background-color': '#f59e0b'}},
+            {selector: 'edge', style: {'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'arrow-scale': 0.8}},
+            {selector: 'edge[kind = "bought"]', style: {'line-color': '#60a5fa', 'target-arrow-color': '#60a5fa', 'width': 'mapData(weight, 1, 10, 1.5, 8)', 'label': 'data(label)', 'font-size': 9, 'color': '#93c5fd'}},
+            {selector: 'edge[kind = "transfer"]', style: {'line-color': '#a78bfa', 'target-arrow-color': '#a78bfa', 'width': 2, 'line-style': 'dotted'}},
+            {selector: 'edge[kind = "solved"]', style: {'line-color': '#f59e0b', 'target-arrow-color': '#f59e0b', 'width': 2}},
+            {selector: 'edge[kind = "attempted"]', style: {'line-color': '#6b7280', 'target-arrow-color': '#6b7280', 'width': 1, 'line-style': 'dashed'}},
+          ],
+          layout: {name: 'cose', animate: false},
+        });
+      } else {
+        const before = graphCy.nodes().length;
+        graphCy.json({elements});
+        if (graphCy.nodes().length !== before) graphCy.layout({name: 'cose', animate: false, randomize: false}).run();
+      }
+      document.getElementById('graphSummary').textContent =
+        `${graph.summary.agents} agents · ${graph.summary.paid_reads} paid reads between agents · ${graph.summary.tasks_solved} tasks solved · ${graph.summary.failed_attempts} failed or unpaid attempts. Blue = buyer→seller, orange = solved first, dashed grey = failed/unpaid. Updates live during a run.`;
     }
 
     function formatMoney(value) {
@@ -659,6 +708,7 @@ _DASHBOARD_HTML = """<!doctype html>
         document.getElementById('turnSlider').value = currentTurn;
         document.getElementById('turnLabel').textContent = `Live · ${currentTurn} decisions`;
         renderOperator();
+        if (selectedView === 'graph') refreshGraph();
         document.getElementById('liveState').textContent = JSON.stringify(state, null, 2);
         document.getElementById('liveEvents').textContent = JSON.stringify(events, null, 2);
         document.getElementById('state').textContent = JSON.stringify(state, null, 2);
@@ -914,6 +964,78 @@ def _summarize_review_pair(review_runs: dict[str, Path]) -> dict[str, Any]:
             "behavioral contrast but not yet a functioning agent economy."
         ),
         "runs": runs,
+    }
+
+
+def _interaction_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> dict[str, Any]:
+    """Agents, tasks and the economic edges between them, from canonical events.
+
+    Nodes: agents (sized by scrip) and tasks. Edges: buyer -> seller paid
+    reads (weighted), scrip/resource transfers, agent -> task solved first,
+    and agent -> task failed or unpaid attempts. Read-only projection.
+    """
+    raw_balances = world_state.get("balances")
+    balances: dict[str, Any] = raw_balances if isinstance(raw_balances, dict) else {}
+    principals = list(world_state.get("principals") or balances.keys())
+    nodes: dict[str, dict[str, Any]] = {}
+    for principal in principals:
+        raw = balances.get(principal)
+        scrip = raw.get("scrip") if isinstance(raw, dict) else None
+        nodes[str(principal)] = {
+            "id": str(principal),
+            "kind": "agent",
+            "label": f"{principal} ({scrip})" if scrip is not None else str(principal),
+            "scrip": scrip if isinstance(scrip, (int, float)) else 100,
+        }
+    edges: dict[str, dict[str, Any]] = {}
+    paid_reads = failed = 0
+    for event in events:
+        kind = event.get("event_type")
+        if kind == "artifact_read":
+            buyer, seller = event.get("principal_id"), event.get("recipient")
+            if not buyer or not seller or buyer == seller or not float(event.get("read_price_paid", 0) or 0) > 0:
+                continue
+            paid_reads += 1
+            key = f"bought:{buyer}->{seller}"
+            edge = edges.setdefault(key, {"id": key, "source": buyer, "target": seller, "kind": "bought", "weight": 0, "scrip": 0.0})
+            edge["weight"] += 1
+            edge["scrip"] += float(event.get("read_price_paid", 0) or 0)
+            edge["label"] = f"{edge['weight']} reads"
+        elif kind in ("transfer", "resource_transfer"):
+            sender, recipient = event.get("sender"), event.get("recipient")
+            if sender and recipient and sender != recipient:
+                key = f"transfer:{sender}->{recipient}"
+                edge = edges.setdefault(key, {"id": key, "source": sender, "target": recipient, "kind": "transfer", "weight": 0})
+                edge["weight"] += 1
+        elif kind == "task_bounty_scored":
+            task_id, solver = event.get("task_id"), event.get("principal_id")
+            if not task_id or not solver:
+                continue
+            task_node = nodes.setdefault(
+                str(task_id), {"id": str(task_id), "kind": "task", "label": str(task_id).split("/")[-1], "solved": False}
+            )
+            if event.get("first_claim") is True:
+                task_node["solved"] = True
+                key = f"solved:{solver}->{task_id}"
+                edges[key] = {"id": key, "source": solver, "target": task_id, "kind": "solved", "weight": 1}
+            else:
+                failed += 1
+                key = f"attempted:{solver}->{task_id}"
+                edges.setdefault(key, {"id": key, "source": solver, "target": task_id, "kind": "attempted", "weight": 0})
+                edges[key]["weight"] += 1
+    for edge in edges.values():
+        for end in (edge["source"], edge["target"]):
+            nodes.setdefault(str(end), {"id": str(end), "kind": "agent", "label": str(end), "scrip": 100})
+    return {
+        "schema_version": "ae3_interaction_graph.v1",
+        "nodes": list(nodes.values()),
+        "edges": list(edges.values()),
+        "summary": {
+            "agents": sum(1 for n in nodes.values() if n["kind"] == "agent"),
+            "paid_reads": paid_reads,
+            "tasks_solved": sum(1 for n in nodes.values() if n.get("solved") is True),
+            "failed_attempts": failed,
+        },
     }
 
 
@@ -1244,6 +1366,20 @@ def create_app(
         if set(review_runs) not in ({"prescribed", "minimal"}, {"trading", "solo"}):
             return {"success": False, "error": "matched-pair comparison unavailable"}
         return _summarize_review_pair(review_runs)
+
+    @app.get("/interaction-graph")
+    async def interaction_graph(run: str | None = None) -> dict[str, Any]:
+        if review_runs:
+            payload = review_payload(run)
+            if payload is None:
+                return {"success": False, "error": "no run"}
+            world_state, log_path = payload
+            return _interaction_graph(_read_jsonl_tail(log_path, 100_000), world_state)
+        world = world_provider()
+        if world is None:
+            return {"success": False, "error": "live run unavailable"}
+        world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
+        return _interaction_graph(world.logger.read_recent(100_000), world_state)
 
     @app.get("/operator-state")
     async def operator_state(run: str | None = None) -> dict[str, Any]:
