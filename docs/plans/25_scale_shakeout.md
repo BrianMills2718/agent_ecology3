@@ -29,7 +29,7 @@ rule or thesis verdict.
 | llm_client pin with session resume | done | `ea550d2`, PR #76 |
 | `ae3_action` MCP server executes against the kernel and returns the result | done | `src/agent_ecology3/mcp/loop_action_server.py` forwards to `/agent-act/<principal>` |
 | Resident runner (resumed Claude Agent SDK sessions, ae3_action only) | done; probe passed; 4-agent run solved 40/40 before the weekly limit | `scripts/run_resident_ecology.py`, `src/agent_ecology3/simulation/resident.py`; `run_bundles/plan25_resident_probe2.tar.gz` |
-| World Substrate living-view adapter | chosen (Brian: viewer only) | contracts and conditions below |
+| World Substrate living-view adapter | done | `src/agent_ecology3/viz/world_substrate_view.py`; dashboard "Living view ↗" (`/living-view?run=`), rebuilt every 10 s during a live run; renderer taken read-only via `git archive` of world-substrate `33bd121`; replay of the bundle reproduces the run's final balances and hash (checked on `plan25_resident_run1`: 202/200/200/198) |
 | Compounding task source (CodeFlowBench) | researched | see "Toward the target" |
 
 ## World Substrate living view (viewer only)

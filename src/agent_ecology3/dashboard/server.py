@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
 _DASHBOARD_HTML = """<!doctype html>
@@ -263,6 +264,7 @@ _DASHBOARD_HTML = """<!doctype html>
         <button class=\"tab active\" id=\"ecosystemTab\" onclick=\"showView('ecosystem')\">Ecosystem</button>
         <button class=\"tab\" id=\"graphTab\" onclick=\"showView('graph')\">Interactions</button>
         <button class=\"tab\" id=\"comparisonTab\" onclick=\"showView('comparison')\">Comparison</button>
+        <button class="tab" id="livingViewLink" onclick="window.open('/living-view' + ((typeof selectedRun === 'string' && selectedRun) ? '?run=' + encodeURIComponent(selectedRun) : ''), '_blank')" title="Open this run in the World Substrate living view">Living view ↗</button>
         <button class=\"tab\" id=\"evidenceTab\" onclick=\"showView('evidence')\">Evidence</button>
       </div>
       <label class=\"condition-picker\" id=\"conditionPicker\"><span id=\"runPickerLabel\">Condition</span>
@@ -1039,6 +1041,25 @@ def _interaction_graph(events: list[dict[str, Any]], world_state: dict[str, Any]
     }
 
 
+def _living_view_inputs(
+    events: list[dict[str, Any]], world_state: dict[str, Any]
+) -> tuple[list[str], list[str]]:
+    """Principals and task ids for the World Substrate living view."""
+    raw_balances = world_state.get("balances")
+    balances: dict[str, Any] = raw_balances if isinstance(raw_balances, dict) else {}
+    principals = sorted(str(p) for p in (world_state.get("principals") or balances.keys()))
+    task_ids: list[str] = []
+    artifacts = world_state.get("artifacts")
+    for artifact in artifacts if isinstance(artifacts, list) else []:
+        if isinstance(artifact, dict) and artifact.get("type") == "task_statement" and "_task_" in str(artifact.get("id")):
+            task_ids.append("HumanEval/" + str(artifact["id"]).rsplit("_task_", 1)[1])
+    for event in events:
+        task_id = event.get("task_id") if event.get("event_type") == "task_bounty_scored" else None
+        if isinstance(task_id, str) and task_id not in task_ids:
+            task_ids.append(task_id)
+    return principals, sorted(set(task_ids), key=lambda t: (len(t), t))
+
+
 def _summarize_task_pair(
     trading: dict[str, Any], solo: dict[str, Any], valid_pair: bool
 ) -> dict[str, Any]:
@@ -1380,6 +1401,32 @@ def create_app(
             return {"success": False, "error": "live run unavailable"}
         world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
         return _interaction_graph(world.logger.read_recent(100_000), world_state)
+
+    @app.get("/living-view", response_class=HTMLResponse)
+    async def living_view(run: str | None = None) -> str:
+        from ..viz.world_substrate_view import build_profile, build_projection, render_living_view
+
+        if review_runs:
+            payload = review_payload(run)
+            if payload is None:
+                raise HTTPException(status_code=404, detail="no run")
+            world_state, log_path = payload
+            events = _read_jsonl_tail(log_path, 100_000)
+            run_id, refresh = str(run or next(iter(review_runs))), None
+        else:
+            world = world_provider()
+            if world is None:
+                raise HTTPException(status_code=404, detail="live run unavailable")
+            world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
+            world_state["artifacts"] = [
+                {"id": a.id, "type": a.type} for a in world.artifacts.artifacts.values()
+            ]
+            events = world.logger.read_recent(100_000)
+            run_id, refresh = str(getattr(world, "run_id", "live")), 10
+        principals, task_ids = _living_view_inputs(events, world_state)
+        bundle = build_projection(events, run_id=run_id, principals=principals, task_ids=task_ids, starting_scrip=100)
+        profile = build_profile(bundle, principals=principals, task_ids=task_ids)
+        return await asyncio.to_thread(render_living_view, bundle, profile, refresh_seconds=refresh)
 
     @app.get("/operator-state")
     async def operator_state(run: str | None = None) -> dict[str, Any]:
