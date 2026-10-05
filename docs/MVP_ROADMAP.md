@@ -66,6 +66,7 @@ them.
   submission, final balances 104/95, and completed custody.
 - Durable evidence:
   `/home/brian/.local/state/agent_ecology3/plan19_luna_live_economic_mvp_v1/`
+  (durable copy: [run bundle](evaluations/evidence/run_bundles/plan19_luna_live_economic_mvp_v1.tar.gz))
   plus [the Plan 19 sign-off](evaluations/19_live_economic_mvp_signoff.md).
 - Evidence step-down: provider-free fixtures establish plumbing only; the
   authentic run establishes this one local observation only.
