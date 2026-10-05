@@ -1639,7 +1639,7 @@ async def run():
                 "balance": kernel_state.get_balance(),
                 "resources": kernel_state.get_resources(),
                 "artifacts": kernel_state.list_artifacts(
-                    limit=24,
+                    limit={int(self.config.llm.loop_snapshot_artifact_limit)},
                     readable_only=True,
                     include_permissions=True,
                 ),

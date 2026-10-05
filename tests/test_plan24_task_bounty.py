@@ -287,3 +287,20 @@ def test_loop_normalizer_preserves_agent_authored_artifact_type(tmp_path: Path) 
     )
     assert reason is None
     assert decision["artifact_type"] == "solution:HumanEval/28"
+
+
+def test_loop_snapshot_artifact_limit_is_configurable(tmp_path: Path) -> None:
+    cfg = _config(tmp_path)
+    cfg.llm.loop_snapshot_artifact_limit = 80
+    world = World(cfg, run_id="plan25_limit")
+    assert "limit=80," in world._default_loop_code("alpha_1", 0)
+
+
+def test_scale_task_bank_assigns_ten_tasks_to_each_of_four_principals() -> None:
+    bank = load_task_bank(BANK.with_name("humaneval_scale_v1.jsonl"))
+    owners = [task.owner for task in bank.values()]
+    assert len(bank) == 40
+    assert {owner: owners.count(owner) for owner in set(owners)} == {
+        f"alpha_{n}": 10 for n in (1, 2, 3, 4)
+    }
+    assert not set(bank) & set(load_task_bank(BANK))

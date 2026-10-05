@@ -586,7 +586,7 @@ _DASHBOARD_HTML = """<!doctype html>
             <div class=\"metric\"><b>${run.succeeded}/${run.attempts}</b><span>successful decisions</span></div>
             <div class=\"metric\"><b>${run.artifacts_created.length}</b><span>new artifacts</span></div>
             <div class=\"metric\"><b>${run.failures}</b><span>local failures</span></div>
-            ${run.task_mode ? `<div class=\"metric\"><b>${run.tasks_passed}/8</b><span>tasks passed hidden tests</span></div><div class=\"metric\"><b>${run.scrip_minted}</b><span>scrip minted by checker</span></div><div class=\"metric\"><b>${run.purchases}</b><span>paid reads of the other's work</span></div>` : ''}
+            ${run.task_mode ? `<div class=\"metric\"><b>${run.tasks_passed}</b><span>tasks passed hidden tests</span></div><div class=\"metric\"><b>${run.scrip_minted}</b><span>scrip minted by checker</span></div><div class=\"metric\"><b>${run.purchases}</b><span>paid reads of the other's work</span></div>` : ''}
           </div>
           ${run.task_mode ? `<div class=\"intent\">Solved: ${run.solved_tasks.length ? run.solved_tasks.map(t => `${escapeHtml(t.task_id)} by ${escapeHtml(t.solver)}${t.bought_this_task ? ' (bought this task from the other agent)' : ''}`).join('; ') : 'none'}</div>` : ''}
           <div class=\"mix\">${Object.entries(run.action_counts).map(([name,count]) => `<span class=\"chip\">${escapeHtml(name)} × ${count}</span>`).join('')}</div>
