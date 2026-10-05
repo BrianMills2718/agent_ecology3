@@ -7,6 +7,7 @@ ADRs document significant architectural decisions.
 | # | Title | Status | Date |
 |---|-------|--------|------|
 | 0001 | Use ADRs | Accepted | YYYY-MM-DD |
+| 0002 | [Keep the AE3 kernel for the trading-vs-solo comparison](0002-keep-ae3-kernel-for-trading-vs-solo.md) | Accepted | 2026-10-05 |
 
 ## ADR Lifecycle
 
