@@ -84,6 +84,11 @@ def build_projection(
             "components": {"member": {"scrip": starting_scrip, "solved": 0, "bought": 0, "sold": 0, "doing": "idle"}},
         }
     for principal in principals:
+        for station in (BOARD, MARKET, CHECKER):
+            world["entities"][f"spot-{station}-{principal}"] = {
+                "entity_id": f"spot-{station}-{principal}",
+                "components": {"spot": {"station": station, "agent": principal}},
+            }
         world["entities"][f"bench-{principal}"] = {
             "entity_id": f"bench-{principal}",
             "components": {"workbench": {"owner": principal, "notes": 0}},
@@ -300,7 +305,25 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         )
     }
 
+    # Each agent gets its own standing spot around each shared place, so agents
+    # at the same place do not stack on one point (the renderer moves an actor
+    # to the target's exact anchor).
+    import math
+
+    spots: dict[str, Any] = {}
+    for station in (BOARD, MARKET, CHECKER):
+        cx, cy = stations[station]["home"]
+        for n, principal in enumerate(principals):
+            angle = math.pi * (0.15 + 0.7 * n / max(1, len(principals) - 1))
+            spots[f"spot-{station}-{principal}"] = {
+                "entity": f"spot-{station}-{principal}", "asset": "spot", "label": "",
+                "home": [round(cx + 11.0 * math.cos(angle), 2), round(cy + 9.0 * math.sin(angle), 2)],
+                "bindings": {}, "render": {"inspector_fields": []},
+            }
+
     def visual(principal: str, label: str, target: str | None, *, transmit: bool = False) -> dict[str, Any]:
+        if target in (BOARD, MARKET, CHECKER):
+            target = f"spot-{target}-{principal}"
         operations: list[dict[str, Any]] = []
         if transmit:
             operations.append({"op": "information.transmit", "delivery_from_changed_entities": True, "read_paths": {}})
@@ -329,6 +352,7 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         "assets": {
             "agent": {"kind": "text", "value": "A"},
             "bench": {"kind": "text", "value": "✎"},
+            "spot": {"kind": "text", "value": "·"},
             "board": {"kind": "text", "value": "▤"},
             "market": {"kind": "text", "value": "⇄"},
             "checker": {"kind": "text", "value": "✓"},
@@ -340,7 +364,7 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
             "workbenches": {"label": "Workbenches", "rect": [4.0, 48.0, 92.0, 30.0], "anchor": [50.0, 64.0]},
         },
         "actors": actors,
-        "entities": {**stations, **benches},
+        "entities": {**stations, **benches, **spots},
         "activities": {},
         "institutions": {},
         "event_visuals": event_visuals,
