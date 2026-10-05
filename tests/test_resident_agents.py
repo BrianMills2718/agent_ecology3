@@ -112,3 +112,21 @@ def test_agent_options_allow_only_the_ae3_tool_and_resume(tmp_path: Path) -> Non
     assert first["mcp_servers"]["ae3"]["env"]["AE3_PRINCIPAL_ID"] == "alpha_1"
     agent.session_id = "sess-1"
     assert agent_call_kwargs(agent, "http://k", max_turns=6)["resume"] == "sess-1"
+
+
+def test_codex_options_use_persistent_home_with_preapproved_ae3_server(tmp_path: Path) -> None:
+    from agent_ecology3.simulation.resident import codex_call_kwargs
+
+    _, kernel, _ = _kernel(tmp_path)
+    agent = kernel.agents["alpha_1"]
+    first = codex_call_kwargs(agent, "http://k", reasoning_effort="low")
+    home = Path(first["codex_home"])
+    assert home == agent.workdir / "codex_home" and (home / ".codex").is_dir()
+    config = (home / ".codex" / "config.toml").read_text()
+    assert '[mcp_servers."ae3"]\ndefault_tools_approval_mode = "approve"' in config
+    assert first["codex_session_mode"] == "fresh" and first["agent_hard_timeout"] == 0
+    assert first["sandbox_mode"] == "read-only" and first["approval_policy"] == "never"
+    agent.session_id = "01a10e02-68dc-77c1-a2a0-fe1b6de6b883"
+    again = codex_call_kwargs(agent, "http://k", reasoning_effort="low")
+    assert again["codex_session_mode"] == "resume" and again["codex_session_id"] == agent.session_id
+    assert again["codex_home"] == first["codex_home"]

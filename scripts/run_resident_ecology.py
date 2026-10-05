@@ -97,7 +97,8 @@ async def _main(args: argparse.Namespace) -> int:
             started = time.monotonic()
             results = await asyncio.gather(*[
                 run_agent_turn(kernel, agent, model=args.model, kernel_url=kernel_url,
-                               run_id=args.run_id, acall_llm=acall_llm)
+                               run_id=args.run_id, acall_llm=acall_llm,
+                               reasoning_effort=args.reasoning_effort)
                 for agent in kernel.agents.values()
             ])
             print(json.dumps({"turn": turn, "seconds": round(time.monotonic() - started, 1),
@@ -118,7 +119,9 @@ def main() -> int:
     parser.add_argument("--agents", type=int, default=4)
     parser.add_argument("--turns", type=int, default=3)
     parser.add_argument("--actions-per-turn", type=int, default=4)
-    parser.add_argument("--model", default="claude-code/sonnet")
+    parser.add_argument("--model", default="codex/gpt-5.6-luna",
+                        help="codex/<model> (ChatGPT subscription) or claude-code/<model> (Claude subscription)")
+    parser.add_argument("--reasoning-effort", default="low", help="Codex reasoning effort")
     parser.add_argument("--task-bank", default=str(REPO_ROOT / "config" / "tasks" / "humaneval_scale_v1.jsonl"))
     parser.add_argument("--run-id", default=f"plan25_resident_{time.strftime('%Y%m%d_%H%M%S')}")
     parser.add_argument("--data-dir", default=None)
