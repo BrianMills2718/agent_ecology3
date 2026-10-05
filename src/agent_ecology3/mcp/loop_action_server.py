@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 
-server = FastMCP("ae3-loop-action")
+server = MCPServer("ae3-loop-action")
 
 
 def _build_action_payload(

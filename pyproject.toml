@@ -14,7 +14,7 @@ dependencies = [
   "pydantic>=2.6.0",
   "fastapi>=0.111.0",
   "uvicorn>=0.30.0",
-  "mcp>=1.26.0",
+  "mcp>=2.3.0",
   # Reviewed shared-client revision (RUNTIME_REVIEWED_LLM_CLIENT_REVISION).
   "llm-client[codex] @ git+https://github.com/BrianMills2718/llm_client.git@286715784f1d535d6dfcd2c867ca678d666e27d5",
 ]

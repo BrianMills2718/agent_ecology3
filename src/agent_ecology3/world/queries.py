@@ -31,7 +31,8 @@ class KernelQueryHandler:
                 "error": f"unknown query_type '{query_type}'",
                 "error_code": "invalid_query_type",
             }
-        return handler(params)
+        result: dict[str, Any] = handler(params)
+        return result
 
     def _query_artifacts(self, params: dict[str, Any]) -> dict[str, Any]:
         owner = params.get("owner")

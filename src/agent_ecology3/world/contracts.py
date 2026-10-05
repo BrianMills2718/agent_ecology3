@@ -59,16 +59,20 @@ class ReadOnlyLedger:
         self._ledger = ledger
 
     def get_scrip(self, principal_id: str) -> int:
-        return self._ledger.get_scrip(principal_id)
+        scrip: int = self._ledger.get_scrip(principal_id)
+        return scrip
 
     def can_afford_scrip(self, principal_id: str, amount: int) -> bool:
-        return self._ledger.can_afford_scrip(principal_id, amount)
+        affordable: bool = self._ledger.can_afford_scrip(principal_id, amount)
+        return affordable
 
     def get_resource(self, principal_id: str, resource: str) -> float:
-        return self._ledger.get_resource(principal_id, resource)
+        balance: float = self._ledger.get_resource(principal_id, resource)
+        return balance
 
     def principal_exists(self, principal_id: str) -> bool:
-        return self._ledger.principal_exists(principal_id)
+        exists: bool = self._ledger.principal_exists(principal_id)
+        return exists
 
 
 @dataclass

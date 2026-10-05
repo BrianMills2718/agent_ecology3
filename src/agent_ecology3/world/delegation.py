@@ -108,7 +108,8 @@ class DelegationManager:
                 return principal
             if isinstance(writer, str) and writer:
                 return writer
-            return target_artifact.owner
+            owner: str = target_artifact.owner
+            return owner
         if charge_to.startswith("pool:"):
             pool_id = charge_to.split(":", 1)[1].strip()
             if pool_id:

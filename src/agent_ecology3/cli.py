@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import os
 from pathlib import Path
+from typing import Literal, cast
 
 from dotenv import load_dotenv
 
@@ -95,7 +96,7 @@ def _load_runtime_config(
         normalized_mode = str(loop_forced_explore_override).strip().lower()
         if normalized_mode not in {"baseline", "reduced", "off"}:
             raise ValueError("--loop-forced-explore must be one of: baseline, reduced, off")
-        config.llm.loop_forced_explore_mode = normalized_mode
+        config.llm.loop_forced_explore_mode = cast(Literal["baseline", "reduced", "off"], normalized_mode)
     if loop_policy_seed_override is not None:
         config.llm.loop_policy_seed = int(loop_policy_seed_override)
     if loop_prompt_template_override is not None:
