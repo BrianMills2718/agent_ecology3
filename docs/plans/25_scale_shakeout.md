@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-05"
 ---
 # Plan #25: Working, Intelligent Ecology at Scale
 
-**Status:** 🚧 In Progress — M10 next (larger task supply for longer runs)
+**Status:** ⏸️ Paused — M10 (longer runs) waits behind Plan 26 (watchability), Brian 2026-10-06
 **Type:** durable living plan (company-planning `durable_solo`)
 **Priority:** Critical
 **Blocked By:** None
@@ -195,5 +195,7 @@ Agreed with the World Substrate session on 2026-10-05:
 
 ## Exact next action
 
-M10 step 1: run 16 agents × 80 turns on the built 365-task bank as a
-systemd unit; record it as above.
+Paused behind [Plan 26](26_watch_the_ecology.md) (Brian, 2026-10-06: see the
+agents trading, communicating, building and submitting before more scale).
+When it resumes: M10 step 1, run 16 agents × 80 turns on the built 365-task
+bank as a systemd unit.
