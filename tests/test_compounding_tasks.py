@@ -169,3 +169,15 @@ def test_same_name_helper_from_another_problem_is_not_linked(tmp_path: Path) -> 
     _submit(world, "alpha_1", "alpha_1_yd", "CF/Y/digits", "def digits(x):\n    return 0\n")
     outcome = _submit(world, "alpha_2", "alpha_2_g2", "CF/X/gsum2", GSUM2_REUSING)
     assert outcome["passed"] is False and "NameError" in outcome["reason"]
+
+
+def test_min_helpers_two_keeps_two_helper_chains_with_a_dependency() -> None:
+    b = _builder()
+    def helper(name: str, deps: list[str]) -> dict[str, Any]:
+        return {"name": name, "statement": f"do {name}", "dependencies": deps,
+                "test_code": [{"input": "(1,)", "output": "1"}, {"input": "(2,)", "output": "2"}]}
+    problems = [{"problem-id": "P2", "subproblems": [helper("a", []), helper("b", ["a"]), helper("solve", ["b"])]},
+                {"problem-id": "Q2", "subproblems": [helper("c", []), helper("d", [])]}]
+    assert b.build(problems, agents=2, count=5, seed=1) == []
+    rows = b.build(problems, agents=2, count=5, seed=1, min_helpers=2)
+    assert {r["task_id"] for r in rows} == {"CF/P2/a", "CF/P2/b"}

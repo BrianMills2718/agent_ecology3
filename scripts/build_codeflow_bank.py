@@ -79,11 +79,12 @@ def check_code(cases: list[tuple[str, str]]) -> str:
     )
 
 
-def build(problems: list[dict[str, Any]], *, agents: int, count: int, seed: int) -> list[dict[str, Any]]:
+def build(problems: list[dict[str, Any]], *, agents: int, count: int, seed: int,
+          min_helpers: int = 3) -> list[dict[str, Any]]:
     candidates = []
     for problem in problems:
         helpers = [h for h in problem.get("subproblems") or [] if h.get("name") not in SKIP_NAMES]
-        if len(helpers) >= 3 and any(h.get("dependencies") for h in helpers):
+        if len(helpers) >= min_helpers and any(h.get("dependencies") for h in helpers):
             candidates.append(problem)
     random.Random(seed).shuffle(candidates)
     rows: list[dict[str, Any]] = []
@@ -101,7 +102,7 @@ def build(problems: list[dict[str, Any]], *, agents: int, count: int, seed: int)
             if len(cases) < 2:
                 continue
             kept[name] = {"helper": helper, "test": check_code(cases), "example": example_text(name, cases)}
-        if len(kept) < 3 or not any(
+        if len(kept) < min_helpers or not any(
             dep in kept for k in kept.values() for dep in k["helper"].get("dependencies") or []
         ):
             continue
@@ -129,6 +130,10 @@ def main() -> int:
     parser.add_argument("--agents", type=int, default=8)
     parser.add_argument("--problems", type=int, default=16)
     parser.add_argument("--seed", type=int, default=25101)
+    # The GitHub test file keeps 53 of 986 problems at 3 (most problems have 0-1
+    # helpers); 2 keeps 139 problems / 365 tasks, each still with a dependency.
+    parser.add_argument("--min-helpers", type=int, default=3,
+                        help="minimum helpers with literal tests per problem (at least one must depend on another)")
     parser.add_argument("--dataset", type=Path, default=CACHE / "codeflowbench_comp_test.json")
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
@@ -136,7 +141,7 @@ def main() -> int:
         args.dataset.parent.mkdir(parents=True, exist_ok=True)
         urllib.request.urlretrieve(DATASET_URL, args.dataset)
     problems = json.loads(args.dataset.read_text(encoding="utf-8"))
-    rows = build(problems, agents=args.agents, count=args.problems, seed=args.seed)
+    rows = build(problems, agents=args.agents, count=args.problems, seed=args.seed, min_helpers=args.min_helpers)
     out = args.out or CACHE / f"codeflow_bank_a{args.agents}_p{args.problems}_s{args.seed}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")

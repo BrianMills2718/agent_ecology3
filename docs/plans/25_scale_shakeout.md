@@ -90,21 +90,24 @@ yes; nothing is published outside the repo.
 | M7 Longer and larger runs | done | 16 agents × 40 turns: 640/640 turns, 128/146 solved, 19 real helper calls, 17 royalties | `plan25_codeflow_run5`; run3 and run4 stops fixed in PRs #98, #99; PRs #97, #100, #101 |
 | M8 Agents visible when they share a place | blocked_on_owner (approved by Brian 2026-10-05) | World Substrate spreads actors that move to the same place (and keeps station labels visible); then bump the pin here | [world-substrate#106](https://github.com/BrianMills2718/world-substrate/issues/106) still open on 2026-10-06; the pin stays at `33bd121` |
 | M9 Economy on World Substrate's engine; cooperation verdicts | deliberately_deferred | — | Brian selects it |
-| M10 Larger task supply for longer runs | fully_specifiable_now (next) | Banks that do not run dry: more problems from the same file, then the full dataset, then a Commit0 library bank | see Active slice |
+| M10 Larger task supply for longer runs | fully_specifiable_now (next) | Banks that do not run dry: 365-task bank built (`--min-helpers 2`), then the full dataset, then a Commit0 library bank | see Active slice |
 
 ## Active slice: M10 — larger task supply
 
 **Why:** run5 claimed 128 of 146 tasks and agents idled in late turns; longer
-runs need more work. The bank size was our choice (`--problems 40`): the
-file the builder already downloads holds 986 problems (verified 2026-10-06).
+runs need more work. Measured 2026-10-06: the GitHub test file the builder
+downloads has 986 problems, but only 53 have 3+ helpers with literal tests
+and a dependency among them (901 have fewer than 3 helpers), so asking for
+more problems at the old rule caps at 193 tasks.
 
-**Steps (landscape review 2026-10-06, sources in the PR that added this):**
-1. Rebuild with more problems from the current file, e.g. `uv run python
-   scripts/build_codeflow_bank.py --agents 16 --problems 200 --seed 25401`,
-   and run 16 agents × 80 turns as a systemd unit (launch command below).
-2. If that still runs dry, point the builder at the full CodeFlowBench
-   dataset on Hugging Face (`WaterWang-001/CodeFlowBench-2505`, MIT, 5,258
-   problems) instead of the GitHub test file.
+**Steps (landscape review 2026-10-06; sources in PR #102):**
+1. Built: `--min-helpers 2` keeps 139 problems / **365 tasks** with 211
+   cross-agent dependency links (`uv run python scripts/build_codeflow_bank.py
+   --agents 16 --problems 2000 --seed 25401 --min-helpers 2 --out
+   ~/.cache/agent_ecology3/codeflow_bank_a16_all_min2_s25401.jsonl`). Run 16
+   agents × 80 turns on it as a systemd unit (launch command below).
+2. When that runs dry: point the builder at the full CodeFlowBench dataset on
+   Hugging Face (`WaterWang-001/CodeFlowBench-2505`, MIT, 5,258 problems).
 3. For dependencies that cross more agents: a Commit0 bank builder (54
    Python libraries, MIT; one task per function, `requires` from the call
    graph, hidden tests = the library's unit tests that exercise it). Rejected:
@@ -192,5 +195,5 @@ Agreed with the World Substrate session on 2026-10-05:
 
 ## Exact next action
 
-M10 step 1: build a 200-problem bank and run 16 agents × 80 turns as a
+M10 step 1: run 16 agents × 80 turns on the built 365-task bank as a
 systemd unit; record it as above.
