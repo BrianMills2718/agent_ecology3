@@ -42,7 +42,8 @@ live=$(mktemp -d)
 for f in index.html snapshot.json living.html; do
   want=$(sha256sum < "$assets/$f" | cut -c1-16)
   for _ in $(seq 1 20); do
-    curl -s -m 30 "$URL$f?v=$RANDOM" -o "$live/$f"
+    path=$f; [[ "$f" == index.html ]] && path=""  # Cloudflare serves index.html at the folder URL
+    curl -sL -m 30 "$URL$path?v=$RANDOM" -o "$live/$f"
     got=$(sha256sum < "$live/$f" | cut -c1-16)
     [[ "$got" == "$want" ]] && break
     sleep 3
