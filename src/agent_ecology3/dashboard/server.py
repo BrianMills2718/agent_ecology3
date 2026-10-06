@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
+import subprocess
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
@@ -135,6 +137,19 @@ _DASHBOARD_HTML = """<!doctype html>
       background: #0b1220; color: #e5e7eb; border: 1px solid #7fb3ff; border-radius: 6px; padding: 6px 8px;
       font-size: 12px; font-weight: 400; z-index: 20; pointer-events: none; transition-delay: 0s; }
     .chip.fail { background: rgba(244,162,89,.18); color: #f4a259; }
+    .tip[data-tip] { position: relative; }
+    .tip[data-tip]:hover::after, .tip[data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; left: 0; top: calc(100% + 6px);
+      width: max-content; max-width: 320px; white-space: normal; text-align: left;
+      background: #0b1220; color: #e5e7eb; border: 1px solid #7fb3ff; border-radius: 6px; padding: 6px 8px;
+      font: 400 12px var(--sans); z-index: 30; pointer-events: none; }
+    .bounty-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .bounty-table th, .bounty-table td { text-align: left; padding: 8px; border-bottom: 1px solid rgba(255,255,255,.08); font-size: 13px; }
+    .bounty-table td.mono { font-family: var(--mono); }
+    .standing { display: inline-flex; padding: 3px 8px; border-radius: 999px; font: 12px var(--mono); }
+    .standing.open { background: rgba(127,179,255,.16); color: #7fb3ff; }
+    .standing.refuted { background: rgba(244,162,89,.18); color: #f4a259; border: 1px dashed #f4a259; }
+    .bounty-summary { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .bounty-count { font: 600 28px var(--mono); color: #7fb3ff; }
     .economic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
     .economic-grid .metric { min-height: 70px; }
     .timeline { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -280,6 +295,7 @@ _DASHBOARD_HTML = """<!doctype html>
         <button class=\"tab\" id=\"comparisonTab\" onclick=\"showView('comparison')\">Comparison</button>
         <button class="tab" id="livingViewLink" onclick="window.open('/living-view' + ((typeof selectedRun === 'string' && selectedRun) ? '?run=' + encodeURIComponent(selectedRun) : ''), '_blank')" title="Open this run in the World Substrate living view">Living view ↗</button>
         <button class=\"tab\" id=\"evidenceTab\" onclick=\"showView('evidence')\">Evidence</button>
+        <button class="tab tip" id="bountiesTab" style="display:none" onclick="showView('bounties')" data-tip="Open jobs on the shared pilot project: every success criterion AES does not yet count as met, from aes reconcile --json">Bounties</button>
       </div>
       <label class=\"condition-picker\" id=\"conditionPicker\"><span id=\"runPickerLabel\">Condition</span>
         <select id=\"runSelect\" onchange=\"selectRun(this.value)\"></select>
@@ -331,6 +347,18 @@ _DASHBOARD_HTML = """<!doctype html>
         <p class="quiet" id="graphSummary">Each row is an agent; each column is the agent whose work it used. A cell shows how often the row agent read or bought the column agent's code, reused its helpers (the author earned a royalty), messaged it, and how much scrip it paid it. Click a cell or a name for details. Updates live while a run is going.</p>
         <p id="graphDetail" style="min-height:1.5em;margin:8px 0 12px">Click a cell or an agent's name.</p>
         <div id="interactionGraph" class="gm-wrap"></div>
+      </section>
+    </main>
+    <main class="review" id="bountiesView">
+      <section class="review-section">
+        <h2>Bounty board: open gaps in the pilot project</h2>
+        <p class="quiet" id="bountyDescription">Each row is one success criterion of the pilot that AES does not yet count as met. Agents earn it by making that test module pass and AES recording the evidence.</p>
+        <div class="bounty-summary">
+          <span class="bounty-count tip" id="bountyCount" tabindex="0" data-tip="Open gaps, counted once each exactly as aes reconcile --json lists them">–</span>
+          <span class="quiet" id="bountyMeta"></span>
+          <button class="secondary tip" id="bountyRefresh" onclick="refreshBounties()" data-tip="Run aes reconcile --json on the pilot again and redraw this list">Refresh</button>
+        </div>
+        <div style="overflow-x:auto"><table class="bounty-table"><thead><tr><th>Criterion</th><th>Test module</th><th>Standing</th><th>Why it is open</th></tr></thead><tbody id="bountyRows"></tbody></table></div>
       </section>
     </main>
     <main class=\"review\" id=\"evidenceView\">
@@ -441,13 +469,62 @@ _DASHBOARD_HTML = """<!doctype html>
 
     function showView(view) {
       selectedView = view;
-      const surfaces = {ecosystem: 'operatorView', graph: 'graphView', comparison: 'reviewView', evidence: 'evidenceView'};
+      const surfaces = {ecosystem: 'operatorView', graph: 'graphView', comparison: 'reviewView', evidence: 'evidenceView', bounties: 'bountiesView'};
       for (const [name, id] of Object.entries(surfaces)) {
         document.getElementById(id).classList.toggle('visible', name === view);
         document.getElementById(`${name}Tab`).classList.toggle('active', name === view);
       }
       if (view !== 'ecosystem' && replayTimer) toggleReplay();
       if (view === 'graph') refreshGraph();
+      if (view === 'bounties') refreshBounties();
+    }
+
+    async function refreshBounties() {
+      const payload = await fetchJson('/pilot-bounties');
+      const rows = document.getElementById('bountyRows');
+      if (!payload.success) {
+        document.getElementById('bountyCount').textContent = '?';
+        document.getElementById('bountyMeta').textContent = payload.error || 'pilot unavailable';
+        rows.innerHTML = '';
+        return;
+      }
+      document.getElementById('bountyCount').textContent = String(payload.gap_count);
+      const c = payload.standing_counts || {};
+      document.getElementById('bountyMeta').textContent =
+        `open gap(s) in ${payload.target_id} at ${String(payload.revision).slice(0, 12)} · ${c.SUPPORTED || 0} supported, ${c.INSUFFICIENT || 0} insufficient, ${c.REFUTED || 0} refuted`;
+      rows.innerHTML = payload.bounties.map(b => {
+        const cls = b.standing === 'REFUTED' ? 'refuted' : 'open';
+        const tipCrit = b.test_module ? `${b.criterion_id}: met when every test in ${b.test_module} passes and AES records it` : `${b.criterion_id}: AES gap of kind ${b.kind}`;
+        const tipMod = b.test_module ? `Command AES records for this criterion: ${b.command || ''}` : 'No test module: this gap is not a criterion';
+        const tipStanding = b.standing === 'REFUTED'
+          ? 'REFUTED: the latest recorded run of this test module failed'
+          : 'INSUFFICIENT: no current recorded evidence that this test module passes';
+        return `<tr data-gap="${escapeHtml(b.gap_id)}">`
+          + `<td class="mono"><span class="tip" tabindex="0" data-tip="${escapeHtml(tipCrit)}">${escapeHtml(b.criterion_id)}</span></td>`
+          + `<td class="mono"><span class="tip" tabindex="0" data-tip="${escapeHtml(tipMod)}">${escapeHtml(b.test_module || '—')}</span></td>`
+          + `<td><span class="standing ${cls} tip" tabindex="0" data-tip="${escapeHtml(tipStanding)}">${escapeHtml(b.standing)}</span></td>`
+          + `<td><span class="tip" tabindex="0" data-tip="${escapeHtml('AES gap ' + b.gap_id + ' · components: ' + b.components.join(', '))}">${escapeHtml(b.why)}</span></td></tr>`;
+      }).join('');
+    }
+
+    fetchJson('/pilot-bounties').then(p => {
+      if (!p.configured) return;
+      document.getElementById('bountiesTab').style.display = '';
+      document.getElementById('workspaceNav').classList.add('visible');
+      if (p.standalone) { window.pilotStandalone = true; applyPilotStandalone(); }
+      else if (new URLSearchParams(location.search).get('view') === 'bounties') showView('bounties');
+    });
+
+    // Served with only a pilot (python -m agent_ecology3.dashboard --pilot ...):
+    // there is no run, so show the bounty board alone instead of empty run views.
+    function applyPilotStandalone() {
+      document.getElementById('eyebrow').textContent = 'Plan 27 pilot project';
+      document.getElementById('pageTitle').textContent = 'Shared project bounty board';
+      document.getElementById('pageSubtitle').textContent = 'Open jobs on the pilot codebase, read live from AES. No run is attached to this dashboard.';
+      for (const id of ['statusLine', 'liveControls', 'ecosystemTab', 'graphTab', 'comparisonTab', 'livingViewLink', 'evidenceTab', 'conditionPicker', 'newRunButton']) {
+        document.getElementById(id).style.display = 'none';
+      }
+      showView('bounties');
     }
 
     let graphDetails = {};
@@ -766,6 +843,7 @@ _DASHBOARD_HTML = """<!doctype html>
       document.getElementById('evidenceDescription').textContent = 'Current canonical state and recent event records from the live run.';
       document.getElementById('artifactScope').value = 'economy';
       showView('ecosystem');
+      if (window.pilotStandalone) applyPilotStandalone();
       await refreshLive();
     }
 
@@ -1605,6 +1683,99 @@ def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
     )
 
 
+
+PILOT_ENV = "AE3_PILOT_PATH"
+AES_BIN_ENV = "AE3_AES_BIN"
+PILOT_MANIFEST = "pilot.json"
+_DEFAULT_AES_BIN = Path.home() / "code" / "agentic-engineering-system-canonical" / ".venv" / "bin" / "aes"
+
+
+def pilot_bounties(reconcile: dict[str, Any], manifest: dict[str, Any] | None) -> dict[str, Any]:
+    """Turn ``aes reconcile --json`` into a bounty board: one row per open gap.
+
+    A gap is counted once by its id across every component and the unassigned
+    list, the same rule as AES's own ``Reconciliation.open_gaps()``, so
+    ``gap_count`` equals the number of open gaps reconcile reports. The pilot
+    manifest (written by scripts/build_aes_pilot.py) supplies the test module
+    and command behind each criterion's verification subject.
+    """
+    criteria = {c["criterion_id"]: c for c in reconcile.get("criteria", [])}
+    subjects = (manifest or {}).get("subjects", [])
+    by_vs = {s["verification_subject"]: s for s in subjects}
+    by_sc = {s["criterion"]: s for s in subjects}
+    order: list[str] = []
+    gaps: dict[str, dict[str, Any]] = {}
+    owners: dict[str, list[str]] = {}
+    sources = [(c["component_id"], c.get("gaps", [])) for c in reconcile.get("components", [])]
+    sources.append(("(no component)", reconcile.get("unassigned_gaps", [])))
+    for component_id, component_gaps in sources:
+        for gap in component_gaps:
+            gid = gap["id"]
+            if gid not in gaps:
+                gaps[gid] = gap
+                order.append(gid)
+                owners[gid] = []
+            owners[gid].append(component_id)
+    bounties = []
+    for gid in order:
+        gap = gaps[gid]
+        criterion = criteria.get(gap["ref"])
+        subject = None
+        reasons = []
+        if criterion is not None:
+            for missing in criterion.get("missing", []):
+                reasons.append(f"{missing.get('status')}: {missing.get('detail')}")
+                for vs in missing.get("verification_subject_refs") or []:
+                    subject = subject or by_vs.get(vs)
+            subject = subject or by_sc.get(criterion["criterion_id"])
+        command = subject.get("command") if subject else None
+        bounties.append({
+            "gap_id": gid,
+            "kind": gap["kind"],
+            "criterion_id": gap["ref"],
+            "standing": criterion["standing"] if criterion else gap["kind"].upper(),
+            "test_module": subject.get("test_module") if subject else None,
+            "command": " ".join(command) if isinstance(command, list) else command,
+            "why": "; ".join(reasons) if reasons else gap.get("detail", ""),
+            "components": owners[gid],
+        })
+    standing_counts = dict(Counter(c.get("standing") for c in criteria.values()))
+    return {
+        "success": True,
+        "target_id": reconcile.get("target_id"),
+        "revision": reconcile.get("subject_revision"),
+        "dirty": reconcile.get("dirty"),
+        "gap_count": len(bounties),
+        "standing_counts": standing_counts,
+        "bounties": bounties,
+    }
+
+
+def read_pilot_bounties(pilot: Path, aes_bin: Path) -> dict[str, Any]:
+    """Run ``aes reconcile --json`` on the pilot sandbox and build its bounty board.
+
+    reconcile exits 1 on a REFUTED criterion while still printing the full
+    report, so the exit code alone is not a failure; unparseable output is.
+    """
+    proc = subprocess.run(
+        [str(aes_bin), "reconcile", "--json", "--root", str(pilot)],
+        capture_output=True, text=True, check=False, timeout=120,
+    )
+    try:
+        report = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return {
+            "success": False,
+            "error": f"aes reconcile --json failed (exit {proc.returncode}): {(proc.stderr or proc.stdout).strip()[-400:]}",
+        }
+    manifest_path = pilot / PILOT_MANIFEST
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else None
+    board = pilot_bounties(report, manifest)
+    board["reconcile_exit"] = proc.returncode
+    board["pilot"] = str(pilot)
+    return board
+
+
 def create_app(
     *,
     world_provider: Callable[[], Any | None] | None = None,
@@ -1615,8 +1786,19 @@ def create_app(
     review_runs: dict[str, Path] | None = None,
     launch_profile: dict[str, Any] | None = None,
     launch_provider: Callable[[], dict[str, Any]] | None = None,
+    pilot_path: str | None = None,
+    aes_bin: str | None = None,
 ) -> FastAPI:
-    """Create a minimal dashboard app for live run or log-only mode."""
+    """Create a minimal dashboard app for live run or log-only mode.
+
+    ``pilot_path`` (or env AE3_PILOT_PATH) names a Plan 27 pilot sandbox; the
+    Bounties tab then lists its open AES gaps. ``aes_bin`` (or env AE3_AES_BIN)
+    is the aes executable.
+    """
+    pilot_raw = pilot_path or os.environ.get(PILOT_ENV)
+    pilot = Path(pilot_raw).expanduser() if pilot_raw else None
+    aes_executable = Path(aes_bin or os.environ.get(AES_BIN_ENV) or _DEFAULT_AES_BIN)
+    standalone = world_provider is None and not review_runs and not jsonl_path
 
     world_provider = world_provider or (lambda: None)
     runner_provider = runner_provider or (lambda: None)
@@ -1654,6 +1836,15 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     async def index() -> str:
         return _DASHBOARD_HTML
+
+    @app.get("/pilot-bounties")
+    async def get_pilot_bounties() -> dict[str, Any]:
+        if pilot is None:
+            return {"success": False, "configured": False, "error": f"no pilot: pass --pilot PATH or set {PILOT_ENV}"}
+        board = await asyncio.to_thread(read_pilot_bounties, pilot, aes_executable)
+        board["configured"] = True
+        board["standalone"] = standalone
+        return board
 
     @app.get("/health")
     async def health() -> dict[str, Any]:

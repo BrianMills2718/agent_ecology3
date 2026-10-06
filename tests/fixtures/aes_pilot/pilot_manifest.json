@@ -1,0 +1,128 @@
+{
+  "schema_version": "ae3-pilot/v1",
+  "library": "tinydb",
+  "licence": "MIT",
+  "source": "https://github.com/commit-0/tinydb",
+  "upstream": "https://github.com/msiemens/tinydb",
+  "base_commit": "ed761a72c8c1e1cb24ca4dbcc089f35c5264d357",
+  "reference_commit": "429b27a513f0ad301632379e55667dd99865fb16",
+  "project_id": "ae3-pilot-tinydb",
+  "governed_roots": [
+    "tinydb/",
+    "tests/"
+  ],
+  "subjects": [
+    {
+      "verification_subject": "VS-MIDDLEWARES",
+      "criterion": "SC-MIDDLEWARES",
+      "test_module": "tests/test_middlewares.py",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-o",
+        "addopts=",
+        "-q",
+        "tests/test_middlewares.py"
+      ]
+    },
+    {
+      "verification_subject": "VS-OPERATIONS",
+      "criterion": "SC-OPERATIONS",
+      "test_module": "tests/test_operations.py",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-o",
+        "addopts=",
+        "-q",
+        "tests/test_operations.py"
+      ]
+    },
+    {
+      "verification_subject": "VS-QUERIES",
+      "criterion": "SC-QUERIES",
+      "test_module": "tests/test_queries.py",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-o",
+        "addopts=",
+        "-q",
+        "tests/test_queries.py"
+      ]
+    },
+    {
+      "verification_subject": "VS-STORAGES",
+      "criterion": "SC-STORAGES",
+      "test_module": "tests/test_storages.py",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-o",
+        "addopts=",
+        "-q",
+        "tests/test_storages.py"
+      ]
+    },
+    {
+      "verification_subject": "VS-TABLES",
+      "criterion": "SC-TABLES",
+      "test_module": "tests/test_tables.py",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-o",
+        "addopts=",
+        "-q",
+        "tests/test_tables.py"
+      ]
+    },
+    {
+      "verification_subject": "VS-TINYDB",
+      "criterion": "SC-TINYDB",
+      "test_module": "tests/test_tinydb.py",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-o",
+        "addopts=",
+        "-q",
+        "tests/test_tinydb.py"
+      ]
+    },
+    {
+      "verification_subject": "VS-UTILS",
+      "criterion": "SC-UTILS",
+      "test_module": "tests/test_utils.py",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-o",
+        "addopts=",
+        "-q",
+        "tests/test_utils.py"
+      ]
+    }
+  ]
+}
