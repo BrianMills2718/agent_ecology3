@@ -185,3 +185,14 @@ def test_trim_keeps_thread_history_and_removes_bulk(tmp_path: Path) -> None:
     assert (base / "thread_history_1.sqlite").is_file()
     assert not any((base / n).exists() for n in ("plugins", "cache", ".tmp", "state_5.sqlite"))
     assert (outside / "keep").is_file()
+
+
+def test_codex_writable_folder_does_not_contain_its_codex_home(tmp_path: Path) -> None:
+    """The agent may write in its working folder; its Codex config and token must not be there."""
+    from agent_ecology3.simulation.resident import codex_call_kwargs
+
+    _, kernel, _ = _kernel(tmp_path)
+    kwargs = codex_call_kwargs(kernel.agents["alpha_1"], "http://k", reasoning_effort="low")
+    work = Path(kwargs["working_directory"]).resolve()
+    home = Path(kwargs["codex_home"]).resolve()
+    assert work != home and work not in home.parents, (work, home)

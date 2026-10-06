@@ -43,12 +43,12 @@ them.
 
 | Dimension | Current truth |
 |---|---|
-| Technical execution | Plan 23 run 3 passed its frozen 14-call reciprocal-interaction rubric with authentic Luna actions and bounded purchased-content memory |
-| Stakeholder reviewability | The Plan 23 candidate reopens read-only in the existing Ecosystem dashboard with its reciprocal read-create-buy chain and artifact contents visible |
+| Technical execution | Long-lived Codex agents keep one session each, act only through the kernel's `ae3_action` tool, and test their own code in a private folder; 8 agents × 20 turns run cleanly (`plan25_resident_codex_run2`, `plan25_codeflow_run1`) |
+| Stakeholder reviewability | Every run reopens read-only in the dashboard; its Living view (World Substrate renderer) shows agents moving between places, their turn notes, and royalties as messages between agents |
 | Stakeholder outcome | **Thesis not yet tested at its scale.** Plan 24's outside-scored checker, trading switch and comparison view work. Its tiny setting (2 agents, 28 decisions, 8 independent tasks) showed no trading gain (tie, tie, solo), but that setting leaves no room for division of labor or compounding, so it does not test the thesis, which concerns scale and long horizons (Brian, 2026-10-05) |
 | Independent evidence | Plan 19 and Plan 23 are independently signed off for their bounded technical claims |
-| Operational state | Plan 23 run 3 completed 14/14, survived worker shutdown, and reopens from its durable receipt; Plan 21 remains preserved negative evidence |
-| Claim boundary | One trace-grounded reciprocal-interaction candidate; no causal, comparative, population, seed-robustness, or general emergence claim |
+| Operational state | Latest run `plan25_codeflow_run1` completed 160/160 agent-turns; evidence bundles (redacted where needed) are in `evaluations/evidence/run_bundles/` |
+| Claim boundary | Working system observations only: no causal, comparative, population, or emergence claim |
 
 ## Canonical outcome exemplar
 
@@ -84,7 +84,7 @@ them.
 | 3 | Fail-loud repeat-run boundary | direct blocker / **complete** | A durable worker stops invalid on the first authentic-boundary failure and never presents a substitute as model behavior | Satisfied by Plan 22 canary and fresh 14-call run |
 | 4 | Interesting emergent interaction | **closed 2026-10-05** | Superseded: "interesting" cannot test the thesis | Plan 23 retained as plumbing evidence; replaced by row 4a |
 | 4a | Outside-scored trading-vs-solo comparison | vertical / **complete 2026-10-05 (instrument)** | The dashboard shows, for three matched pairs, tasks solved by an outside checker per call with trading on vs off | Built and used once at toy scale; reuse as an observation lens, not a verdict |
-| 4b | Working, intelligent ecology at scale | vertical / **in progress (Plan 25)** | Resident agents that keep memory (and, once enabled, test their own work) run for a long horizon on work whose value compounds, without system bugs, and Brian can watch them in the World Substrate living view | Brian's direction 2026-10-05; Plan 25 steps 1-4 |
+| 4b | Working, intelligent ecology at scale | vertical / **in progress (Plan 25)** | Resident agents that keep memory and test their own work run for a long horizon on work whose value compounds, without system bugs, and Brian can watch them in the World Substrate living view | Brian's direction 2026-10-05; Plan 25 steps 1-4 |
 | 5 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | Brian cannot follow Plan 23 or a richer run from the list |
 | 6 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 7 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
