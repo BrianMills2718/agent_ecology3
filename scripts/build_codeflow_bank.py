@@ -52,6 +52,21 @@ def _cases(helper: dict[str, Any]) -> list[tuple[str, str]]:
     return kept
 
 
+def example_text(name: str, cases: list[tuple[str, str]]) -> str:
+    """Call shape plus one worked example from the task's own cases.
+
+    CodeFlowBench statements never state how a helper is called; without this,
+    most failures were argument-count TypeErrors. The first case is shown, the
+    rest stay hidden.
+    """
+    args = ast.literal_eval(cases[0][0])
+    shown = ", ".join(repr(a) for a in args)
+    return (
+        f"It is called with {len(args)} positional argument(s). "
+        f"Example: `{name}({shown})` returns `{cases[0][1]}`."
+    )
+
+
 def check_code(cases: list[tuple[str, str]]) -> str:
     """Hidden test: call the candidate on each literal input, compare literal outputs."""
     return (
@@ -85,7 +100,7 @@ def build(problems: list[dict[str, Any]], *, agents: int, count: int, seed: int)
             cases = _cases(helper)
             if len(cases) < 2:
                 continue
-            kept[name] = {"helper": helper, "test": check_code(cases)}
+            kept[name] = {"helper": helper, "test": check_code(cases), "example": example_text(name, cases)}
         if len(kept) < 3 or not any(
             dep in kept for k in kept.values() for dep in k["helper"].get("dependencies") or []
         ):
@@ -98,7 +113,10 @@ def build(problems: list[dict[str, Any]], *, agents: int, count: int, seed: int)
                 "problem": pid,
                 "owner": f"alpha_{owner_index % agents + 1}",
                 "entry_point": name,
-                "prompt": f"Write the Python function `{name}`.\n\n{helper.get('statement', '').strip()}",
+                "prompt": (
+                    f"Write the Python function `{name}`.\n\n{helper.get('statement', '').strip()}"
+                    f"\n\n{item['example']}"
+                ),
                 "test": item["test"],
                 "requires": requires,
             })
