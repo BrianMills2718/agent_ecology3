@@ -321,7 +321,8 @@ class MintAuction:
             raise ValueError("submitter is not authorized for artifact")
         task_id_for = getattr(self.scorer, "task_id_for", None)
         task_id = task_id_for(artifact.type) if callable(task_id_for) else None
-        linked = self._linked_dependencies(task_id)
+        source = artifact.code if artifact.code.strip() else artifact.content
+        linked = self._linked_dependencies(task_id, _defined_and_called(source)[1])
         prelude = "\n\n".join(code_text for _, _, code_text in linked)
         score, reason = self.scorer.score_artifact(
             artifact.id, artifact.type, artifact.content, artifact.code, prelude=prelude
@@ -356,13 +357,24 @@ class MintAuction:
         self.logger.log("task_bounty_scored", payload)
         return payload
 
-    def _linked_dependencies(self, task_id: str | None) -> list[tuple[str, str, str]]:
-        """(dependency task, author, passing code) for already-solved helpers."""
+    def _linked_dependencies(self, task_id: str | None, called: set[str] | None = None) -> list[tuple[str, str, str]]:
+        """(dependency task, author, passing code) for already-solved helpers.
+
+        Declared dependencies, plus any solved helper of the same problem the
+        solution calls: CodeFlowBench omits some real dependencies, and in
+        plan25_codeflow_run5 seven submissions failed with NameError calling one.
+        """
         tasks = getattr(self.scorer, "tasks", None)
         if task_id is None or not isinstance(tasks, dict) or task_id not in tasks:
             return []
+        problem = task_id.rsplit("/", 1)[0] + "/"
+        deps = list(tasks[task_id].requires)
+        for other_id, other in tasks.items():
+            if (other_id != task_id and other_id not in deps and other_id.startswith(problem)
+                    and other.entry_point in (called or set())):
+                deps.append(other_id)
         linked: list[tuple[str, str, str]] = []
-        for dep in tasks[task_id].requires:
+        for dep in deps:
             artifact_id = self._claimed_artifacts.get(dep)
             dep_artifact = self.artifacts.get(artifact_id) if artifact_id else None
             if dep_artifact is None or dep_artifact.deleted:

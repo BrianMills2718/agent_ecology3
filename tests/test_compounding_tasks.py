@@ -28,6 +28,12 @@ def _bank(tmp_path: Path) -> Path:
          "test": b.check_code([("(11,)", "2"), ("(75,)", "12")]), "requires": []},
         {"task_id": "CF/X/gsum", "owner": "alpha_2", "entry_point": "gsum", "prompt": "gcd of x and digits",
          "test": b.check_code([("(12,)", "3"), ("(11,)", "1")]), "requires": ["CF/X/digits"]},
+        # Calls digits but, like some CodeFlowBench helpers, does not declare it.
+        {"task_id": "CF/X/gsum2", "owner": "alpha_2", "entry_point": "gsum2", "prompt": "gcd of x and digits",
+         "test": b.check_code([("(12,)", "3"), ("(11,)", "1")]), "requires": []},
+        # Same helper name in another problem: must never be linked into CF/X.
+        {"task_id": "CF/Y/digits", "owner": "alpha_1", "entry_point": "digits", "prompt": "other digits",
+         "test": b.check_code([("(5,)", "0")]), "requires": []},
     ]
     path = tmp_path / "bank.jsonl"
     path.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
@@ -143,3 +149,23 @@ def test_royalty_when_a_fenced_solution_calls_the_helper(tmp_path: Path) -> None
     _submit(world, "alpha_1", "alpha_1_d", "CF/X/digits", DIGITS)
     _submit(world, "alpha_2", "alpha_2_g", "CF/X/gsum", "```python\n" + GSUM_REUSING + "```\n")
     assert [r["principal_id"] for r in _royalties(world)] == ["alpha_1"]
+
+
+GSUM2_REUSING = "from math import gcd\ndef gsum2(x):\n    return gcd(x, digits(x))\n"
+
+
+def test_called_but_undeclared_same_problem_helper_is_linked_and_paid(tmp_path: Path) -> None:
+    """plan25_codeflow_run5: 7 submissions failed with NameError calling a solved helper
+    of the same problem that CodeFlowBench did not list as a dependency."""
+    world = _world(tmp_path)
+    _submit(world, "alpha_1", "alpha_1_d", "CF/X/digits", DIGITS)
+    outcome = _submit(world, "alpha_2", "alpha_2_g2", "CF/X/gsum2", GSUM2_REUSING)
+    assert outcome["passed"] is True, outcome["reason"]
+    assert [(r["principal_id"], r["dependency_task_id"]) for r in _royalties(world)] == [("alpha_1", "CF/X/digits")]
+
+
+def test_same_name_helper_from_another_problem_is_not_linked(tmp_path: Path) -> None:
+    world = _world(tmp_path)
+    _submit(world, "alpha_1", "alpha_1_yd", "CF/Y/digits", "def digits(x):\n    return 0\n")
+    outcome = _submit(world, "alpha_2", "alpha_2_g2", "CF/X/gsum2", GSUM2_REUSING)
+    assert outcome["passed"] is False and "NameError" in outcome["reason"]
