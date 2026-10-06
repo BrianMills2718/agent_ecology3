@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 from pathlib import Path
@@ -196,3 +197,49 @@ def test_codex_writable_folder_does_not_contain_its_codex_home(tmp_path: Path) -
     work = Path(kwargs["working_directory"]).resolve()
     home = Path(kwargs["codex_home"]).resolve()
     assert work != home and work not in home.parents, (work, home)
+
+
+def test_turn_records_measured_duration_without_model_usage(tmp_path: Path) -> None:
+    """Codex results carry no duration_ms; plan25_codeflow_run3 logged null on every turn."""
+    from types import SimpleNamespace
+
+    from agent_ecology3.simulation.resident import run_agent_turn
+
+    world, kernel, _ = _kernel(tmp_path)
+
+    async def fake_acall_llm(*_args: Any, **_kwargs: Any) -> Any:
+        await asyncio.sleep(0.05)
+        return SimpleNamespace(usage={"session_id": "s1"}, raw_response=None, codex_events=[], tool_calls=[],
+                               content="done", finish_reason="stop", cost=None, cost_source=None)
+
+    asyncio.run(run_agent_turn(kernel, kernel.agents["alpha_1"], model="codex/test", kernel_url="http://k",
+                               run_id="r", acall_llm=fake_acall_llm))
+    turns = [e for e in world.logger.read_recent(50) if e.get("event_type") == "resident_turn"]
+    assert len(turns) == 1 and isinstance(turns[0]["duration_ms"], int) and turns[0]["duration_ms"] >= 50
+
+
+def test_new_codex_home_drops_copied_plugins_and_cache(tmp_path: Path) -> None:
+    """plan25_codeflow_run3: 16 agents carried ~130 MB each of copied plugins/cache during the run."""
+    from agent_ecology3.simulation.resident import codex_call_kwargs
+
+    _, kernel, _ = _kernel(tmp_path)
+    home = Path(codex_call_kwargs(kernel.agents["alpha_1"], "http://k", reasoning_effort="low")["codex_home"])
+    assert (home / ".codex" / "config.toml").is_file()
+    assert not (home / ".codex" / "plugins").exists() and not (home / ".codex" / "cache").exists()
+    import tomllib
+
+    features = tomllib.loads((home / ".codex" / "config.toml").read_text())["features"]
+    assert features["plugins"] is False and features["remote_plugin"] is False
+    size = sum(f.stat().st_size for f in home.rglob("*") if f.is_file() and not f.is_symlink())
+    assert size < 20_000_000, size
+
+
+def test_codex_plugin_features_are_disabled_with_or_without_features_table() -> None:
+    """Codex re-synced ~156 MB of plugins per session start (plan25_disk_probe2)."""
+    import tomllib
+
+    from agent_ecology3.simulation.resident import _disable_codex_features
+
+    for config in ('model = "x"\n[features]\nprevent_idle_sleep = true\n[other]\na = 1\n', 'model = "x"\n'):
+        features = tomllib.loads(_disable_codex_features(config))["features"]
+        assert features["plugins"] is False and features["remote_plugin"] is False

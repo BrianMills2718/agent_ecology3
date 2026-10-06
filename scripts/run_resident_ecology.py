@@ -110,6 +110,9 @@ async def _main(args: argparse.Namespace) -> int:
             ])
             print(json.dumps({"turn": turn, "seconds": round(time.monotonic() - started, 1),
                               "actions": {r["principal_id"]: r["actions"] for r in results}}), flush=True)
+            # Checkpoint each turn: plan25_codeflow_run3 was killed by a WSL
+            # restart at turn 28 and, writing only at the end, left no receipt.
+            _write_receipt(data_dir, args, world, kernel, "running", f"after turn {turn} of {args.turns}")
     except ResidentRunError as exc:
         state, reason = "invalid", str(exc)
         print(json.dumps({"terminal": "invalid", "error": reason}), flush=True)
