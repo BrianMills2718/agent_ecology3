@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-05"
 ---
 # Plan #25: Working, Intelligent Ecology at Scale
 
-**Status:** 🚧 In Progress — M7 next (16 agents × 40 turns)
+**Status:** 🚧 In Progress — M10 next (larger task supply for longer runs)
 **Type:** durable living plan (company-planning `durable_solo`)
 **Priority:** Critical
 **Blocked By:** None
@@ -87,39 +87,39 @@ yes; nothing is published outside the repo.
 | M4 Agents test their own code | done | writable folder + instruction; history-based count | PR #89 |
 | M5 Compounding tasks and royalties | done | CodeFlowBench bank builder, linking, royalties | PRs #90, #91 |
 | M6 Rerun on clearer tasks | done | 43/52 solved, 0 argument-count failures, 7 real helper calls; royalty payout and evidence bundling fixed | `plan25_codeflow_run2`, PRs #95 and #96 |
-| M7 Longer and larger runs | fully_specifiable_now (active) | 16 agents × 40 turns on a fresh 146-task bank | see Active slice |
-| M8 Agents visible when they share a place | blocked_on_owner (approved by Brian 2026-10-05) | World Substrate spreads actors that move to the same place; then bump the pin here | [world-substrate#106](https://github.com/BrianMills2718/world-substrate/issues/106); its renderer files are under a live World Builder claim |
+| M7 Longer and larger runs | done | 16 agents × 40 turns: 640/640 turns, 128/146 solved, 19 real helper calls, 17 royalties | `plan25_codeflow_run5`; run3 and run4 stops fixed in PRs #98, #99; PRs #97, #100, #101 |
+| M8 Agents visible when they share a place | blocked_on_owner (approved by Brian 2026-10-05) | World Substrate spreads actors that move to the same place (and keeps station labels visible); then bump the pin here | [world-substrate#106](https://github.com/BrianMills2718/world-substrate/issues/106) still open on 2026-10-06; the pin stays at `33bd121` |
 | M9 Economy on World Substrate's engine; cooperation verdicts | deliberately_deferred | — | Brian selects it |
+| M10 Larger task supply for longer runs | fully_specifiable_now (next) | Banks that do not run dry: more problems from the same file, then the full dataset, then a Commit0 library bank | see Active slice |
 
-## Active slice: M7 — 16 agents × 40 turns
+## Active slice: M10 — larger task supply
 
-**Visible result:** twice the agents, twice the turns, on a bank with more
-cross-agent dependencies, replayed in the Living view.
+**Why:** run5 claimed 128 of 146 tasks and agents idled in late turns; longer
+runs need more work. The bank size was our choice (`--problems 40`): the
+file the builder already downloads holds 986 problems (verified 2026-10-06).
 
-**Steps:**
-1. Bank (built locally): `uv run python scripts/build_codeflow_bank.py
-   --agents 16 --problems 40 --seed 25201` →
-   `~/.cache/agent_ecology3/codeflow_bank_a16_p40_s25201.jsonl` (146 tasks, 40
-   problems, 94 cross-agent dependency links).
-2. Run as a systemd user unit so ending a session cannot kill it (a
-   `setsid nohup` launch died with its session, run4), from a detached
-   worktree of main:
-   `systemd-run --user --unit=ae3-plan25-<run> --collect
-   --property=WorkingDirectory=<worktree>
-   --property=StandardOutput=append:<log> --property=StandardError=append:<log>
-   -E LLM_CLIENT_PROJECT=agent_ecology3 -E PATH="$PATH" -E HOME="$HOME"
-   "$(command -v uv)" run python scripts/run_resident_ecology.py --agents 16
-   --turns 40 --actions-per-turn 4 --task-bank <bank> --run-id <run>
-   --port <free port> --keep-serving`. Progress: `systemctl --user status
-   ae3-plan25-<run>`; the receipt is rewritten after every turn.
-3. `uv run python scripts/run_evidence.py report <run dir> --bank <bank>` and
-   `... bundle ... --out docs/evaluations/evidence/run_bundles/plan25_codeflow_run3.tar.gz`;
-   Living view screenshot at a genuine royalty frame; record in the run log.
+**Steps (landscape review 2026-10-06, sources in the PR that added this):**
+1. Rebuild with more problems from the current file, e.g. `uv run python
+   scripts/build_codeflow_bank.py --agents 16 --problems 200 --seed 25401`,
+   and run 16 agents × 80 turns as a systemd unit (launch command below).
+2. If that still runs dry, point the builder at the full CodeFlowBench
+   dataset on Hugging Face (`WaterWang-001/CodeFlowBench-2505`, MIT, 5,258
+   problems) instead of the GitHub test file.
+3. For dependencies that cross more agents: a Commit0 bank builder (54
+   Python libraries, MIT; one task per function, `requires` from the call
+   graph, hidden tests = the library's unit tests that exercise it). Rejected:
+   KodCode (non-commercial licence), agent-written tasks (the paid agents
+   would write their own tests).
 
-**Focused check:** receipt `completed` with 640 agent-turns recorded, or a
-named failure that is fixed and rerun once.
-
-**Failure / containment:** a turn error stops the run invalid with its reason.
+**Launch command** (a `setsid nohup` launch died with its session, run4):
+`systemd-run --user --unit=ae3-plan25-<run> --collect
+--property=WorkingDirectory=<detached worktree of main>
+--property=StandardOutput=append:<log> --property=StandardError=append:<log>
+-E LLM_CLIENT_PROJECT=agent_ecology3 -E PATH="$PATH" -E HOME="$HOME"
+"$(command -v uv)" run python scripts/run_resident_ecology.py --agents 16
+--turns 80 --actions-per-turn 4 --task-bank <bank> --run-id <run>
+--port <free port> --keep-serving`; record with `scripts/run_evidence.py
+report` and `bundle`, plus a Living view screenshot at a royalty frame.
 
 ## Decisions and assumptions
 
@@ -176,6 +176,7 @@ Agreed with the World Substrate session on 2026-10-05:
 
 | Run | Result | Evidence |
 |---|---|---|
+| `plan25_codeflow_run5` (16 resident `codex/gpt-5.6-luna` agents, low effort, 40 turns, 4 actions per turn, bank seed 25201: 146 tasks from 40 problems, 94 cross-agent links; systemd unit `ae3-plan25-run5`) | **Completed 640/640 agent-turns**, one session per agent; agent folders 136 MB in total (run3: 2.5 GB). From `scripts/run_evidence.py report`: **128 of 146 solved**; 267 submissions, 129 failed: wrong answer 101, NameError 17, wrong argument count 4, IndexError 4, wrong argument type 1, other 2; 10 unpaid duplicates. **Shell commands** from each agent's Codex history: 13-36 per agent (alpha_15 36, alpha_3 28, alpha_5 26, alpha_9 25 ... alpha_14 13). **Reuse:** passing solutions called an already-solved helper by another agent **19 times** and rewrote one 6 times. **Royalties** (all genuine calls since PR #95): 17 (51 scrip) to 9 authors: alpha_14 4, alpha_13 3, alpha_9 3, alpha_12 2, alpha_2/4/5/6/10 1 each. Final scrip 150-228. Found by inspecting the NameErrors: 7 called a solved helper of the same problem that CodeFlowBench does not list as a dependency, so the checker never linked it (fixed in PR #101; 5/5 replayable cases now pass). Living view checked on main: no page errors, label present, 17 royalty frames, 16 agents in number order with readable bench labels (PRs #97, #100); agents standing at the task board or checker still cover those labels (World Substrate layout). The bank is nearly used up by the end (agents idle in late turns). | `run_bundles/plan25_codeflow_run5.tar.gz` (0 bank leaks); `plan25_codeflow_run5_living_view.png` (Agent 14's solution calls Agent 12's `calculate_mex`) |
 | `plan25_codeflow_run4` (rerun of run3 after PR #98) | **Stopped in turn 1** (14 of 16 agents done, 22:59): killed when the launching Claude Code session ended, although started with `setsid nohup`; the machine stayed up (other services wrote files 23:05-00:55). Fix: long runs launch as a `systemd-run --user` unit (see Active slice). | events log only (no receipt: run predates the checkpoint) |
 | `plan25_codeflow_run3` (16 resident Codex agents, 40 turns planned, bank seed 25201: 146 tasks, 40 problems, 94 cross-agent links) | **Stopped at turn 28 of 40** when WSL restarted (~22:37) with C: 99% full (5 GB free at 22:01). Root cause in our runner: each agent's Codex home re-synced ~156 MB of the user's plugins at session start (2.5 GB for 16). Fixed in PR #98: plugin features off in agent configs (probe peak 10 MB), receipt checkpointed every turn, turn duration measured (was null on all 414 turns). Living view critic pass during the run found text-ordered agents and benches labelled "notes" (fixed in PR #97). Before the stop: 127 of 146 tasks claimed by turn 26, every agent claiming 3-13. | events log only (no receipt: run predates the checkpoint) |
 | `plan25_codeflow_run2` (8 resident `codex/gpt-5.6-luna` agents, low effort, 20 turns, 4 actions per turn, v2 bank seed 25101: same 52 tasks, each stating its call shape and one example; agents see solved helpers) | **Completed 160/160 agent-turns**, one session per agent. Numbers from `scripts/run_evidence.py report` (run1 in brackets): **43 of 52 solved** [33]; 109 submissions [125], **64 failed** [89]: wrong answer 56 [60], **wrong argument count 0** [11], wrong argument type 1 [14], NameError 4, IndexError 2, AttributeError 1; 2 unpaid duplicates [3]. **Shell commands** from each agent's Codex history: alpha_1 19, alpha_2 6, alpha_3 16, alpha_4 15, alpha_5 21, alpha_6 25, alpha_7 14, alpha_8 15 (131) [128]. **Reuse:** where a needed helper was already solved by another agent, passing solutions called it **7 times** and rewrote it 3 [0 and 2]. **Royalties:** 11 paid (33 scrip) to alpha_3 3, alpha_4 2, alpha_5 2, alpha_6 2, alpha_2 1, alpha_7 1; 6 of them are genuine calls, 5 were paid by the old rule (run started before PR #95 required a call). Final scrip 132-172. Living view checked: no page errors, label present, 11 royalty frames; the tick badge covered the run name in the title (fixed in this PR); an agent standing at the market hides the "Market" label (World Substrate layout, same family as world-substrate#106). | `run_bundles/plan25_codeflow_run2.tar.gz` (built by `run_evidence.py bundle`, 0 bank leaks); `plan25_codeflow_run2_living_view.png` (genuine royalty: Agent 5's solution calls Agent 4's `go`) |
@@ -191,4 +192,5 @@ Agreed with the World Substrate session on 2026-10-05:
 
 ## Exact next action
 
-M7: `plan25_codeflow_run5` (16 agents × 40 turns, systemd unit `ae3-plan25-run5`) is running; when it ends, record it (step 3).
+M10 step 1: build a 200-problem bank and run 16 agents × 80 turns as a
+systemd unit; record it as above.

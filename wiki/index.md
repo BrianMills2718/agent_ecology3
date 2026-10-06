@@ -49,7 +49,7 @@ scale it is about.
   so it can scale (Plan 25). Working now: long-lived Codex agents that keep
   memory and act through the kernel's MCP tool (8 agents × 20 turns completed,
   80/80 tasks solved), and a World Substrate living view of each run. Agents also
-  test their own code before submitting. Tasks build on each other: in the latest 8-agent run, passing solutions called another agent's helper 7 times.
+  test their own code before submitting. Tasks build on each other: in a 16-agent, 40-turn run, passing solutions called another agent's helper 19 times.
 - `make check` passes (pytest and mypy), and preserved runs reopen in the
   dashboard from their committed evidence bundles.
 
