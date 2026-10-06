@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Ecology Replay</title>
+<meta name="description" content="A read-only replay of 16 AI coding agents trading code and solving programming tasks in a small economy.">
+<style>
+  :root { --bg:#0b1220; --panel:#121b2e; --line:#24324d; --ink:#e8eef9; --quiet:#9fb0cc; --blue:#7fb3ff; --orange:#f4a259; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; overflow-x: hidden; }
+  main { max-width: 1180px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 1.6rem; margin: 6px 0 6px; }
+  h2 { font-size: 1.15rem; margin: 0 0 8px; }
+  p { margin: 6px 0; }
+  .quiet { color: var(--quiet); }
+  .lede { max-width: 70ch; }
+  .badge { display: inline-block; font-size: 12px; padding: 2px 8px; border: 1px solid var(--blue); color: var(--blue); border-radius: 999px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-width: 120px; flex: 1 1 120px; }
+  .stat b { display: block; font-size: 1.3rem; color: var(--blue); }
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }
+  summary { cursor: pointer; color: var(--blue); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 10px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  button, select, a.tab, input[type=range] { font: inherit; }
+  button, a.tab, select { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; text-decoration: none; }
+  button:hover, a.tab:hover, select:hover, button:focus-visible, a.tab:focus-visible, select:focus-visible { border-color: var(--blue); outline: none; }
+  .tab.active { background: var(--blue); color: #08111f; border-color: var(--blue); font-weight: 600; }
+  .view { display: none; } .view.active { display: block; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .controls input[type=range] { flex: 1 1 200px; min-width: 0; accent-color: var(--blue); }
+  #turnLabel { min-width: 150px; color: var(--quiet); }
+  .layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .feed { max-height: 70vh; overflow-y: auto; }
+  .row { display: grid; grid-template-columns: 52px 74px minmax(0, 1fr) auto; gap: 8px; padding: 6px 4px; border-bottom: 1px solid var(--line); border-left: 3px solid transparent; font-size: 14px; }
+  .row.failed { border-left-color: var(--orange); }
+  .row .n { color: var(--quiet); font-variant-numeric: tabular-nums; }
+  .row .who { color: var(--blue); font-weight: 600; white-space: nowrap; }
+  .row .what { overflow-wrap: anywhere; }
+  .row .res { white-space: nowrap; color: var(--blue); }
+  .row.failed .res { color: var(--orange); }
+  .row.note .what { color: var(--quiet); font-style: italic; }
+  @media (max-width: 560px) { .row { grid-template-columns: 44px minmax(0, 1fr); } .row .who { grid-column: 2; } .row .what, .row .res { grid-column: 2; } }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .card { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
+  .card b { color: var(--blue); }
+  .gm-wrap { overflow-x: auto; max-width: 100%; }
+  table.gm { border-collapse: collapse; font-size: 11px; }
+  .gm th, .gm td { border: 1px solid var(--line); padding: 2px 4px; text-align: center; }
+  .gm-row { text-align: left !important; white-space: nowrap; cursor: pointer; font-weight: 600; }
+  .gm-col, .gm-corner { color: var(--quiet); font-weight: 500; }
+  .gm-cell { min-width: 38px; height: 28px; cursor: pointer; line-height: 1.2; font-size: 10px; }
+  .gm-reuse { box-shadow: inset 0 0 0 2px var(--orange); }
+  .gm-self { background: rgba(159,176,204,.08); }
+  #graphDetail { min-height: 1.5em; margin: 8px 0 12px; color: var(--ink); }
+  footer { margin-top: 28px; color: var(--quiet); font-size: 13px; border-top: 1px solid var(--line); padding-top: 10px; }
+  footer a, .lede a { color: var(--blue); }
+  .tip { position: fixed; z-index: 1000; width: max-content; max-width: min(300px, calc(100vw - 8px)); padding: 6px 9px; border-radius: 6px; background: #0b1730; color: #f1f5f9;
+         font: 12px/1.35 system-ui, sans-serif; border: 1px solid var(--blue); pointer-events: none; display: none; box-shadow: 0 4px 14px #0008; }
+  .empty { color: var(--quiet); padding: 12px 4px; }
+</style>
+</head>
+<body>
+<main>
+  <span class="badge" data-tip="Recorded on 2026-10-06. Nothing on this page is live or can change anything.">Replay of a finished run</span>
+  <h1>Agent Ecology: 16 AI agents, one small economy</h1>
+  <p class="lede">Sixteen AI coding agents (OpenAI Codex) each took 40 turns in a shared world. Each agent owned some
+  programming tasks. On a turn it could read task descriptions and other agents' code, write a solution, and submit it to a
+  checker that runs hidden tests. The first passing solution to a task earns 10 scrip (the world's money). Reading another
+  agent's task description costs scrip, and when a solution calls a helper function another agent already solved, that
+  author earns a royalty. This page replays what they actually did, step by step.</p>
+  <section class="stats" id="stats"></section>
+  <details>
+    <summary data-tip="What this page leaves out, and why">What is withheld</summary>
+    <ul id="withheld"></ul>
+    <p class="quiet">Task names (for example <code>CF/1732E/gcd</code>) are Codeforces problem numbers plus a function name; the text of the tasks is not shown.</p>
+  </details>
+
+  <nav class="tabs" aria-label="Views">
+    <button class="tab active" id="tabFeed" data-tip="Every action the agents took, in order. Press Play to watch it unfold.">Activity feed</button>
+    <button class="tab" id="tabMatrix" data-tip="Who used whose work: one row and one column per agent.">Interactions</button>
+    <a class="tab" id="tabLiving" href="living.html" data-tip="Opens the World Substrate animated scene of the same run: agents move between their workbench, the task board, the market and the checker.">Living view ↗</a>
+  </nav>
+
+  <section class="view active" id="viewFeed">
+    <div class="controls">
+      <button id="playButton" data-tip="Play the run from the current point, about two actions per second. Press again to pause.">▶ Play</button>
+      <button id="backButton" data-tip="Step back one action">◀ Step</button>
+      <button id="fwdButton" data-tip="Step forward one action">Step ▶</button>
+      <button id="endButton" data-tip="Jump to the end of the run and show everything">Show all</button>
+      <input id="turnSlider" type="range" min="0" value="0" aria-label="Position in the run" data-tip="Drag to move through the run; each step is one action or end-of-turn">
+      <select id="agentFilter" aria-label="Filter by agent" data-tip="Show only one agent's actions in the feed"></select>
+      <span id="turnLabel"></span>
+    </div>
+    <div class="layout">
+      <div class="panel">
+        <h2>What happened <span class="quiet" id="feedCount"></span></h2>
+        <p class="quiet">Newest first. A blue amount is scrip earned or paid; an orange edge marks an action that failed or was refused.</p>
+        <div class="feed" id="feed"></div>
+      </div>
+      <div class="panel">
+        <h2>Agents so far</h2>
+        <div class="cards" id="cards"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="viewMatrix">
+    <div class="panel">
+      <h2>Who used whose work</h2>
+      <p class="quiet" id="graphSummary"></p>
+      <p id="graphDetail">Hover or tap a cell or an agent's name for details.</p>
+      <div id="matrix" class="gm-wrap"></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Rendered with the World Substrate living view; outcomes from agent_ecology3.</p>
+    <p>Run <code id="runId"></code>. Source: <a href="https://github.com/BrianMills2718/agent_ecology3" data-tip="The code that ran this world and built this page">github.com/BrianMills2718/agent_ecology3</a>.</p>
+  </footer>
+</main>
+<div class="tip" id="tip" role="tooltip"></div>
+<script>
+(async function () {
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const name = id => String(id || '').replace('alpha_', 'Agent ');
+  const short = id => String(id || '').replace('alpha_', 'A');
+  const data = await (await fetch('snapshot.json')).json();
+  const s = data.summary;
+  document.getElementById('runId').textContent = data.run_id;
+  const stat = (n, label, tip) => `<div class="stat" tabindex="0" data-tip="${esc(tip)}"><b>${n}</b>${label}</div>`;
+  document.getElementById('stats').innerHTML =
+    stat(s.agents, 'agents', 'Independent Codex agents, each with its own workbench and tasks') +
+    stat(s.turns_per_agent, 'turns each', 'Each agent acted once per turn, up to 4 actions a turn') +
+    stat(`${s.tasks_solved} / ${s.tasks_in_bank}`, 'tasks solved', 'Tasks whose first passing solution was paid') +
+    stat(s.failed_submissions, 'failed submissions', 'Submissions that failed the hidden tests') +
+    stat(s.royalties, 'royalties paid', 'Times a solution reused another agent\'s solved helper, paying its author');
+  document.getElementById('withheld').innerHTML = data.withheld.map(w => `<li>${esc(w)}</li>`).join('');
+
+  // Tooltips: one styled bubble for every element with data-tip (hover, keyboard focus, long press).
+  const tip = document.getElementById('tip');
+  let last = null;
+  function show(el) {
+    last = el;
+    const r = el.getBoundingClientRect(); tip.textContent = el.dataset.tip; tip.style.display = 'block';
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.max(4, Math.min(window.innerWidth - w - 4, r.left + r.width / 2 - w / 2)) + 'px';
+    tip.style.top = (r.top > h + 10 ? r.top - h - 6 : r.bottom + 6) + 'px';
+  }
+  const hide = () => { tip.style.display = 'none'; last = null; };
+  document.addEventListener('mouseover', e => { const el = e.target.closest('[data-tip]'); el ? show(el) : hide(); });
+  document.addEventListener('focusin', e => { const el = e.target.closest('[data-tip]'); if (el) show(el); });
+  document.addEventListener('focusout', hide);
+  // Scrolling keeps the bubble on its element (hovering a row can scroll the feed).
+  document.addEventListener('scroll', () => { if (last) show(last); }, true);
+  let press = null;
+  document.addEventListener('touchstart', e => { const el = e.target.closest('[data-tip]'); if (el) press = setTimeout(() => show(el), 450); }, {passive: true});
+  document.addEventListener('touchend', () => { clearTimeout(press); setTimeout(hide, 2000); });
+
+  // Tabs
+  const tabs = {tabFeed: 'viewFeed', tabMatrix: 'viewMatrix'};
+  for (const [t, v] of Object.entries(tabs)) document.getElementById(t).onclick = () => {
+    for (const [t2, v2] of Object.entries(tabs)) { document.getElementById(t2).classList.toggle('active', t2 === t); document.getElementById(v2).classList.toggle('active', v2 === v); }
+  };
+
+  // Feed replay
+  const actions = data.actions, max = actions.length;
+  let current = 0, timer = null, who = '';
+  const slider = document.getElementById('turnSlider'); slider.max = max;
+  const filter = document.getElementById('agentFilter');
+  filter.innerHTML = '<option value="">All agents</option>' + data.agents.map(a => `<option value="${esc(a.id)}">${esc(name(a.id))}</option>`).join('');
+  filter.onchange = () => { who = filter.value; render(); };
+  function result(a) {
+    if (a.action === 'note') return '';
+    if (!a.success) return esc(a.error_code ? a.error_code.replace(/_/g, ' ') : 'failed');
+    return a.value_amount ? `${a.value_amount} ${esc(a.value_unit)}` : 'done';
+  }
+  function rowTip(a) {
+    if (a.action === 'note') return `${name(a.principal_id)} finished its turn ${a.agent_turn}. Its note is withheld because notes can quote task text, hidden tests or code.`;
+    if (!a.success) return `This action did not succeed: ${a.description}`;
+    if (a.value_amount) return `${a.value_amount} ${a.value_unit} moved with this action${a.counterparty ? ' (to or from ' + name(a.counterparty) + ')' : ''}.`;
+    return `${name(a.principal_id)}, its turn ${a.agent_turn}: ${a.description}`;
+  }
+  function render() {
+    slider.value = current;
+    document.getElementById('turnLabel').textContent = `Step ${current} of ${max}`;
+    const seen = actions.slice(0, current);
+    const shown = (who ? seen.filter(a => a.principal_id === who) : seen).slice(-300).reverse();
+    document.getElementById('feedCount').textContent = `(${seen.length} of ${max} steps${shown.length === 300 ? '; latest 300 listed' : ''})`;
+    document.getElementById('feed').innerHTML = shown.length ? shown.map(a => `
+      <div class="row${a.success ? '' : ' failed'}${a.action === 'note' ? ' note' : ''}" tabindex="0" data-tip="${esc(rowTip(a))}">
+        <span class="n">#${a.turn}</span><span class="who">${esc(name(a.principal_id))}</span>
+        <span class="what">${esc(a.description)}</span><span class="res">${result(a)}</span></div>`).join('')
+      : '<div class="empty">Press Play to watch the agents begin, or Show all to see the whole run.</div>';
+    const solved = {}, scrip = {}, count = {}, refused = {};
+    for (const a of seen) {
+      if (a.action === 'note') continue;
+      count[a.principal_id] = (count[a.principal_id] || 0) + 1;
+      if (!a.success) refused[a.principal_id] = (refused[a.principal_id] || 0) + 1;
+      if (a.action === 'submit_to_mint' && a.success && a.value_amount) solved[a.principal_id] = (solved[a.principal_id] || 0) + 1;
+    }
+    document.getElementById('cards').innerHTML = data.agents.map(g => `
+      <div class="card" tabindex="0" data-tip="${esc(`${name(g.id)}: ${solved[g.id] || 0} tasks solved and ${count[g.id] || 0} actions so far (${refused[g.id] || 0} failed or refused). It finished the run with ${g.final_scrip} scrip.`)}">
+        <b>${esc(name(g.id))}</b><br>${solved[g.id] || 0} solved · ${count[g.id] || 0} actions<br><span class="quiet">final ${g.final_scrip} scrip</span></div>`).join('');
+  }
+  function setStep(n) { current = Math.max(0, Math.min(max, n)); render(); }
+  const play = document.getElementById('playButton');
+  function stop() { clearInterval(timer); timer = null; play.textContent = '▶ Play'; }
+  play.onclick = () => {
+    if (timer) return stop();
+    if (current >= max) setStep(0);
+    play.textContent = '⏸ Pause';
+    timer = setInterval(() => { if (current >= max) return stop(); setStep(current + 1); }, 450);
+  };
+  document.getElementById('backButton').onclick = () => { stop(); setStep(current - 1); };
+  document.getElementById('fwdButton').onclick = () => { stop(); setStep(current + 1); };
+  document.getElementById('endButton').onclick = () => { stop(); setStep(max); };
+  slider.oninput = () => { stop(); setStep(Number(slider.value)); };
+  render();
+
+  // Interactions matrix (same reading as the local dashboard's Interactions tab)
+  const graph = data.graph, details = graph.details || {}, nodes = graph.graph.nodes;
+  const cell = {}; let most = 1;
+  for (const edge of graph.graph.edges) {
+    const key = `${edge.source}->${edge.target}`, kind = edge.id.split(':')[0];
+    const n = Number((edge.label.match(/×(\d+)/) || [0, 0])[1]);
+    cell[key] = cell[key] || {read: 0, bought: 0, reused: 0, messaged: 0, paid: 0};
+    cell[key][kind] = n;
+    const c = cell[key]; most = Math.max(most, c.read + c.bought + c.reused + c.messaged + (c.paid ? 1 : 0));
+  }
+  const head = nodes.map(n => `<th class="gm-col" tabindex="0" data-tip="${esc(details[n.id] || n.label)}">${esc(short(n.id))}</th>`).join('');
+  const rows = nodes.map(r => {
+    const tds = nodes.map(c => {
+      if (r.id === c.id) return `<td class="gm-self" data-tip="${esc(name(r.id) + ' (same agent)')}"></td>`;
+      const v = cell[`${r.id}->${c.id}`];
+      if (!v) return `<td class="gm-cell" tabindex="0" data-ids="" data-tip="${esc(name(r.id) + ' did not use ' + name(c.id) + "'s work")}"></td>`;
+      const total = v.read + v.bought + v.reused + v.messaged + (v.paid ? 1 : 0);
+      const parts = [v.read ? `code ${v.read}` : '', v.bought ? `bought ${v.bought}` : '', v.reused ? `reuse ${v.reused}` : '', v.messaged ? `msg ${v.messaged}` : '', v.paid ? `paid ${v.paid}` : ''].filter(Boolean).join('<br>');
+      const ids = ['read', 'bought', 'reused', 'messaged', 'paid'].filter(k => v[k]).map(k => `${k}:${r.id}->${c.id}`);
+      return `<td class="gm-cell${v.reused ? ' gm-reuse' : ''}" tabindex="0" style="background:rgba(127,179,255,${(0.12 + 0.6 * total / most).toFixed(2)})" data-ids="${esc(ids.join('|'))}" data-tip="${esc(ids.map(i => details[i] || i).join(' '))}">${parts}</td>`;
+    }).join('');
+    return `<tr><th class="gm-row" tabindex="0" data-ids="${esc(r.id)}" data-tip="${esc(details[r.id] || r.label)}">${esc(r.label.replace('alpha_', 'Agent '))}</th>${tds}</tr>`;
+  }).join('');
+  const box = document.getElementById('matrix');
+  box.innerHTML = `<table class="gm"><thead><tr><th class="gm-corner" data-tip="Rows used the work of columns">used work of →</th>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+  box.onclick = e => {
+    const t = e.target.closest('[data-ids]'); if (!t) return;
+    const ids = t.dataset.ids ? t.dataset.ids.split('|') : [];
+    document.getElementById('graphDetail').textContent = ids.length ? ids.map(i => details[i] || i).join(' ') : 'No interaction between these two agents.';
+  };
+  const g = graph.summary;
+  document.getElementById('graphSummary').textContent =
+    `${g.agents} agents · ${g.tasks_solved} tasks solved · read each other's code ${g.code_reads} times · reused each other's helpers ${g.reuses} times` +
+    (g.code_bought ? ` · bought each other's code ${g.code_bought} times` : '') +
+    (g.messages ? ` · ${g.messages} messages` : '') +
+    (g.transfers ? ` · ${g.transfers} payments (${g.scrip_transferred} scrip)` : '') +
+    ` · ${g.statement_reads} paid reads of other agents' task descriptions (hover a name). Each row is an agent; each column is the agent whose work it used; darker blue = more; an orange edge marks reuse of a helper.`;
+})();
+</script>
+</body>
+</html>
