@@ -138,4 +138,7 @@ def test_sixteen_agents_are_in_number_order_with_named_benches() -> None:
     actors = profile["actors"]
     xs = [actors[p]["home"][0] for p in principals]
     assert xs == sorted(xs) and len(set(xs)) == 16
-    assert profile["entities"]["bench-alpha_4"]["label"] == "Agent 4's bench"
+    labels = [profile["entities"][f"bench-{p}"]["label"] for p in principals]
+    assert labels[3] == "Bench 4"
+    # No wider than the agent tag drawn over it ("Agent 16's bench" overran neighbours).
+    assert all(len(b) <= len(actors[p]["label"]) for b, p in zip(labels, principals, strict=True))
