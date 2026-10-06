@@ -34,21 +34,21 @@ entities:
     source: src/agent_ecology3/simulation/resident.py:128
     state:
       - {name: principal_id, type: str, meaning: "alpha_<n>; from config principals.id_prefix", source: src/agent_ecology3/world/world.py:345}
-      - {name: token, type: str, meaning: "secret bearer token; the MCP server sends it, so an agent can act only as itself", source: src/agent_ecology3/simulation/resident.py:157}
+      - {name: token, type: str, meaning: "secret bearer token; the MCP server sends it, so an agent can act only as itself", source: src/agent_ecology3/simulation/resident.py:162}
       - {name: session_id, type: "str|null", meaning: "Codex session resumed every turn (memory between turns)", source: src/agent_ecology3/simulation/resident.py:132}
-      - {name: actions_this_turn, type: int, meaning: "kernel actions used this turn; reset to 0 at turn start", source: src/agent_ecology3/simulation/resident.py:443}
+      - {name: actions_this_turn, type: int, meaning: "kernel actions used this turn; reset to 0 at turn start", source: src/agent_ecology3/simulation/resident.py:480}
       - {name: inbox, type: "list[(turn, sender, text)]", meaning: "messages received since the agent's last turn; shown once, then cleared", source: src/agent_ecology3/simulation/resident.py:138}
-      - {name: workdir, type: path, meaning: "private scratch folder with a shell; running code there costs no actions", source: src/agent_ecology3/simulation/resident.py:286}
+      - {name: workdir, type: path, meaning: "private scratch folder with a shell; running code there costs no actions", source: src/agent_ecology3/simulation/resident.py:321}
       - {name: scrip, type: int, meaning: "balance held in the Ledger (starts at 100)", source: config/config.yaml:14}
   - name: Artifact
     what: A named piece of text owned by one principal; everything agents read, write and submit.
     source: src/agent_ecology3/world/artifacts.py
     state:
-      - {name: id, type: str, meaning: "agents are told to prefix ids with their own principal id", source: src/agent_ecology3/simulation/resident.py:309}
+      - {name: id, type: str, meaning: "agents are told to prefix ids with their own principal id", source: src/agent_ecology3/simulation/resident.py:346}
       - {name: type, type: str, meaning: "task_statement, solution:<task id>, or bootstrap types (agent_profile, strategy, state, notebook, agent_loop, kernel_service)"}
       - {name: owner, type: str, meaning: "principal paid when another principal reads it"}
       - {name: content, type: str}
-      - {name: read_price, type: int, meaning: "scrip a non-owner pays to read; 2 for task statements, 0 for everything agents write (the tool has no read_price field)", source: src/agent_ecology3/world/actions.py:634}
+      - {name: read_price, type: int, meaning: "scrip a non-owner pays to read; 2 for task statements; set by the writer with write_artifact read_price (default 0 for a new artifact; a rewrite without read_price keeps the price)", source: src/agent_ecology3/world/actions.py:635}
       - {name: access_contract_id, type: str, meaning: "freeware (anyone reads, only the writer writes) unless bootstrap-private", source: src/agent_ecology3/world/contracts.py:93}
       - {name: metadata.bounty_claimed_by, type: "str|null", meaning: "set on a task statement when its bounty is paid", source: src/agent_ecology3/world/mint.py:339}
       - {name: deleted, type: bool}
@@ -93,7 +93,7 @@ entities:
       - {name: checker_timeout_seconds, type: float, meaning: "10 s per submission", source: src/agent_ecology3/config.py:159}
   - name: Message
     what: A free text note from one agent to another, delivered at the start of the recipient's next turn.
-    source: src/agent_ecology3/simulation/resident.py:209
+    source: src/agent_ecology3/simulation/resident.py:217
     state:
       - {name: sender, type: str}
       - {name: recipient, type: str}
@@ -101,12 +101,13 @@ entities:
       - {name: turn, type: int, meaning: "turn in which it was sent"}
   - name: Kernel
     what: The world clock and action endpoint shared by all agents.
-    source: src/agent_ecology3/simulation/resident.py:144
+    source: src/agent_ecology3/simulation/resident.py:145
     state:
       - {name: turn, type: int, meaning: "1..turns; every agent takes one turn per turn number", source: scripts/run_resident_ecology.py:103}
       - {name: actions_per_turn, type: int, meaning: "4 by default", source: scripts/run_resident_ecology.py:133}
       - {name: event_number, type: int, meaning: "advances once per parsed kernel action; send_message, parse failures and turn-limit refusals do not advance it", source: src/agent_ecology3/world/world.py:1951}
-      - {name: lock, type: asyncio.Lock, meaning: "actions from concurrent agents run one at a time, in arrival order", source: src/agent_ecology3/simulation/resident.py:174}
+      - {name: action_count, type: int, meaning: "one id per /agent-act call (action_id), logged on resident_action and agent_message so views can join them; event_number cannot (send_message does not advance it)", source: src/agent_ecology3/simulation/resident.py:155}
+      - {name: lock, type: asyncio.Lock, meaning: "actions from concurrent agents run one at a time, in arrival order", source: src/agent_ecology3/simulation/resident.py:179}
 
 processes:
   # --- scheduling and sensing -------------------------------------------
@@ -138,10 +139,10 @@ processes:
     actor: Agent
     scope: resident
     inputs: [Kernel, Ledger, Artifact store, Agent.inbox]
-    rule: Build the turn prompt - turn number, own scrip, all balances, the first 200 readable artifacts minus bootstrap ones, solved helpers the checker links, and the inbox (then clear it). Rules are prepended on turn 1 only.
+    rule: Build the turn prompt - turn number, own scrip, all balances, every unclaimed task statement id grouped by read price (with claimed and total counts), the newest 60 other readable artifacts minus bootstrap ones (with a query_kernel paging hint for the rest), solved helpers the checker links, and the inbox (then clear it). Rules are prepended on turn 1 only.
     changes: [Agent.inbox (cleared), Agent.actions_this_turn (reset)]
     emits: []
-    source: src/agent_ecology3/simulation/resident.py:230
+    source: src/agent_ecology3/simulation/resident.py:238
   - name: end_turn
     actor: Agent
     scope: resident
@@ -149,7 +150,7 @@ processes:
     rule: Record the turn - action count, shell commands, note (first 2000 chars), cost. A non-ae3 built-in tool or an error finish stops the run as invalid.
     changes: [Agent.session_id, Agent.turns_taken]
     emits: [resident_turn, resident_session_changed]
-    source: src/agent_ecology3/simulation/resident.py:494
+    source: src/agent_ecology3/simulation/resident.py:531
   - name: act
     actor: Agent
     scope: resident
@@ -157,7 +158,7 @@ processes:
     rule: Refuse with turn_action_limit once actions_this_turn reaches actions_per_turn; otherwise count the action, run send_message or the kernel action, and log the outcome.
     changes: [Agent.actions_this_turn]
     emits: [resident_action]
-    source: src/agent_ecology3/simulation/resident.py:173
+    source: src/agent_ecology3/simulation/resident.py:178
   # --- resident actions -------------------------------------------------
   - name: read_artifact
     action_type: read_artifact
@@ -172,8 +173,8 @@ processes:
     action_type: write_artifact
     actor: Agent
     scope: resident
-    inputs: [artifact_id, artifact_type, content]
-    rule: Create or overwrite an artifact the agent may write (freeware - only its writer), within the 250000-byte disk quota. read_price stays 0 because the tool cannot set it.
+    inputs: [artifact_id, artifact_type, content, read_price]
+    rule: Create or overwrite an artifact the agent may write (freeware - only its writer), within the 250000-byte disk quota. read_price (whole scrip, 0 or more) sets what other agents pay to read it; omitted, a new artifact is free and a rewrite keeps its price.
     changes: [Artifact]
     emits: [artifact_written, principal_created, action]
     source: src/agent_ecology3/world/action_executor.py:199
@@ -265,7 +266,7 @@ processes:
     rule: Free note (1-1000 chars) to another existing agent, appended to its inbox and shown at the start of its next turn. Counts as an action; does not advance event_number.
     changes: [Agent.inbox (recipient)]
     emits: [agent_message]
-    source: src/agent_ecology3/simulation/resident.py:209
+    source: src/agent_ecology3/simulation/resident.py:217
   # --- kernel paths resident agents cannot reach ------------------------
   - name: edit_artifact
     action_type: edit_artifact
@@ -338,23 +339,23 @@ events:
   - name: resident_action
     scope: resident
     emitted_by: [act]
-    fields: [event_number, turn, principal_id, session_id, action_type, artifact_id, success, error_code]
-    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 194, function: act}]
+    fields: [event_number, action_id, turn, principal_id, session_id, action_type, artifact_id, success, error_code]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 201, function: act}]
   - name: resident_turn
     scope: resident
     emitted_by: [end_turn]
     fields: [turn, principal_id, session_id, trace_id, actions, num_turns, duration_ms, builtin_tool_calls, sandboxed_shell_commands, note, finish_reason, cost, cost_source]
-    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 494, function: run_agent_turn}]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 531, function: run_agent_turn}]
   - name: resident_session_changed
     scope: resident
     emitted_by: [end_turn]
     fields: [principal_id, turn, old, new]
-    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 480, function: run_agent_turn}]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 517, function: run_agent_turn}]
   - name: agent_message
     scope: resident
     emitted_by: [send_message]
-    fields: [event_number, turn, principal_id, recipient, text]
-    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 222, function: _send_message}]
+    fields: [event_number, action_id, turn, principal_id, recipient, text]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 230, function: _send_message}]
   - name: action
     scope: resident
     emitted_by: [read_artifact, write_artifact, submit_to_mint, transfer, transfer_resource, query_kernel, delete_artifact, subscribe_artifact, unsubscribe_artifact, noop, edit_artifact, invoke_artifact, update_metadata, mint]
@@ -520,9 +521,9 @@ events:
 # Human-readable table and evidence: docs/model/VIEW_COVERAGE.md.
 views:
   feed:
-    source: src/agent_ecology3/dashboard/server.py:1232 (_resident_action_rows), :1333 (_operator_state)
+    source: src/agent_ecology3/dashboard/server.py:1268 (_resident_action_rows), :1396 (_operator_state)
   matrix:
-    source: src/agent_ecology3/dashboard/server.py:998 (_agent_graph)
+    source: src/agent_ecology3/dashboard/server.py:1007 (_agent_graph)
   living:
     source: src/agent_ecology3/viz/world_substrate_view.py:67 (build_projection), :310 (build_profile)
 view_coverage:
@@ -536,7 +537,7 @@ view_coverage:
   artifact_written:         {feed: partial, matrix: hidden, living: partial}
   task_bounty_scored:       {feed: shown, matrix: partial, living: shown}
   royalty_paid:             {feed: shown, matrix: shown, living: shown}
-  transfer:                 {feed: partial, matrix: missing, living: shown}
+  transfer:                 {feed: shown, matrix: shown, living: shown}
   resource_transfer:        {feed: partial, matrix: hidden, living: hidden}
   kernel_query:             {feed: partial, matrix: hidden, living: missing}
   artifact_deleted:         {feed: partial, matrix: hidden, living: missing}

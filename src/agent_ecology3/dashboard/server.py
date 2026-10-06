@@ -328,7 +328,7 @@ _DASHBOARD_HTML = """<!doctype html>
     <main class="review" id="graphView">
       <section class="review-section">
         <h2>Who works with whom</h2>
-        <p class="quiet" id="graphSummary">Each row is an agent; each column is the agent whose work it used. A cell shows how often the row agent read the column agent's code and reused its helpers (the author earned a royalty). Click a cell or a name for details. Updates live while a run is going.</p>
+        <p class="quiet" id="graphSummary">Each row is an agent; each column is the agent whose work it used. A cell shows how often the row agent read or bought the column agent's code, reused its helpers (the author earned a royalty), messaged it, and how much scrip it paid it. Click a cell or a name for details. Updates live while a run is going.</p>
         <p id="graphDetail" style="min-height:1.5em;margin:8px 0 12px">Click a cell or an agent's name.</p>
         <div id="interactionGraph" class="gm-wrap"></div>
       </section>
@@ -462,10 +462,11 @@ _DASHBOARD_HTML = """<!doctype html>
       for (const edge of payload.graph.edges) {
         const key = `${edge.source}->${edge.target}`;
         const kind = edge.id.split(':')[0];
-        const count = Number((edge.label.match(/×(\d+)/) || [0, 0])[1]);
-        cell[key] = cell[key] || {read: 0, reused: 0, messaged: 0};
+        const count = Number((edge.label.match(/×(\\d+)/) || [0, 0])[1]);
+        cell[key] = cell[key] || {read: 0, bought: 0, reused: 0, messaged: 0, paid: 0};
         cell[key][kind] = count;
-        most = Math.max(most, cell[key].read + cell[key].reused + cell[key].messaged);
+        // Shade by how many interactions, not scrip: a payment counts once per cell.
+        most = Math.max(most, cell[key].read + cell[key].bought + cell[key].reused + cell[key].messaged + (cell[key].paid ? 1 : 0));
       }
       const short = id => id.replace('alpha_', 'A');
       const head = nodes.map(n => `<th class="gm-col" title="${escapeHtml(n.label)}">${escapeHtml(short(n.id))}</th>`).join('');
@@ -474,9 +475,9 @@ _DASHBOARD_HTML = """<!doctype html>
           if (r.id === c.id) return '<td class="gm-self"></td>';
           const v = cell[`${r.id}->${c.id}`];
           if (!v) return `<td class="gm-cell" data-ids="" data-tip="${escapeHtml(short(r.id) + ' did not use ' + short(c.id) + "'s work")}"></td>`;
-          const total = v.read + v.reused + v.messaged;
-          const parts = [v.read ? `code ${v.read}` : '', v.reused ? `reuse ${v.reused}` : '', v.messaged ? `msg ${v.messaged}` : ''].filter(Boolean).join('<br>');
-          const ids = ['read', 'reused', 'messaged'].filter(k => v[k]).map(k => `${k}:${r.id}->${c.id}`);
+          const total = v.read + v.bought + v.reused + v.messaged + (v.paid ? 1 : 0);
+          const parts = [v.read ? `code ${v.read}` : '', v.bought ? `bought ${v.bought}` : '', v.reused ? `reuse ${v.reused}` : '', v.messaged ? `msg ${v.messaged}` : '', v.paid ? `paid ${v.paid}` : ''].filter(Boolean).join('<br>');
+          const ids = ['read', 'bought', 'reused', 'messaged', 'paid'].filter(k => v[k]).map(k => `${k}:${r.id}->${c.id}`);
           return `<td class="gm-cell${v.reused ? ' gm-reuse' : ''}" style="background:rgba(127,179,255,${(0.12 + 0.6 * total / most).toFixed(2)})" data-ids="${escapeHtml(ids.join('|'))}" data-tip="${escapeHtml(ids.map(i => graphDetails[i] || i).join(' '))}">${parts}</td>`;
         }).join('');
         return `<tr><th class="gm-row" data-ids="${escapeHtml(r.id)}" data-tip="${escapeHtml(graphDetails[r.id] || r.label)}">${escapeHtml(r.label)}</th>${tds}</tr>`;
@@ -492,7 +493,9 @@ _DASHBOARD_HTML = """<!doctype html>
       const s = payload.summary;
       document.getElementById('graphSummary').textContent =
         `${s.agents} agents · ${s.tasks_solved} tasks solved · read each other's code ${s.code_reads} times · reused each other's helpers ${s.reuses} times` +
+        (s.code_bought ? ` · bought each other's code ${s.code_bought} time${s.code_bought === 1 ? '' : 's'}` : '') +
         (s.messages ? ` · ${s.messages} messages` : '') +
+        (s.transfers ? ` · ${s.transfers} payment${s.transfers === 1 ? '' : 's'} (${s.scrip_transferred} scrip; "paid N" = scrip the row agent sent the column agent)` : '') +
         ` · ${s.statement_reads} paid reads of other agents' task descriptions (click a name). Rows used the work of columns; darker = more; an orange edge marks reuse.`;
     }
 
@@ -774,6 +777,12 @@ _DASHBOARD_HTML = """<!doctype html>
 """
 
 
+# Every view reads the same window of the event log, live or in review. The
+# live feed once read only the last 2,000 while the matrix and the Living view
+# read 100,000, so run5 (3,443 events) was undercounted in the feed while it ran.
+VIEW_EVENT_LIMIT = 100_000
+
+
 def _read_jsonl_tail(path: Path, limit: int) -> list[dict[str, Any]]:
     if limit <= 0 or not path.exists():
         return []
@@ -802,7 +811,7 @@ def _summarize_review_run(run_id: str, data_dir: Path) -> dict[str, Any]:
     raw_log_path = world_state.get("log_path")
     if not isinstance(raw_log_path, str) or not raw_log_path:
         raise RuntimeError(f"review receipt for {run_id} has no log_path")
-    events = _read_jsonl_tail(Path(raw_log_path), 100_000)
+    events = _read_jsonl_tail(Path(raw_log_path), VIEW_EVENT_LIMIT)
     decisions = [event for event in events if event.get("event_type") == "loop_decision"]
     action_counts: Counter[str] = Counter()
     actions: list[dict[str, Any]] = []
@@ -999,8 +1008,9 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
     """Agents-only who-works-with-whom graph as a typed-graph/v1 document (Plan 26 M2).
 
     One node per agent. Links: read another agent's code (free reads of
-    solution artifacts), reused another agent's helper (royalty events, dashed),
-    and messages once agents can send them. Paid reads of task statements are
+    solution artifacts), bought it (paid reads of solutions), reused another
+    agent's helper (royalty events, dashed), messages, and scrip paid by
+    transfer (the kernel's ``transfer`` event: sender, recipient, amount). Paid reads of task statements are
     per-agent totals, not links: in run5 they were 170 of 215 cross-agent reads
     and drew 106 links among 16 agents.
     """
@@ -1018,6 +1028,8 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
     statement_reads: Counter[str] = Counter()
     statement_scrip: Counter[str] = Counter()
     solved: Counter[str] = Counter()
+    bought_scrip: Counter[tuple[str, str]] = Counter()
+    transfers: Counter[tuple[str, str]] = Counter()
     for event in events:
         kind = event.get("event_type")
         if kind == "artifact_read":
@@ -1025,7 +1037,11 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
             if not reader or not owner or reader == owner:
                 continue
             artifact_type = artifact_types.get(str(event.get("artifact_id")), "")
-            if artifact_type.startswith("solution"):
+            price = int(event.get("read_price_paid", 0) or 0)
+            if artifact_type.startswith("solution") and price > 0:
+                links[(reader, owner, "bought")] = links.get((reader, owner, "bought"), 0) + 1
+                bought_scrip[(reader, owner)] += price
+            elif artifact_type.startswith("solution"):
                 links[(reader, owner, "read")] = links.get((reader, owner, "read"), 0) + 1
             else:
                 statement_reads[reader] += 1
@@ -1038,9 +1054,17 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
             sender, recipient = str(event.get("principal_id") or ""), str(event.get("recipient") or "")
             if sender and recipient and sender != recipient:
                 links[(sender, recipient, "messaged")] = links.get((sender, recipient, "messaged"), 0) + 1
+        elif kind == "transfer":
+            sender, recipient = str(event.get("sender") or ""), str(event.get("recipient") or "")
+            amount = event.get("amount")
+            if sender and recipient and sender != recipient and isinstance(amount, (int, float)):
+                # The cell counts scrip paid, the detail the number of transfers.
+                links[(sender, recipient, "paid")] = links.get((sender, recipient, "paid"), 0) + int(amount)
+                transfers[(sender, recipient)] += 1
         elif kind == "task_bounty_scored" and event.get("first_claim"):
             solved[str(event.get("principal_id"))] += 1
-    words = {"read": "read code ×{n}", "reused": "reused helper ×{n}", "messaged": "messaged ×{n}"}
+    words = {"read": "read code ×{n}", "bought": "bought code ×{n}", "reused": "reused helper ×{n}",
+             "messaged": "messaged ×{n}", "paid": "paid scrip ×{n}"}
     nodes = []
     details: dict[str, str] = {}
     for principal in principals:
@@ -1057,6 +1081,15 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
         edge_id = f"{kind}:{source}->{target}"
         edges.append({"id": edge_id, "source": source, "target": target,
                       "label": words[kind].format(n=count), "dashed": kind == "reused"})
+        if kind == "paid":
+            n = transfers[(source, target)]
+            details[edge_id] = (f"{_agent_label(source)} paid {_agent_label(target)} {count} scrip "
+                                f"in {n} transfer{'s' if n != 1 else ''}.")
+            continue
+        if kind == "bought":
+            details[edge_id] = (f"{_agent_label(source)} bought {_agent_label(target)}'s code {count} "
+                                f"time{'s' if count != 1 else ''}, paying {bought_scrip[(source, target)]} scrip.")
+            continue
         verb = {"read": "read the code of", "reused": "reused a helper written by", "messaged": "sent messages to"}[kind]
         details[edge_id] = f"{_agent_label(source)} {verb} {_agent_label(target)} {count} time{'s' if count != 1 else ''}."
     return {
@@ -1074,6 +1107,9 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
             "code_reads": sum(c for (_, _, k), c in links.items() if k == "read"),
             "reuses": sum(c for (_, _, k), c in links.items() if k == "reused"),
             "messages": sum(c for (_, _, k), c in links.items() if k == "messaged"),
+            "code_bought": sum(c for (_, _, k), c in links.items() if k == "bought"),
+            "transfers": sum(transfers.values()),
+            "scrip_transferred": sum(c for (_, _, k), c in links.items() if k == "paid"),
             "statement_reads": sum(statement_reads.values()),
             "tasks_solved": sum(solved.values()),
         },
@@ -1239,9 +1275,19 @@ def _resident_action_rows(
     Prices, checker results and royalties join on the action's event number.
     """
     by_number: dict[tuple[str, int], list[dict[str, Any]]] = {}
-    for event in events:
-        if event.get("event_type") in {"artifact_read", "task_bounty_scored", "royalty_paid", "agent_message"}:
-            by_number.setdefault((str(event["event_type"]), int(event.get("event_number", 0) or 0)), []).append(event)
+    messages_by_action: dict[tuple[str, int], dict[str, Any]] = {}
+    # Logs older than the per-action id: pair each agent's messages with its
+    # send_message actions in order (the message is logged just before it).
+    unkeyed_messages: dict[str, list[dict[str, Any]]] = {}
+    for event in sorted(events, key=lambda e: int(e.get("sequence", 0) or 0)):
+        kind = event.get("event_type")
+        if kind == "agent_message":
+            if event.get("action_id") is not None:
+                messages_by_action[(str(event.get("principal_id")), int(event["action_id"]))] = event
+            else:
+                unkeyed_messages.setdefault(str(event.get("principal_id")), []).append(event)
+        elif kind in {"artifact_read", "task_bounty_scored", "royalty_paid", "transfer"}:
+            by_number.setdefault((str(kind), int(event.get("event_number", 0) or 0)), []).append(event)
     def joined(kind: str, number: int, **match: Any) -> list[dict[str, Any]]:
         # A rejected action does not advance the event number, so a bare
         # number join can pick up another agent's result; match identity too.
@@ -1300,10 +1346,27 @@ def _resident_action_rows(
                     paid = ", ".join(f"{r.get('principal_id')} ({r.get('amount')} scrip)" for r in royalties)
                     description += f"; reused helpers, royalty to {paid}"
             elif action == "send_message":
-                sent = (joined("agent_message", number, principal_id=who) or [{}])[0]
+                # send_message does not advance event_number, so two messages in
+                # one turn share it; join on the kernel's per-action id instead.
+                action_id = event.get("action_id")
+                if action_id is not None:
+                    sent = messages_by_action.get((who, int(action_id)), {})
+                else:
+                    queue = unkeyed_messages.get(who) or [{}]
+                    sent = queue.pop(0) if queue[0] else {}
                 text = " ".join(str(sent.get("text") or "").split())
                 counterparty = str(sent.get("recipient") or "") or None
                 description = f"messaged {counterparty or 'another agent'}: \u201c{text[:200]}\u201d"
+            elif action == "transfer":
+                sent = (joined("transfer", number, sender=who) or [{}])[0]
+                amount = sent.get("amount")
+                counterparty = str(sent.get("recipient") or "") or None
+                if isinstance(amount, (int, float)) and counterparty:
+                    value_amount, value_unit = amount, "scrip"
+                    memo = " ".join(str(sent.get("memo") or "").split())
+                    description = f"paid {counterparty} {amount:g} scrip" + (f": \u201c{memo[:120]}\u201d" if memo else "")
+                else:
+                    description = "transfer (no transfer record found)"
             elif action == "query_kernel":
                 description = "searched the world"
             else:
@@ -1534,7 +1597,7 @@ def _operator_review_state(run_id: str, data_dir: Path) -> dict[str, Any]:
         world_state=world_state,
         recovery=recovery,
         model=model if isinstance(model, str) else None,
-        events=_read_jsonl_tail(Path(raw_log_path), 100_000),
+        events=_read_jsonl_tail(Path(raw_log_path), VIEW_EVENT_LIMIT),
         read_only=True,
     )
 
@@ -1635,12 +1698,12 @@ def create_app(
             if payload is None:
                 return {"success": False, "error": "no run"}
             world_state, log_path = payload
-            return _interaction_graph(_read_jsonl_tail(log_path, 100_000), world_state)
+            return _interaction_graph(_read_jsonl_tail(log_path, VIEW_EVENT_LIMIT), world_state)
         world = world_provider()
         if world is None:
             return {"success": False, "error": "live run unavailable"}
         world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
-        return _interaction_graph(world.logger.read_recent(100_000), world_state)
+        return _interaction_graph(world.logger.read_recent(VIEW_EVENT_LIMIT), world_state)
 
     @app.get("/agent-graph")
     async def agent_graph(run: str | None = None) -> dict[str, Any]:
@@ -1649,12 +1712,12 @@ def create_app(
             if payload is None:
                 return {"success": False, "error": "no run"}
             world_state, log_path = payload
-            return _agent_graph(_read_jsonl_tail(log_path, 100_000), world_state)
+            return _agent_graph(_read_jsonl_tail(log_path, VIEW_EVENT_LIMIT), world_state)
         world = world_provider()
         if world is None:
             return {"success": False, "error": "live run unavailable"}
         world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
-        return _agent_graph(world.logger.read_recent(100_000), world_state)
+        return _agent_graph(world.logger.read_recent(VIEW_EVENT_LIMIT), world_state)
 
     @app.get("/living-view", response_class=HTMLResponse)
     async def living_view(run: str | None = None) -> str:
@@ -1665,7 +1728,7 @@ def create_app(
             if payload is None:
                 raise HTTPException(status_code=404, detail="no run")
             world_state, log_path = payload
-            events = _read_jsonl_tail(log_path, 100_000)
+            events = _read_jsonl_tail(log_path, VIEW_EVENT_LIMIT)
             run_id, refresh = str(run or next(iter(review_runs))), None
         else:
             world = world_provider()
@@ -1676,7 +1739,7 @@ def create_app(
                 {"id": a.id, "type": a.type, "metadata": dict(a.metadata)}
                 for a in world.artifacts.artifacts.values()
             ]
-            events = world.logger.read_recent(100_000)
+            events = world.logger.read_recent(VIEW_EVENT_LIMIT)
             run_id, refresh = str(getattr(world, "run_id", "live")), 10
         principals, task_ids = _living_view_inputs(events, world_state)
         bundle = build_projection(events, run_id=run_id, principals=principals, task_ids=task_ids, starting_scrip=100)
@@ -1691,7 +1754,7 @@ def create_app(
         world = world_provider()
         if world is None:
             return {"success": False, "error": "live operator unavailable"}
-        world_state = cast(dict[str, Any], world.get_state_summary(event_limit=2000))
+        world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
         recovery = recovery_provider() or {}
         config = getattr(world, "config", None)
         llm_config = getattr(config, "llm", None)
@@ -1702,7 +1765,7 @@ def create_app(
             world_state=world_state,
             recovery=recovery,
             model=model if isinstance(model, str) else None,
-            events=world.logger.read_recent(2000),
+            events=world.logger.read_recent(VIEW_EVENT_LIMIT),
             read_only=False,
         )
 

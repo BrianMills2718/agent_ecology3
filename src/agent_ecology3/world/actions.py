@@ -82,7 +82,8 @@ class WriteArtifactIntent(ActionIntent):
     content: str = ""
     executable: bool = False
     code: str = ""
-    read_price: int = 0
+    # None keeps an existing artifact's price on rewrite (0 for a new one).
+    read_price: int | None = None
     invoke_price: int = 0
     access_contract_id: str | None = None
     metadata: dict[str, Any] | None = None
@@ -100,7 +101,7 @@ class WriteArtifactIntent(ActionIntent):
         *,
         executable: bool = False,
         code: str = "",
-        read_price: int = 0,
+        read_price: int | None = None,
         invoke_price: int = 0,
         access_contract_id: str | None = None,
         metadata: dict[str, Any] | None = None,
@@ -631,7 +632,12 @@ def parse_intent_from_json(principal_id: str, json_str: str) -> ActionIntent | s
         code = str(data.get("code", ""))
         if executable and not code:
             return "write_artifact executable=true requires 'code'"
-        read_price = int(data.get("read_price", 0) or 0)
+        raw_read_price = data.get("read_price")
+        read_price: int | None = None
+        if raw_read_price is not None:
+            read_price = _coerce_int(raw_read_price)
+            if read_price is None or read_price < 0:
+                return "write_artifact 'read_price' must be a whole number of scrip, 0 or more"
         invoke_price = int(data.get("invoke_price", data.get("price", 0)) or 0)
         access_contract_id = data.get("access_contract_id")
         if access_contract_id is not None and not isinstance(access_contract_id, str):

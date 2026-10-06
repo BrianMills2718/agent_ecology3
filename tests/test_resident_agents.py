@@ -273,3 +273,101 @@ def test_send_message_refuses_bad_recipient_and_empty_text(tmp_path: Path) -> No
         assert out["success"] is False and out["error_code"] == code
     assert not [e for e in world.logger.read_recent(50) if e.get("event_type") == "agent_message"]
     assert kernel.agents["alpha_2"].inbox == []
+
+
+def _route_mcp_tool_to(client: TestClient, monkeypatch: Any, principal_id: str, token: str) -> None:
+    """Send the real ae3_action tool's HTTP request into the in-process kernel."""
+
+    class _Response(io.BytesIO):
+        def __enter__(self) -> "_Response":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+    def urlopen_into_kernel(request: Any, timeout: int) -> _Response:
+        path = "/" + request.full_url.split("/", 3)[3]
+        response = client.post(path, content=request.data, headers=dict(request.header_items()))
+        return _Response(response.content)
+
+    monkeypatch.setenv("AE3_KERNEL_URL", "http://kernel.test")
+    monkeypatch.setenv("AE3_PRINCIPAL_ID", principal_id)
+    monkeypatch.setenv("AE3_AGENT_TOKEN", token)
+    monkeypatch.setattr(loop_action_server.urllib.request, "urlopen", urlopen_into_kernel)
+
+
+def test_agent_sets_read_price_through_the_tool_and_another_agent_pays_it(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """Plan 26: the rules said agents may set read_price, but the tool had no field for it."""
+    world, kernel, client = _kernel(tmp_path, actions_per_turn=4)
+    a1, a2 = kernel.agents["alpha_1"], kernel.agents["alpha_2"]
+    _route_mcp_tool_to(client, monkeypatch, "alpha_1", a1.token)
+    wrote = loop_action_server.ae3_action(
+        action_type="write_artifact", artifact_id="alpha_1_gcd", artifact_type="solution:demo/gcd",
+        content="def gcd(a, b):\n    return a if b == 0 else gcd(b, a % b)\n", read_price=5,
+    )
+    assert wrote["success"] is True, wrote
+    assert world.artifacts.get("alpha_1_gcd").read_price == 5
+    # Rewriting the code without a price keeps the posted price.
+    rewrote = loop_action_server.ae3_action(
+        action_type="write_artifact", artifact_id="alpha_1_gcd", artifact_type="solution:demo/gcd",
+        content="import math\ngcd = math.gcd\n",
+    )
+    assert rewrote["success"] is True and world.artifacts.get("alpha_1_gcd").read_price == 5
+    refused = loop_action_server.ae3_action(
+        action_type="write_artifact", artifact_id="alpha_1_gcd", artifact_type="solution:demo/gcd",
+        content="x", read_price=-1,
+    )
+    assert refused["success"] is False and world.artifacts.get("alpha_1_gcd").read_price == 5
+
+    before = {p: world.ledger.get_scrip(p) for p in ("alpha_1", "alpha_2")}
+    _route_mcp_tool_to(client, monkeypatch, "alpha_2", a2.token)
+    bought = loop_action_server.ae3_action(action_type="read_artifact", artifact_id="alpha_1_gcd")
+    assert bought["success"] is True and bought["data"]["read_price_paid"] == 5
+    assert world.ledger.get_scrip("alpha_2") == before["alpha_2"] - 5
+    assert world.ledger.get_scrip("alpha_1") == before["alpha_1"] + 5
+    reads = [e for e in world.logger.read_recent(100) if e.get("event_type") == "artifact_read"]
+    assert [(e["principal_id"], e["recipient"], e["read_price_paid"]) for e in reads] == [("alpha_2", "alpha_1", 5)]
+
+
+def test_observation_lists_every_unclaimed_task_in_a_365_task_bank(tmp_path: Path) -> None:
+    """Plan 26 gap: one 200-row listing showed 195 of 365 tasks and no later solutions."""
+    import re
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from scripts.run_recoverable_evaluation import _seed_task_bank
+
+    owners = [f"alpha_{i}" for i in range(1, 9)]
+    bank = tmp_path / "bank.jsonl"
+    bank.write_text("".join(
+        json.dumps({"task_id": f"synthetic/{n}", "owner": owners[n % 8], "entry_point": f"f{n}",
+                    "prompt": f"def f{n}(x):\n    \"\"\"Return x.\"\"\"\n", "test": "def check(c):\n    assert c(1) == 1\n"}) + "\n"
+        for n in range(365)
+    ), encoding="utf-8")
+    cfg = AppConfig()
+    cfg.principals.count = 8
+    cfg.llm.enable_bootstrap_loop_llm = False
+    cfg.dashboard.enabled = False
+    cfg.logging.logs_dir = str(tmp_path / "logs")
+    cfg.mint.mode = "task_bounty"
+    cfg.mint.task_bank_path = str(bank)
+    world = World(AppConfig.model_validate(cfg.model_dump()), run_id="listing_test")
+    ids = _seed_task_bank(world, bank)
+    assert len(ids) == 365
+    world.artifacts.get(ids[0]).metadata["bounty_claimed_by"] = "alpha_2"
+    for n in range(70):  # more agent artifacts than the listing shows
+        world.artifacts.write(f"alpha_3_sol_{n}", f"solution:synthetic/{n}", "x", created_by="alpha_3", read_price=n % 3)
+    kernel = ResidentKernel(world, tmp_path / "agents", actions_per_turn=4)
+    text = kernel.observation(kernel.agents["alpha_1"])
+
+    def listed(artifact_id: str) -> bool:
+        return re.search(rf"(?<![\w]){re.escape(artifact_id)}(?![\w])", text) is not None
+
+    assert [i for i in ids[1:] if not listed(i)] == [], "an unclaimed task is missing from the observation"
+    assert not listed(ids[0]), "a claimed task should be counted, not listed"
+    assert "Unclaimed tasks: 364 of 365 (1 already claimed" in text
+    assert listed("alpha_3_sol_69") and listed("alpha_3_sol_10") and not listed("alpha_3_sol_9")
+    assert "(10 older ones not shown; page through every artifact with query_kernel" in text
+    assert len(text) < 20_000, len(text)

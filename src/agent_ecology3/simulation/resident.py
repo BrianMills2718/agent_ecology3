@@ -139,6 +139,7 @@ class ResidentAgent:
 
 
 MESSAGE_MAX_CHARS = 1000
+OTHER_ARTIFACTS_SHOWN = 60
 
 
 class ResidentKernel:
@@ -148,6 +149,10 @@ class ResidentKernel:
         self.world = world
         self.actions_per_turn = actions_per_turn
         self.turn = 0
+        # One id per /agent-act call, logged on the resident_action and on any
+        # resident-level event it causes (agent_message), so views can join
+        # them exactly. event_number cannot: send_message does not advance it.
+        self.action_count = 0
         self.lock = asyncio.Lock()
         self.agents: dict[str, ResidentAgent] = {}
         for principal_id in world.principal_ids:
@@ -172,6 +177,8 @@ class ResidentKernel:
 
     async def act(self, agent: ResidentAgent, payload: dict[str, Any]) -> dict[str, Any]:
         async with self.lock:
+            self.action_count += 1
+            action_id = self.action_count
             if agent.actions_this_turn >= self.actions_per_turn:
                 outcome: dict[str, Any] = {
                     "success": False,
@@ -180,7 +187,7 @@ class ResidentKernel:
                 }
             elif payload.get("action_type") == "send_message":
                 agent.actions_this_turn += 1
-                outcome = self._send_message(agent, payload)
+                outcome = self._send_message(agent, payload, action_id)
             else:
                 agent.actions_this_turn += 1
                 result = self.world.execute_action_data(agent.principal_id, payload)
@@ -195,6 +202,7 @@ class ResidentKernel:
                 "resident_action",
                 {
                     "event_number": self.world.event_number,
+                    "action_id": action_id,
                     "turn": self.turn,
                     "principal_id": agent.principal_id,
                     "session_id": agent.session_id,
@@ -206,7 +214,7 @@ class ResidentKernel:
             )
             return outcome
 
-    def _send_message(self, agent: ResidentAgent, payload: dict[str, Any]) -> dict[str, Any]:
+    def _send_message(self, agent: ResidentAgent, payload: dict[str, Any], action_id: int) -> dict[str, Any]:
         """Free agent-to-agent message, delivered at the start of the recipient's next turn (Plan 26 M3)."""
         recipient = str(payload.get("recipient_id") or "")
         text = payload.get("content")
@@ -221,33 +229,60 @@ class ResidentKernel:
         self.agents[recipient].inbox.append((self.turn, agent.principal_id, text.strip()))
         self.world.logger.log(
             "agent_message",
-            {"event_number": self.world.event_number, "turn": self.turn,
+            {"event_number": self.world.event_number, "action_id": action_id, "turn": self.turn,
              "principal_id": agent.principal_id, "recipient": recipient, "text": text.strip()},
         )
         return {"success": True, "message": f"delivered to {recipient} at the start of its next turn",
                 "scrip_after": self.world.ledger.get_scrip(agent.principal_id)}
 
     def observation(self, agent: ResidentAgent) -> str:
-        """What the agent sees at the start of its turn (kernel-generated)."""
+        """What the agent sees at the start of its turn (kernel-generated).
+
+        Every unclaimed task is listed, as bare ids grouped by read price, so
+        an agent can find all open work at once (Plan 26: a single 200-row
+        query showed 195 of 365 tasks and never the newest solutions). Other
+        artifacts are listed newest first up to OTHER_ARTIFACTS_SHOWN, with
+        the query that pages through the rest.
+        """
         listing = self.world.query_handler.execute(
-            "artifacts", {"_principal_id": agent.principal_id, "readable_only": True, "limit": 200}
+            "artifacts", {"_principal_id": agent.principal_id, "readable_only": True, "limit": 1_000_000}
         )
         rows = [
             row for row in listing.get("results", [])
             if not str(row.get("id", "")).endswith(("_loop", "_strategy", "_state", "_notebook"))
             and row.get("id") not in self.world.principal_ids
         ]
-        lines = [
-            f"- {row['id']} (type {row['type']}, owner {row['owner']}, read price {row['read_price']}"
-            + (f", bounty claimed by {row['bounty_claimed_by']}" if row.get("bounty_claimed_by") else "")
-            + ")"
-            for row in rows
+        tasks = [row for row in rows if row.get("type") == "task_statement"]
+        unclaimed = [row for row in tasks if not row.get("bounty_claimed_by")]
+        others = [row for row in rows if row.get("type") != "task_statement"]
+        by_price: dict[int, list[str]] = {}
+        for row in unclaimed:
+            by_price.setdefault(int(row.get("read_price") or 0), []).append(str(row["id"]))
+        task_lines = [
+            f"- read price {price}: " + ", ".join(ids) for price, ids in sorted(by_price.items())
         ]
+        shown = others[::-1][:OTHER_ARTIFACTS_SHOWN]
+        other_lines = [
+            f"- {row['id']} (type {row['type']}, owner {row['owner']}, read price {row['read_price']})"
+            for row in shown
+        ]
+        more = ""
+        if len(others) > len(shown):
+            more = (
+                f"\n({len(others) - len(shown)} older ones not shown; page through every artifact with "
+                "query_kernel query_type artifacts, params {\"offset\": N, \"limit\": 100}, or one type "
+                "with params {\"type\": \"<type>\"}.)"
+            )
         balances = {pid: self.world.ledger.get_scrip(pid) for pid in self.world.principal_ids}
         return (
             f"Turn {self.turn}. You are {agent.principal_id}. Your scrip: "
             f"{balances[agent.principal_id]}. All scrip balances: {balances}.\n"
-            f"Artifacts you can see now ({len(rows)}):\n" + "\n".join(lines)
+            f"Unclaimed tasks: {len(unclaimed)} of {len(tasks)} "
+            f"({len(tasks) - len(unclaimed)} already claimed; query_kernel query_type artifacts, params "
+            "{\"type\": \"task_statement\", \"limit\": 1000} lists them with who claimed each). Task statement ids, all of them, "
+            "by read price:\n" + "\n".join(task_lines)
+            + f"\nOther artifacts ({len(others)}; newest first, up to {OTHER_ARTIFACTS_SHOWN}):\n"
+            + "\n".join(other_lines) + more
             + self._linked_helpers_section()
             + self._inbox_section(agent)
         )
@@ -305,8 +340,10 @@ refunded). An outside checker runs hidden tests at once and tells you the
 result. The first passing solution for a task earns 10 scrip; later solutions
 for the same task earn nothing, and the artifact list shows tasks already
 claimed. Reading an artifact you do not own (action_type read_artifact) costs
-its read price, paid to its owner, and returns its content. You may set
-read_price on your own artifacts. Use artifact ids prefixed with {principal_id}_.
+its read price, paid to its owner, and returns its content. You may set the
+read price others pay for your artifacts: give read_price (whole scrip, 0 or
+more) on write_artifact; rewriting an artifact without read_price keeps its
+price. Use artifact ids prefixed with {principal_id}_.
 When a task depends on a helper someone already solved, the checker links that
 passing helper in ahead of your code; call it without redefining it, and its
 author earns a royalty when you pass.

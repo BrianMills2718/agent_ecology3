@@ -104,7 +104,7 @@ class ArtifactStore:
         *,
         executable: bool = False,
         code: str = "",
-        read_price: int = 0,
+        read_price: int | None = None,
         invoke_price: int = 0,
         access_contract_id: str | None = None,
         metadata: dict[str, Any] | None = None,
@@ -128,7 +128,7 @@ class ArtifactStore:
                 updated_at=now,
                 executable=executable,
                 code=code,
-                read_price=read_price,
+                read_price=read_price or 0,
                 invoke_price=invoke_price,
                 access_contract_id=access_contract_id or "kernel_contract_freeware",
                 metadata=metadata or {},
@@ -152,7 +152,10 @@ class ArtifactStore:
         existing.updated_at = now
         existing.executable = executable
         existing.code = code
-        existing.read_price = read_price
+        if read_price is not None:
+            # A rewrite without a price keeps the posted one (Plan 26): agents
+            # fixing their code must not silently reset what readers pay.
+            existing.read_price = read_price
         existing.invoke_price = invoke_price
         existing.metadata = metadata or existing.metadata
         existing.interface = interface if interface is not None else existing.interface

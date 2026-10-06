@@ -44,8 +44,8 @@ loop-run branch (`server.py:1393-1459`) still shows `loop_decision`.
 | `kernel_query` | 5 | **partial**: "searched the world", no query type (gap 7) | hidden: not a relation | **missing** (gap 5) |
 | `world_initialized` | 1 | hidden: the cards read the final state | hidden | partial: starting scrip is hard-coded to 100, not read from the run (gap 6) |
 | `action` | 927 | hidden: duplicate of `resident_action`, and it holds solution text | hidden | hidden |
-| `agent_message` | 0 (run6: 0) | shown, but **two messages in a row repeat the first** (gap 2) | shown: "msg N" cells | shown: speech line from sender to recipient |
-| `transfer` | 0 | **partial**: row says only "transfer", with no amount or recipient (gap 1) | **missing**: scrip sent between agents is not a cell (gap 1) | shown: "pays another agent", balances move |
+| `agent_message` | 0 (run6: 0) | shown: each message its own text (gap 2 fixed) | shown: "msg N" cells | shown: speech line from sender to recipient |
+| `transfer` | 0 | shown: "paid X N scrip" with the memo (gap 1 fixed) | shown: "paid N" cells, N = scrip sent (gap 1 fixed) | shown: "pays another agent", balances move |
 | `resource_transfer` | 0 | partial: "transfer resource" | hidden: `llm_budget` means nothing for Codex agents | hidden: same reason |
 | `artifact_deleted` | 0 | partial: "delete artifact" | hidden | **missing**: a deleted helper stops being linked, so the view can mislead (gap 5) |
 | `resident_session_changed` | 0 | **missing** (gap 5) | hidden | hidden |
@@ -63,7 +63,12 @@ log:
 
 ## Gaps
 
-1. **Transfers are half-shown.** No run has made a transfer yet, so no view has
+**Fixed on 2026-10-06** (Plan 26, model-gap fixes): gaps 1, 2 and 3, and the
+read-price half of gap 8; the task-listing half of gap 8 too. Each is kept
+below with what changed, so the evidence for the original finding stays.
+
+1. **Fixed: transfers are now shown** (feed "paid X N scrip"; matrix "paid N";
+   test `tests/test_resident_views_joins.py`). Original finding: **Transfers are half-shown.** No run has made a transfer yet, so no view has
    been tested on a real one.
    - Feed: the joins at `server.py:1243-1244` never include `transfer`, so the
      row reads just "transfer" (`server.py:1310`), with no amount, recipient or
@@ -73,7 +78,9 @@ log:
    - Living view: shows it (`world_substrate_view.py:169`).
    - Probe: a transfer event of 7 scrip gave the feed row "transfer" with value
      0, and no matrix cell.
-2. **Repeated messages are mislabelled in the feed.**
+2. **Fixed: the kernel logs a per-call `action_id` on `resident_action` and
+   `agent_message`, and the feed joins on it** (older logs pair messages in
+   order). Original finding: **Repeated messages are mislabelled in the feed.**
    - `send_message` does not advance `event_number` (`resident.py:181-183`,
      `:222-225`), and the feed matches a message to its action by
      `(event_number, principal_id)` (`server.py:1303`).
@@ -81,7 +88,8 @@ log:
      the first message's text and recipient.
    - Probe: messages "first" to alpha_2 and "second" to alpha_3 both rendered as
      "messaged alpha_2: “first”".
-3. **The live feed sees fewer events than the other views.**
+3. **Fixed: every view, live or review, reads `VIEW_EVENT_LIMIT` (100,000)
+   events.** Original finding: **The live feed sees fewer events than the other views.**
    - The live `/operator-state` reads the last **2,000** events
      (`server.py:1705`). The live matrix and living view read 100,000
      (`server.py:1657`, `:1679`), and review mode reads 100,000 (`server.py:1537`).
@@ -120,15 +128,15 @@ log:
    - Queries do not say what was asked (`server.py:1307-1308`).
 8. **Model gaps the views cannot fix.** These show up as empty cells in the
    views but are not view bugs.
-   - Agents cannot set read prices (ODD 6.3), so the matrix has no "bought code"
-     relation to show.
-   - Agents in a large bank are shown at most 195 artifacts per turn, and in
-     run6 no solutions (ODD section 4), so reuse depends on the listing of
-     linked helpers.
+   - Fixed: agents can now set read prices (`ae3_action` `read_price`; ODD
+     6.3), and the matrix shows paid reads of code as "bought N".
+   - Fixed: the observation now lists every unclaimed task and the newest 60
+     other artifacts (ODD section 4). Reproduced first: the old 200-row
+     listing showed 195 of 365 tasks on the 365-task bank.
 
-A minor point that is not about coverage: `server.py:465` contains `\d` inside
-a normal Python string, which raises a `SyntaxWarning` on every import. The
-JavaScript it produces still works.
+A minor point that is not about coverage, fixed with the matrix change: the
+matrix script's `\d` inside a normal Python string raised a `SyntaxWarning` on
+every import.
 
 ## Could World Substrate's living-scene profile be a declared view mapping?
 
