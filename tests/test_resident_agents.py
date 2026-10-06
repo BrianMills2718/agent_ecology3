@@ -309,6 +309,8 @@ def test_agent_sets_read_price_through_the_tool_and_another_agent_pays_it(
     )
     assert wrote["success"] is True, wrote
     assert world.artifacts.get("alpha_1_gcd").read_price == 5
+    logged = [e for e in world.logger.read_recent(50) if e.get("event_type") == "resident_action"]
+    assert logged[-1]["read_price"] == 5  # the set price is recorded so views can show it
     # Rewriting the code without a price keeps the posted price.
     rewrote = loop_action_server.ae3_action(
         action_type="write_artifact", artifact_id="alpha_1_gcd", artifact_type="solution:demo/gcd",

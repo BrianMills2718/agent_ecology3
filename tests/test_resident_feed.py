@@ -67,3 +67,10 @@ def test_message_rows_show_sender_recipient_and_text() -> None:
     rows = _resident_action_rows(events, {})
     assert rows[0]["description"] == "messaged alpha_2: “your gcd helper fails on 0”"
     assert rows[0]["counterparty"] == "alpha_2" and rows[0]["success"] is True
+
+
+def test_write_row_shows_the_price_the_agent_set() -> None:
+    events = [{"sequence": 1, "event_type": "resident_action", "event_number": 1, "turn": 1,
+               "principal_id": "alpha_1", "action_type": "write_artifact", "artifact_id": "alpha_1_sol",
+               "read_price": 2, "success": True}]
+    assert _resident_action_rows(events, {})[0]["description"] == "wrote alpha_1_sol, priced at 2 scrip to read"

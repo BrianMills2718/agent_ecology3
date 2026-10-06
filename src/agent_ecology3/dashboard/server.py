@@ -1326,6 +1326,9 @@ def _resident_action_rows(
                     description = f"read {target}"
             elif action in {"write_artifact", "edit_artifact", "create_artifact"}:
                 description = f"wrote {target}"
+                price = event.get("read_price")
+                if isinstance(price, (int, float)) and not isinstance(price, bool):
+                    description += f", priced at {price} scrip to read"
             elif action == "submit_to_mint":
                 scored = (joined("task_bounty_scored", number, principal_id=who, artifact_id=target) or [{}])[0]
                 task = scored.get("task_id") or target
