@@ -28,6 +28,10 @@ a repeatable local workbench where he can launch bounded ecologies, understand
 who did what and why value moved, reopen completed runs, compare useful runs,
 and progressively explore richer scenarios without editing source code.
 
+**Current goal (Brian, 2026-10-05):** get the system working and the agents
+behaving intelligently so it can scale. Whether cooperation pays is a later
+question that needs scale and long horizons; runs now carry no verdict.
+
 Rapid user-visible progress is the default. Reversible local choices advance
 without recurring approval. Pause only for new model spend, external
 publication or deployment, destructive scope, sensitive data, or a product
@@ -52,27 +56,27 @@ them.
 
 ## Canonical outcome exemplar
 
-**Classification:** `canonical_outcome_exemplar`
+**Classification:** `canonical_outcome_exemplar` (replaces the Plan 19 run,
+which remains the MVP evidence).
 
-- Starting state: merged AE3 `941c5cd`, reviewed `llm_client` `2867157`, two
-  Minimal-mode principals, two discoverable priced opportunities, paused at
-  0/14 calls.
-- Operator action: Brian resumed the run from the existing dashboard.
-- System transition: Luna selected 14 structured actions through the real
-  runner and action executor.
-- Inspectable result: the Ecosystem dashboard showed 14/14 successful
-  decisions, three genuine `alpha_2 -> alpha_1` purchases totaling 5 scrip,
-  seven agent-created artifacts, reuse of `alpha_1_analysis`, one mint
-  submission, final balances 104/95, and completed custody.
-- Durable evidence:
-  `/home/brian/.local/state/agent_ecology3/plan19_luna_live_economic_mvp_v1/`
-  (durable copy: [run bundle](evaluations/evidence/run_bundles/plan19_luna_live_economic_mvp_v1.tar.gz))
-  plus [the Plan 19 sign-off](evaluations/19_live_economic_mvp_signoff.md).
-- Evidence step-down: provider-free fixtures establish plumbing only; the
-  authentic run establishes this one local observation only.
-- Known negative case: an agent reading its own priced artifact is displayed
-  as a purchase even though no cross-principal transfer occurs. This is a
-  bounded presentation defect, not a failed economic interaction.
+- Starting state: main at `f9727ff`, a local CodeFlowBench helper-task bank
+  (seed 25101: 52 tasks, 16 problems, 28 cross-agent dependency links), 8
+  resident `codex/gpt-5.6-luna` agents at low effort.
+- Operator action: `uv run python scripts/run_resident_ecology.py --agents 8
+  --turns 20 --actions-per-turn 4 --task-bank <bank> --run-id
+  plan25_codeflow_run1 --keep-serving`, then the dashboard's Living view.
+- System transition: each agent resumed its own Codex session every turn, ran
+  its candidate code in a private folder, and acted only through the kernel's
+  `ae3_action` tool; the checker linked already-solved helpers and paid their
+  authors royalties.
+- Inspectable result: 160/160 turns, 33/52 tasks solved, 7-21 shell commands
+  per agent from their Codex histories, 9 royalties to 7 authors; the Living
+  view shows agents moving, their notes, and royalties as messages.
+- Durable evidence: `evaluations/evidence/run_bundles/plan25_codeflow_run1.tar.gz`
+  (redacted) and `evaluations/evidence/plan25_codeflow_run1_living_view.png`.
+- Known negative case: 89 of 125 submissions failed hidden tests, mostly
+  because task statements did not state how a helper is called (fixed for the
+  next run).
 
 ## Capability sequence and success criteria
 
@@ -88,7 +92,7 @@ them.
 | 5 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | Brian cannot follow Plan 23 or a richer run from the list |
 | 6 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 7 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
-| 8 | Expand ecology size and dynamics | conditional | A 4–8 agent run remains legible, bounded, and economically active; scaling work addresses only reproduced limits | Two-agent runs are repeatable and the next uncertainty is network behavior |
+| 8 | Expand ecology size and dynamics | vertical / **8 agents working; larger next (Plan 25 M7)** | A 4–8 agent run remains legible, bounded, and economically active; scaling work addresses only reproduced limits | Two-agent runs are repeatable and the next uncertainty is network behavior |
 | 9 | Internal pilot or external release | deliberately deferred | Deployment target, users, data, access, uptime, and release authority are explicit before production controls enter scope | A real remote or multi-user consumer exists |
 
 Success criteria derive from the explicit user outcome and the observed current
@@ -114,14 +118,13 @@ controls activate only at capability 5.
 8a. Follow [Plan 24](plans/24_external_score_vs_solo.md): repair blockers,
    one-hour landscape check, outside-score oracle and solo switch, then three
    matched pairs under a pre-set stop rule.
-9. Select scenario exploration, comparison, or larger ecologies based on the
-   next concrete operator question—not because infrastructure exists.
+9. Follow [Plan 25](plans/25_scale_shakeout.md): resident agents, isolation,
+   agents testing their own code, compounding tasks with royalties, and the
+   Living view are done (M1-M5); M6 reruns on clearer tasks; M7 scales up.
 
 No work-unit graph or parallel program is justified for the current
-single-contributor sequence. Future implementation goals receive a bounded
-design. The technical repeat-run and reciprocal-interaction probes are complete;
-the current frontier is independent verification plus Brian's review of the
-preserved Plan 23 candidate.
+single-contributor sequence. Plan 25 is the active living plan and holds the
+exact next action.
 
 ## Selected execution frontier
 
@@ -131,7 +134,7 @@ question yet; it needs scale and long horizons ("a little village of 3 people
 trying to build a fire" does not need markets), so no stop rule or verdict is
 attached to runs for now. Runs are for finding bugs and judging agent behavior.
 
-Status ([Plan 25](plans/25_scale_shakeout.md) holds the run log and evidence):
+Status ([Plan 25](plans/25_scale_shakeout.md) holds the milestones, run log, evidence and exact next action; next is M6, a rerun on clearer tasks):
 
 1. **Scale shakeout: done.** The 4-agent single-call run was clean; it found
    that agents could not see claimed tasks (fixed).
@@ -204,5 +207,7 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
 - [Plan 23](plans/23_emergent_interaction.md) owns the reciprocal-interaction
   rubric, read-memory repair, and candidate receipt; closed 2026-10-05 as
   plumbing evidence.
-- [Plan 24](plans/24_external_score_vs_solo.md) owns the outside-scored
-  comparison milestones, stop rule, and active slice.
+- [Plan 24](plans/24_external_score_vs_solo.md) owns the completed
+  outside-scored checker and trading switch, and its toy-scale comparison.
+- [Plan 25](plans/25_scale_shakeout.md) owns the current milestones, active
+  slice, run log, and human decisions for the working, intelligent ecology.

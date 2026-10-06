@@ -14,7 +14,9 @@ traced to the seeded setup), and Plan 24 replaced the "is it interesting"
 judgment with an outside automatic score and a solo baseline. Plan 24 finished
 the same day. At toy scale (2 agents, 28 decisions) trading beat solo in 0 of 3
 pairs. Brian judged that setting too small to test a thesis about scale and long
-horizons, so the roadmap now selects a long-running ecology at scale.
+horizons, so the roadmap now selects a long-running ecology at scale. Plan 25 is the active plan: long-lived Codex agents that test their own code
+and build on each other's helpers now run at 8 agents; its next action is a
+rerun on clearer tasks.
 
 ## Gap Summary
 
@@ -43,7 +45,7 @@ horizons, so the roadmap now selects a long-running ecology at scale.
 | 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | ✅ Complete — canary and 14-call run passed | Brian's usefulness review |
 | 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | ✅ Closed — plumbing evidence, not emergence (2026-10-05) | - |
 | 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | ✅ Complete — instrument built; toy-scale comparison showed no trading gain | Further emergence or scale work |
-| 25 | [Scale shakeout toward a long-running ecology](25_scale_shakeout.md) | Critical | 🚧 In Progress — first shakeout run | Roadmap capability 4b |
+| 25 | [Working, intelligent ecology at scale](25_scale_shakeout.md) | Critical | 🚧 In Progress — M6 next (rerun on clearer CodeFlowBench tasks) | Roadmap capability 4b |
 
 ## Status Key
 
