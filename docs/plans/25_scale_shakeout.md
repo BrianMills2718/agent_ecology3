@@ -101,10 +101,17 @@ cross-agent dependencies, replayed in the Living view.
    --agents 16 --problems 40 --seed 25201` →
    `~/.cache/agent_ecology3/codeflow_bank_a16_p40_s25201.jsonl` (146 tasks, 40
    problems, 94 cross-agent dependency links).
-2. Run detached from the main checkout: `LLM_CLIENT_PROJECT=agent_ecology3 uv
-   run python scripts/run_resident_ecology.py --agents 16 --turns 40
-   --actions-per-turn 4 --task-bank <bank> --run-id plan25_codeflow_run3
-   --port <free port> --keep-serving`.
+2. Run as a systemd user unit so ending a session cannot kill it (a
+   `setsid nohup` launch died with its session, run4), from a detached
+   worktree of main:
+   `systemd-run --user --unit=ae3-plan25-<run> --collect
+   --property=WorkingDirectory=<worktree>
+   --property=StandardOutput=append:<log> --property=StandardError=append:<log>
+   -E LLM_CLIENT_PROJECT=agent_ecology3 -E PATH="$PATH" -E HOME="$HOME"
+   "$(command -v uv)" run python scripts/run_resident_ecology.py --agents 16
+   --turns 40 --actions-per-turn 4 --task-bank <bank> --run-id <run>
+   --port <free port> --keep-serving`. Progress: `systemctl --user status
+   ae3-plan25-<run>`; the receipt is rewritten after every turn.
 3. `uv run python scripts/run_evidence.py report <run dir> --bank <bank>` and
    `... bundle ... --out docs/evaluations/evidence/run_bundles/plan25_codeflow_run3.tar.gz`;
    Living view screenshot at a genuine royalty frame; record in the run log.
@@ -169,6 +176,8 @@ Agreed with the World Substrate session on 2026-10-05:
 
 | Run | Result | Evidence |
 |---|---|---|
+| `plan25_codeflow_run4` (rerun of run3 after PR #98) | **Stopped in turn 1** (14 of 16 agents done, 22:59): killed when the launching Claude Code session ended, although started with `setsid nohup`; the machine stayed up (other services wrote files 23:05-00:55). Fix: long runs launch as a `systemd-run --user` unit (see Active slice). | events log only (no receipt: run predates the checkpoint) |
+| `plan25_codeflow_run3` (16 resident Codex agents, 40 turns planned, bank seed 25201: 146 tasks, 40 problems, 94 cross-agent links) | **Stopped at turn 28 of 40** when WSL restarted (~22:37) with C: 99% full (5 GB free at 22:01). Root cause in our runner: each agent's Codex home re-synced ~156 MB of the user's plugins at session start (2.5 GB for 16). Fixed in PR #98: plugin features off in agent configs (probe peak 10 MB), receipt checkpointed every turn, turn duration measured (was null on all 414 turns). Living view critic pass during the run found text-ordered agents and benches labelled "notes" (fixed in PR #97). Before the stop: 127 of 146 tasks claimed by turn 26, every agent claiming 3-13. | events log only (no receipt: run predates the checkpoint) |
 | `plan25_codeflow_run2` (8 resident `codex/gpt-5.6-luna` agents, low effort, 20 turns, 4 actions per turn, v2 bank seed 25101: same 52 tasks, each stating its call shape and one example; agents see solved helpers) | **Completed 160/160 agent-turns**, one session per agent. Numbers from `scripts/run_evidence.py report` (run1 in brackets): **43 of 52 solved** [33]; 109 submissions [125], **64 failed** [89]: wrong answer 56 [60], **wrong argument count 0** [11], wrong argument type 1 [14], NameError 4, IndexError 2, AttributeError 1; 2 unpaid duplicates [3]. **Shell commands** from each agent's Codex history: alpha_1 19, alpha_2 6, alpha_3 16, alpha_4 15, alpha_5 21, alpha_6 25, alpha_7 14, alpha_8 15 (131) [128]. **Reuse:** where a needed helper was already solved by another agent, passing solutions called it **7 times** and rewrote it 3 [0 and 2]. **Royalties:** 11 paid (33 scrip) to alpha_3 3, alpha_4 2, alpha_5 2, alpha_6 2, alpha_2 1, alpha_7 1; 6 of them are genuine calls, 5 were paid by the old rule (run started before PR #95 required a call). Final scrip 132-172. Living view checked: no page errors, label present, 11 royalty frames; the tick badge covered the run name in the title (fixed in this PR); an agent standing at the market hides the "Market" label (World Substrate layout, same family as world-substrate#106). | `run_bundles/plan25_codeflow_run2.tar.gz` (built by `run_evidence.py bundle`, 0 bank leaks); `plan25_codeflow_run2_living_view.png` (genuine royalty: Agent 5's solution calls Agent 4's `go`) |
 | `plan25_codeflow_run1` (8 resident `codex/gpt-5.6-luna` agents, low effort, 20 turns, 4 actions per turn, CodeFlowBench bank seed 25101: 52 helper tasks, 16 problems, 28 cross-agent dependency links) | **Completed 160/160 agent-turns**, one session per agent. **Agents tested their own code:** shell commands from each agent's Codex history: alpha_1 20, alpha_2 7, alpha_3 16, alpha_4 12, alpha_5 13, alpha_6 20, alpha_7 19, alpha_8 21 (128 total). **Work built on work: not yet.** Correction (2026-10-06, `scripts/run_evidence.py`): where a needed helper had already been solved by another agent, passing solutions called it 0 times and rewrote it 2 times; the 11/3 figures first written here were wrong. The 9 `royalty_paid` events (27 scrip, 7 authors) were paid to solutions that never called the helper: the payout checked only that the helper was not redefined. Fixed to require a call. **33 of 52 tasks solved**; 125 submissions, 89 failed hidden tests (mostly argument-count TypeErrors and assertions: CodeFlowBench helper statements never state how a helper is called), 3 unpaid duplicates. Final scrip 132-164. Fixes for the next run (same PR): each task states its arity and one example; the agent view lists solved helpers to call rather than redefine; the Living view shows each royalty as a message from the reusing agent to the author. Bundle rebuilt 2026-10-06 with `scripts/run_evidence.py`: the first version also carried about 120 hidden test cases inside checker failure reasons. | `run_bundles/plan25_codeflow_run1.tar.gz` (redacted: task and solution text withheld, agents/ excluded); `plan25_codeflow_run1_living_view.png` |
 | `plan25_codex_shell_probe2` (1 Codex agent, 2 turns, 2 HumanEval tasks incl. /81) | **Agents now test their own code.** Resident Codex agents get a writable private folder (`sandbox_mode=workspace-write`) and an instruction to run each solution on the task's examples before submitting. The agent's Codex history (`thread_history_1.sqlite`) shows 6 shell commands: it wrote `test_grade.py`, failed 4 times on HumanEval/81, fixed it until the test passed, then tested /137; both passed the hidden tests. Probe 1 (same setup, testing only offered, not asked) recorded 0 commands: the agent skipped testing on easy tasks. Receipts now carry `shell_commands_from_history` per agent, and each agent's Codex home is trimmed at run end (thread history kept). | `run_bundles/plan25_codex_shell_probe2.tar.gz` (agent test files included, Codex home excluded) |
@@ -182,4 +191,4 @@ Agreed with the World Substrate session on 2026-10-05:
 
 ## Exact next action
 
-M7 step 2: launch the 16-agent, 40-turn run on the 146-task bank and record it.
+M7: `plan25_codeflow_run5` (16 agents × 40 turns, systemd unit `ae3-plan25-run5`) is running; when it ends, record it (step 3).
