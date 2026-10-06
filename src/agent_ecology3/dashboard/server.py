@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
@@ -120,7 +121,7 @@ _DASHBOARD_HTML = """<!doctype html>
     .metric span { color: var(--muted); font-size: 11px; }
     .mix { display: flex; flex-wrap: wrap; gap: 7px; }
     .chip { display: inline-flex; padding: 5px 8px; border-radius: 999px; background: rgba(117,167,255,.13); color: #c9dcff; font: 12px var(--mono); }
-    .chip.fail { background: rgba(231,111,81,.17); color: #ffb19d; }
+    .chip.fail { background: rgba(244,162,89,.18); color: #f4a259; }
     .economic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
     .economic-grid .metric { min-height: 70px; }
     .timeline { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -174,13 +175,13 @@ _DASHBOARD_HTML = """<!doctype html>
     .agent-stat b { color: var(--text); display: block; font-size: 15px; margin-bottom: 2px; }
     .activity-list { display: grid; gap: 7px; max-height: 430px; overflow: auto; padding-right: 3px; }
     .activity-item { display: grid; grid-template-columns: 32px 72px 1fr auto; gap: 8px; align-items: center; padding: 9px; border-radius: 8px; background: rgba(255,255,255,.035); }
-    .activity-item.failed { background: rgba(231,111,81,.10); }
+    .activity-item.failed { background: rgba(244,162,89,.10); border-left: 3px dashed #f4a259; }
     .activity-turn { color: var(--muted); font: 11px var(--mono); }
     .activity-agent { color: #c9dcff; font: 11px var(--mono); }
     .activity-text { font-size: 13px; }
     .artifact-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-color: rgba(81,196,168,.35); }
-    .result { font-size: 11px; color: var(--accent); }
-    .result.failed { color: #ffb19d; }
+    .result { font-size: 11px; color: #7fb3ff; }
+    .result.failed { color: #f4a259; }
     .artifact-toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
     .search { flex: 1; min-width: 220px; background: var(--panel-2); color: var(--text); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 8px 10px; }
     .artifact-table { width: 100%; border-collapse: collapse; }
@@ -482,7 +483,7 @@ _DASHBOARD_HTML = """<!doctype html>
       if (!operatorState) return;
       currentTurn = Math.max(0, Math.min(turn, operatorState.max_turn));
       document.getElementById('turnSlider').value = currentTurn;
-      document.getElementById('turnLabel').textContent = `Decision ${currentTurn} / ${operatorState.max_turn}`;
+      document.getElementById('turnLabel').textContent = `${operatorState.run_kind === 'resident' ? 'Event' : 'Decision'} ${currentTurn} / ${operatorState.max_turn}`;
       renderOperator();
     }
 
@@ -528,14 +529,14 @@ _DASHBOARD_HTML = """<!doctype html>
           <div class=\"agent-head\"><strong>${escapeHtml(agent.id)}</strong><span class=\"pill\"><span class=\"dot${agent.frozen ? ' danger' : ''}\"></span>${agent.frozen ? 'frozen' : 'active'}</span></div>
           <div class=\"agent-stats\">
             <div class=\"agent-stat\"><b>${agent.scrip ?? '—'}</b>${operatorState.read_only ? 'final' : 'current'} scrip</div>
-            <div class=\"agent-stat\"><b>${formatMoney(agent.llm_budget)}</b>budget left</div>
-            <div class=\"agent-stat\"><b>${actions.length}</b>decisions so far</div>
+            ${agent.llm_budget == null ? `<div class=\"agent-stat\"><b>${visibleActions.filter(a => a.principal_id === agent.id && a.action === 'submit_to_mint' && a.success && a.value_amount).length}</b>tasks solved so far</div>` : `<div class=\"agent-stat\"><b>${formatMoney(agent.llm_budget)}</b>budget left</div>`}
+            <div class=\"agent-stat\"><b>${actions.filter(a => a.action !== 'note').length}</b>${operatorState.run_kind === 'resident' ? 'actions' : 'decisions'} so far</div>
           </div>
           <div class=\"mix\" style=\"margin-top:10px\">${Object.entries(mix).map(([name,count]) => `<span class=\"chip\">${escapeHtml(name)} × ${count}</span>`).join('')}${failures ? `<span class=\"chip fail\">${failures} failed</span>` : ''}</div>
         </article>`;
       }).join('');
-      document.getElementById('activityCount').textContent = `${visibleActions.length} of ${operatorState.max_turn} decisions`;
-      document.getElementById('activityList').innerHTML = visibleActions.length ? visibleActions.map(action => `
+      document.getElementById('activityCount').textContent = `${visibleActions.length} of ${operatorState.max_turn} ${operatorState.run_kind === 'resident' ? 'events' : 'decisions'}`;
+      document.getElementById('activityList').innerHTML = visibleActions.length ? visibleActions.slice().reverse().map(action => `
         <div class=\"activity-item${action.success && !action.fallback_used ? '' : ' failed'}\">
           <span class=\"activity-turn\">#${action.turn}</span>
           <span class=\"activity-agent\">${escapeHtml(action.principal_id)}</span>
@@ -617,7 +618,7 @@ _DASHBOARD_HTML = """<!doctype html>
       slider.value = currentTurn;
       slider.disabled = !operatorState.read_only;
       document.getElementById('playButton').disabled = !operatorState.read_only;
-      document.getElementById('turnLabel').textContent = operatorState.read_only ? `Decision ${currentTurn} / ${operatorState.max_turn}` : `Live · ${currentTurn} decisions`;
+      document.getElementById('turnLabel').textContent = operatorState.read_only ? `${operatorState.run_kind === 'resident' ? 'Event' : 'Decision'} ${currentTurn} / ${operatorState.max_turn}` : `Live · ${currentTurn} ${operatorState.run_kind === 'resident' ? 'events' : 'decisions'}`;
       if (operatorState.read_only) {
         const invalidEvidence = operatorState.fallback_count ? `<span class=\"pill\"><span class=\"dot danger\"></span>invalid evidence: ${operatorState.fallback_count} substitute decisions</span>` : '';
         document.getElementById('statusLine').innerHTML = `<span class=\"pill\"><span class=\"dot\"></span>${escapeHtml(operatorState.condition)}</span><span class=\"pill\">${operatorState.agents.length} agents</span><span class=\"pill\">${operatorState.artifacts.length} final artifacts</span><span class=\"pill\">${escapeHtml(operatorState.lifecycle_state)}</span>${invalidEvidence}<span class=\"pill\">read only replay</span>`;
@@ -1115,6 +1116,105 @@ def _summarize_task_pair(
     }
 
 
+_ERROR_TYPE = re.compile(r"\(([A-Za-z_][A-Za-z0-9_]*(?:Error|Exception))\b")
+
+
+def _resident_action_rows(
+    events: list[dict[str, Any]], owners: dict[str, str]
+) -> list[dict[str, Any]]:
+    """Plain-words feed rows for resident-agent runs (Plan 26 M1).
+
+    Resident runs record ``resident_action`` events, not ``loop_decision``;
+    the feed was built only from the latter and showed "Decision 0 of 0".
+    Prices, checker results and royalties join on the action's event number.
+    """
+    by_number: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    for event in events:
+        if event.get("event_type") in {"artifact_read", "task_bounty_scored", "royalty_paid"}:
+            by_number.setdefault((str(event["event_type"]), int(event.get("event_number", 0) or 0)), []).append(event)
+    def joined(kind: str, number: int, **match: Any) -> list[dict[str, Any]]:
+        # A rejected action does not advance the event number, so a bare
+        # number join can pick up another agent's result; match identity too.
+        return [e for e in by_number.get((kind, number), []) if all(e.get(k) == v for k, v in match.items())]
+
+    rows: list[dict[str, Any]] = []
+    for event in sorted(events, key=lambda e: int(e.get("sequence", 0) or 0)):
+        kind = event.get("event_type")
+        if kind not in {"resident_action", "resident_turn"}:
+            continue
+        who = str(event.get("principal_id") or "unknown")
+        number = int(event.get("event_number", 0) or 0)
+        target = event.get("artifact_id")
+        value_amount: int | float = 0
+        value_unit: str | None = None
+        counterparty: str | None = None
+        success = event.get("success") is not False
+        if kind == "resident_turn":
+            action = "note"
+            note = " ".join(str(event.get("note") or "").split())
+            description = f"ended turn {event.get('turn')}: {note[:200] or '(no note)'}"
+            success = True
+        else:
+            action = str(event.get("action_type") or "unknown")
+            if event.get("success") is False:
+                verb = {"submit_to_mint": "submit", "read_artifact": "read", "write_artifact": "write"}.get(action, action.replace("_", " "))
+                description = f"tried to {verb} {target or ''}".rstrip() + f" — refused by the kernel ({event.get('error_code') or 'error'})"
+            elif action == "read_artifact":
+                read = (joined("artifact_read", number, principal_id=who, artifact_id=target) or [{}])[0]
+                price = read.get("read_price_paid", 0)
+                owner = read.get("recipient") or owners.get(str(target))
+                if isinstance(price, (int, float)) and price > 0 and owner and owner != who:
+                    value_amount, value_unit, counterparty = price, "scrip", str(owner)
+                    description = f"bought {target} from {owner}"
+                else:
+                    description = f"read {target}"
+            elif action in {"write_artifact", "edit_artifact", "create_artifact"}:
+                description = f"wrote {target}"
+            elif action == "submit_to_mint":
+                scored = (joined("task_bounty_scored", number, principal_id=who, artifact_id=target) or [{}])[0]
+                task = scored.get("task_id") or target
+                if scored.get("passed") and scored.get("first_claim"):
+                    value_amount, value_unit = scored.get("scrip_minted", 0), "scrip"
+                    description = f"submitted {task}: passed the hidden tests"
+                elif scored.get("passed"):
+                    description = f"submitted {task}: passed, but already claimed (unpaid)"
+                elif not scored:
+                    description = f"submitted {task}: no checker result recorded"
+                    success = False
+                else:
+                    match = _ERROR_TYPE.search(str(scored.get("reason") or ""))
+                    description = f"submitted {task}: failed the hidden tests ({match.group(1) if match else 'error'})"
+                    success = False
+                royalties = joined("royalty_paid", number, solver=who) if scored.get("first_claim") else []
+                if royalties:
+                    paid = ", ".join(f"{r.get('principal_id')} ({r.get('amount')} scrip)" for r in royalties)
+                    description += f"; reused helpers, royalty to {paid}"
+            elif action == "query_kernel":
+                description = "searched the world"
+            else:
+                description = action.replace("_", " ")
+        rows.append(
+            {
+                "turn": len(rows) + 1,
+                "agent_turn": event.get("turn"),
+                "event_number": number,
+                "principal_id": who,
+                "action": action,
+                "description": description,
+                "artifact_id": target if kind == "resident_action" else None,
+                "artifact_owner": owners.get(str(target)) if target else None,
+                "success": success,
+                "local_action_success": success,
+                "error_code": event.get("error_code"),
+                "fallback_used": False,
+                "value_amount": value_amount,
+                "value_unit": value_unit,
+                "counterparty": counterparty,
+            }
+        )
+    return rows
+
+
 def _operator_state(
     *,
     condition: str,
@@ -1242,6 +1342,20 @@ def _operator_state(
                 "counterparty": counterparty,
             }
         )
+    resident = not decisions and any(e.get("event_type") == "resident_action" for e in events)
+    if resident:
+        action_rows = _resident_action_rows(events, owners)
+        agent_counts = {}
+        agent_failures = Counter()
+        for row in action_rows:
+            if row["action"] != "note":
+                agent_counts.setdefault(row["principal_id"], Counter())[row["action"]] += 1
+                if not row["success"]:
+                    agent_failures[row["principal_id"]] += 1
+    solved: Counter[str] = Counter(
+        str(e.get("principal_id")) for e in events
+        if e.get("event_type") == "task_bounty_scored" and e.get("first_claim")
+    )
     balances = world_state.get("balances")
     quotas = world_state.get("quotas")
     frozen = world_state.get("frozen")
@@ -1258,9 +1372,11 @@ def _operator_state(
                 {
                     "id": principal_id,
                     "scrip": balance.get("scrip") if isinstance(balance, dict) else None,
+                    # Resident Codex agents have no per-agent LLM budget.
                     "llm_budget": resources.get("llm_budget")
-                    if isinstance(resources, dict)
+                    if isinstance(resources, dict) and not resident
                     else None,
+                    "tasks_solved": solved[principal_id],
                     "disk_used": disk.get("used") if isinstance(disk, dict) else None,
                     "disk_quota": disk.get("quota") if isinstance(disk, dict) else None,
                     "frozen": principal_id in frozen if isinstance(frozen, list) else False,
@@ -1270,6 +1386,7 @@ def _operator_state(
             )
     return {
         "schema_version": "ae3_operator_state.v1",
+        "run_kind": "resident" if resident else "loop",
         "condition": condition,
         "run_id": world_state.get("run_id"),
         "model": model,
