@@ -125,6 +125,8 @@ def test_codex_options_use_persistent_home_with_preapproved_ae3_server(tmp_path:
     config = (home / ".codex" / "config.toml").read_text()
     assert '[mcp_servers."ae3"]\ndefault_tools_approval_mode = "approve"' in config
     assert first["codex_session_mode"] == "fresh" and first["agent_hard_timeout"] == 0
+    sessions = home / ".codex" / "sessions"
+    assert sessions.is_dir() and not sessions.is_symlink(), "agent sessions must not link to the user's Codex history"
     assert first["sandbox_mode"] == "read-only" and first["approval_policy"] == "never"
     agent.session_id = "01a10e02-68dc-77c1-a2a0-fe1b6de6b883"
     again = codex_call_kwargs(agent, "http://k", reasoning_effort="low")

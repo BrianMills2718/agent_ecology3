@@ -197,6 +197,15 @@ def codex_call_kwargs(agent: ResidentAgent, kernel_url: str, *, reasoning_effort
         # and the session must survive the turn).
         target = agent.workdir / "codex_home"
         shutil.move(created, target)
+        # llm_client links `sessions` to the user's real Codex history so a
+        # throwaway home cannot lose transcripts. This home is persistent and
+        # run-owned, so keep transcripts here instead: otherwise every agent
+        # indexes the user's whole Codex history (about 300 MB per agent) and
+        # its sessions land among the user's own.
+        sessions = target / ".codex" / "sessions"
+        if sessions.is_symlink():
+            sessions.unlink()
+        sessions.mkdir(exist_ok=True)
         # Under approval_policy=never Codex rejects MCP calls that need approval;
         # pre-approve only this server's tools (the kernel is the authority).
         config_path = target / ".codex" / "config.toml"
