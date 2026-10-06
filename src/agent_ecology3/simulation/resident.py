@@ -263,6 +263,12 @@ def _ae3_mcp_server(agent: ResidentAgent, kernel_url: str) -> dict[str, Any]:
     }
 
 
+def _codex_work_dir(agent: ResidentAgent) -> Path:
+    work = agent.workdir / "work"
+    work.mkdir(parents=True, exist_ok=True)
+    return work
+
+
 def codex_call_kwargs(agent: ResidentAgent, kernel_url: str, *, reasoning_effort: str) -> dict[str, Any]:
     """Codex CLI options (llm_client built-ins): persistent per-agent home with the
     ae3 MCP server, read-only sandbox, never-ask approvals, resumed session."""
@@ -301,7 +307,9 @@ def codex_call_kwargs(agent: ResidentAgent, kernel_url: str, *, reasoning_effort
         "codex_home": agent.codex_home,
         "codex_transport": "cli",
         "reasoning_effort": reasoning_effort,
-        "working_directory": str(agent.workdir),
+        # Writable scratch folder is a sibling of the Codex home, never its
+        # parent: the agent must not be able to edit its own config or token.
+        "working_directory": str(_codex_work_dir(agent)),
         # The agent's own run folder is writable so it can write and run its
         # candidate code; the economy is reachable only through ae3_action.
         "sandbox_mode": "workspace-write",
