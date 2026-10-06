@@ -86,7 +86,7 @@ yes; nothing is published outside the repo.
 | M3 Isolation and cleanup | done | private Codex sessions; 5.2 GB reclaimed; agent sessions moved out of `~/.codex` | PR #88 |
 | M4 Agents test their own code | done | writable folder + instruction; history-based count | PR #89 |
 | M5 Compounding tasks and royalties | done | CodeFlowBench bank builder, linking, royalties | PRs #90, #91 |
-| M6 Rerun on clearer tasks | done | 43/52 solved, 0 argument-count failures, 7 real helper calls; royalty payout and evidence bundling fixed | `plan25_codeflow_run2`, PRs #95 and this one |
+| M6 Rerun on clearer tasks | done | 43/52 solved, 0 argument-count failures, 7 real helper calls; royalty payout and evidence bundling fixed | `plan25_codeflow_run2`, PRs #95 and #96 |
 | M7 Longer and larger runs | fully_specifiable_now (active) | 16 agents × 40 turns on a fresh 146-task bank | see Active slice |
 | M8 Agents visible when they share a place | blocked_on_owner (approved by Brian 2026-10-05) | World Substrate spreads actors that move to the same place; then bump the pin here | [world-substrate#106](https://github.com/BrianMills2718/world-substrate/issues/106); its renderer files are under a live World Builder claim |
 | M9 Economy on World Substrate's engine; cooperation verdicts | deliberately_deferred | — | Brian selects it |

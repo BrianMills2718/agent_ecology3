@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import tarfile
@@ -271,13 +272,24 @@ def _spread(count: int, *, y: float, left: float = 10.0, right: float = 90.0) ->
     return [[round(left + i * step, 2), y] for i in range(count)]
 
 
+def principal_order(principal: str) -> tuple[Any, ...]:
+    """Number order for agent ids: alpha_2 before alpha_10 (text order put
+    alpha_10..alpha_16 between alpha_1 and alpha_2 in the 16-agent run)."""
+    return tuple(int(part) if part.isdigit() else part for part in re.split(r"(\d+)", principal))
+
+
+def agent_label(principal: str) -> str:
+    return principal.replace("alpha_", "Agent ")
+
+
 def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: list[str]) -> dict[str, Any]:
     """Automatic living-scene/v1 profile: a place with three stations and workbenches."""
+    principals = sorted(principals, key=principal_order)
     actors = {
         principal: {
             "entity": principal,
             "asset": "agent",
-            "label": principal.replace("alpha_", "Agent "),
+            "label": agent_label(principal),
             "home": home,
             "bindings": {
                 "scrip": "components.member.scrip",
@@ -320,7 +332,9 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
 
     benches = {
         f"bench-{principal}": {
-            "entity": f"bench-{principal}", "asset": "bench", "label": "notes",
+            # Named after its owner: an empty bench read "notes" and could
+            # not be told apart while its agent was away.
+            "entity": f"bench-{principal}", "asset": "bench", "label": f"{agent_label(principal)}'s bench",
             "home": [bench_x, 72.0],
             "bindings": {"notes": "components.workbench.notes"},
             "render": {"inspector_fields": ["notes"]},
