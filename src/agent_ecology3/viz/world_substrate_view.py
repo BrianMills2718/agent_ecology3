@@ -356,8 +356,11 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         "schema_version": "world-substrate-living-scene/v1",
         "scene_id": f"{bundle['world_id']}-automatic-v2",
         "world": bundle["world_id"],
-        "title": f"Agent Ecology 3 · {bundle['world_id'].removeprefix('ae3-')}",
-        "subtitle": "Agents read tasks at the board, buy each other's work at the market, and earn scrip when the checker's hidden tests pass.",
+        # Short title: the renderer's tick badge sits where a long title ends
+        # (plan25_codeflow_run2 rendered as "plan25_codeflo…"); the run id
+        # goes in the subtitle instead.
+        "title": "Agent Ecology 3",
+        "subtitle": f"Run {bundle['world_id'].removeprefix('ae3-')}. Agents read tasks at the board, buy each other's work at the market, and earn scrip when the checker's hidden tests pass.",
         "note": LABEL,
         "assets": {
             "agent": {"kind": "text", "value": "A"},

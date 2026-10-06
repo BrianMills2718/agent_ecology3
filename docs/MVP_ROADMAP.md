@@ -146,13 +146,14 @@ Status ([Plan 25](plans/25_scale_shakeout.md) holds the milestones, run log, evi
    Agents now write and run their own tests in a private folder before
    submitting (Codex history of `plan25_codex_shell_probe2`: 6 shell
    commands, repaired a failing solution before submitting).
-3. **Work that compounds: built, not yet observed.** A local CodeFlowBench
-   bank of helper tasks with dependencies; the checker links already-solved
-   helpers and pays their authors a royalty when a passing solution calls
-   them. In the first 8-agent run no passing solution called an earlier
-   agent's helper (they wrote the logic inline), and 9 royalties were paid in
-   error; the payout now requires a real call. Every agent tested its own
-   code (7-21 shell commands each).
+3. **Work that compounds: first real reuse.** A local CodeFlowBench bank of
+   helper tasks with dependencies; the checker links already-solved helpers
+   and pays their authors a royalty when a passing solution calls them. Run 1
+   showed no real reuse (its royalties were a payout bug, fixed). Run 2, with
+   tasks that state their call shape: 43/52 solved, no argument-count
+   failures, and passing solutions called another agent's helper 7 times.
+   Every agent tested its own code (6-25 shell commands each). Next: 16
+   agents × 40 turns.
 4. **Watching it: done, one gap.** The dashboard's Living view renders runs in
    World Substrate's world-agnostic living view (viewer only, pinned
    `33bd121`, labelled "rendered with the World Substrate living view;
