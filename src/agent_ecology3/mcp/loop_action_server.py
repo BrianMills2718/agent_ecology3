@@ -31,6 +31,7 @@ def _build_action_payload(
     bid: int | None,
     query_type: str | None,
     params: dict[str, Any] | None,
+    read_price: int | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {"action_type": action_type.strip()}
     if artifact_id:
@@ -53,6 +54,8 @@ def _build_action_payload(
         payload["query_type"] = query_type
     if isinstance(params, dict):
         payload["params"] = params
+    if read_price is not None:
+        payload["read_price"] = read_price
     return payload
 
 
@@ -60,7 +63,9 @@ def _build_action_payload(
     name="ae3_action",
     description=(
         "Submit one AE3 kernel action payload. "
-        "Use action_type plus action-specific fields (artifact_id, recipient_id, amount, etc.)."
+        "Use action_type plus action-specific fields (artifact_id, recipient_id, amount, etc.). "
+        "read_price (write_artifact only): scrip another agent pays you to read this artifact; "
+        "rewriting an artifact without read_price keeps its current price."
     ),
 )
 def ae3_action(
@@ -75,6 +80,7 @@ def ae3_action(
     bid: int | None = None,
     query_type: str | None = None,
     params: dict[str, Any] | None = None,
+    read_price: int | None = None,
 ) -> dict[str, Any]:
     payload = _build_action_payload(
         action_type=action_type,
@@ -88,6 +94,7 @@ def ae3_action(
         bid=bid,
         query_type=query_type,
         params=params,
+        read_price=read_price,
     )
     kernel_url = os.environ.get("AE3_KERNEL_URL")
     if not kernel_url:

@@ -38,7 +38,7 @@ one:
 |---|---|---|---|
 | Agents test before submitting | shell commands in the agent's own folder before `submit_to_mint`; few submissions that fail for trivial reasons | `resident_turn.sandboxed_shell_commands`, `task_bounty_scored.reason` | run5: 13-36 shell commands per agent, but 129 of 267 submissions still failed (101 wrong answers) |
 | Agents reuse solved helpers | a passing solution calls a helper someone else solved, without redefining it | `royalty_paid` (one per reused helper) | run5: 19 calls to another agent's helper, 17 royalties to 9 authors; run6: 12 |
-| Agents trade at posted prices | an agent pays another agent's posted `read_price` for work it values | `artifact_read` with `read_price_paid > 0` and `recipient != principal_id` | run5: 170 paid cross-agent reads, **all of task statements**. No agent can price its own work (see 6.3), so this pattern cannot appear for solutions |
+| Agents trade at posted prices | an agent pays another agent's posted `read_price` for work it values | `artifact_read` with `read_price_paid > 0` and `recipient != principal_id` | run5: 170 paid cross-agent reads, **all of task statements**; agents could not price their own work then. Since 2026-10-06 they can (see 6.3); no run with priced solutions yet |
 | Royalties follow real calls | a royalty is paid only when the passing code calls the helper and does not redefine it | `royalty_paid` against the solution's code | enforced by `mint.py:400`; run5 had 17 royalties, all from genuine calls |
 | Agents talk when it helps | messages that ask for or offer help | `agent_message` | run6: 0 messages in 160 agent-turns (messaging available, mentioned once on turn 1) |
 
@@ -110,16 +110,18 @@ information.
    workspace note (`:286`). After that the agent relies on its resumed session.
 2. `Turn t. You are alpha_3. Your scrip: 112. All scrip balances: {...}`. Every
    agent sees every balance.
-3. "Artifacts you can see now": the first **200** readable artifacts in creation
-   order (`resident.py:233`), with the agent's own bootstrap artifacts removed
-   afterwards (`:237`). Each row gives id, type, owner, read price and, if paid,
-   who claimed the bounty. Content is not shown; reading costs an action. Task
-   statements are created first, so the list fills with tasks.
-   **Consequence (estimated from each run's final artifact order, replicating
-   the query filter in `world/queries.py:54-96`):** in run5 (146 tasks) agents
-   were shown all 146 tasks and 49 of 193 solutions. In run6 (365 tasks) they
-   were shown 195 tasks and **no solutions**. The rest are reachable only
-   through `query_kernel` with an offset.
+3. "Unclaimed tasks: U of T": **every** unclaimed task statement id, grouped
+   by read price, plus how many are claimed and the query that lists them.
+   Then "Other artifacts": the newest 60 readable non-task artifacts (id, type,
+   owner, read price), with the agent's own bootstrap artifacts removed, and a
+   `query_kernel` paging hint when more exist. Content is not shown; reading
+   costs an action.
+   **History:** until 2026-10-06 this was the first 200 readable artifacts in
+   creation order. Reproduced without model calls on the 8-agent 365-task bank
+   (seed 26301): the old listing showed **195 of 365** tasks, no count of the
+   rest and, since solutions are created after tasks, no solutions at all in
+   run6. The new listing shows all 365 in about 12,000 characters (the old one
+   took about 16,400), and the newest solutions first.
 4. "Solved helpers the checker links in automatically": every solved task that
    another task requires, with its function name and author (`resident.py:264`).
 5. "Messages to you since your last turn", shown once and then cleared
@@ -222,14 +224,14 @@ Agent 3 reading its own statement pays nothing, but the event still says
 2. Growth must fit the 250,000-byte disk quota (`quota_exceeded`).
 3. The artifact is created or overwritten, and `artifact_written` is logged
    with `was_update`.
-4. **Price:** the kernel reads `read_price` from the top level of the payload
-   (`actions.py:634`). The agents' only tool, `ae3_action`
-   (`mcp/loop_action_server.py:66`), has no `read_price` field, so every
-   agent-written artifact has read price 0. The rules nevertheless tell agents
-   "You may set read_price on your own artifacts" (`resident.py:308-309`). In
-   run5 and run6 all 319 agent-written solutions had read price 0. **Reading
-   another agent's code is therefore always free, and selling work at a posted
-   price is impossible for agents.**
+4. **Price:** `read_price` (a whole number of scrip, 0 or more; anything else
+   is refused) sets what other agents pay to read the artifact
+   (`actions.py:635`). Omitted, a new artifact is free and a **rewrite keeps
+   the current price** (`artifacts.py`), so fixing code does not silently
+   reset it. Agents set it through `ae3_action`'s `read_price` field, added
+   2026-10-06; before that the tool had no such field, so in run5 and run6 all
+   319 agent-written solutions had read price 0 and reading another agent's
+   code was always free.
 
 ### 6.4 submit_to_mint and the checker (`world/mint.py:304-358`)
 
@@ -296,7 +298,9 @@ pasted its own `def mex`, Agent 3 would get nothing.
   observation (section 4). A message sent during turn t is read at turn t+1
   because all turn-t prompts were already built.
 - Free in scrip; counts as an action; does **not** advance `event_number`.
-- `agent_message` is logged with the full text.
+- `agent_message` is logged with the full text and the kernel's per-call
+  `action_id`, which its `resident_action` also carries; views join the two on
+  it (two messages in one turn share an `event_number`).
 
 ### 6.9 Other actions resident agents can reach
 
