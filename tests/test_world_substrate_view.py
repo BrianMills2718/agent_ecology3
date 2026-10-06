@@ -106,3 +106,15 @@ def test_living_view_endpoint_renders_with_pinned_world_substrate(tmp_path: Path
         assert "Living view" in client.get("/").text
     assert page.status_code == 200
     assert LABEL in page.text and "id='scrub'" in page.text
+
+
+def test_royalty_becomes_a_message_from_reuser_to_author() -> None:
+    events = [{"event_type": "royalty_paid", "event_number": 5, "principal_id": "alpha_1",
+               "solver": "alpha_2", "dependency_task_id": "CF/X/digits", "amount": 3}]
+    bundle = build_projection(events, run_id="t", principals=["alpha_1", "alpha_2"],
+                              task_ids=["CF/X/digits"], starting_scrip=100)
+    world = _replay(bundle)
+    info = world["entities"]["royalty-1"]["components"]["information"]
+    assert info["source_id"] == "alpha_2" and info["content"] == "Agent 2 reused your digits: +3 scrip"
+    assert world["entities"]["royalty-1-delivery"]["components"]["delivery"]["recipient_id"] == "alpha_1"
+    assert world["entities"]["alpha_1"]["components"]["member"]["scrip"] == 103

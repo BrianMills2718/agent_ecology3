@@ -112,3 +112,15 @@ def test_example_text_states_arity_and_first_case() -> None:
     b = _builder()
     text = b.example_text("f", [("([5, 1, 4, 2, 3], 5)", "[6, 6, 7, 7, 8]"), ("([1], 1)", "[2]")])
     assert text == "It is called with 2 positional argument(s). Example: `f([5, 1, 4, 2, 3], 5)` returns `[6, 6, 7, 7, 8]`."
+
+
+def test_observation_lists_solved_helpers_to_call_not_redefine(tmp_path: Path) -> None:
+    from agent_ecology3.simulation.resident import ResidentKernel
+
+    world = _world(tmp_path)
+    kernel = ResidentKernel(world, tmp_path / "agents", actions_per_turn=2)
+    assert "Solved helpers" not in kernel.observation(kernel.agents["alpha_2"])
+    _submit(world, "alpha_1", "alpha_1_d", "CF/X/digits", DIGITS)
+    text = kernel.observation(kernel.agents["alpha_2"])
+    assert "`digits` (task CF/X/digits) solved by alpha_1" in text
+    assert "do not redefine them" in text

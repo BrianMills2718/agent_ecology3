@@ -192,6 +192,28 @@ class ResidentKernel:
             f"Turn {self.turn}. You are {agent.principal_id}. Your scrip: "
             f"{balances[agent.principal_id]}. All scrip balances: {balances}.\n"
             f"Artifacts you can see now ({len(rows)}):\n" + "\n".join(lines)
+            + self._linked_helpers_section()
+        )
+
+    def _linked_helpers_section(self) -> str:
+        """Solved helpers the checker links automatically (TroVE/LILO-style listing)."""
+        auction = self.world.mint_auction
+        tasks = getattr(getattr(auction, "scorer", None), "tasks", None)
+        if auction is None or not isinstance(tasks, dict):
+            return ""
+        needed = {dep for task in tasks.values() for dep in task.requires}
+        solved = [
+            (dep, auction._claimed_tasks[dep]) for dep in sorted(needed) if dep in auction._claimed_tasks
+        ]
+        if not solved:
+            return ""
+        rows = [
+            f"- `{tasks[dep].entry_point}` (task {dep}) solved by {author}"
+            for dep, author in solved
+        ]
+        return (
+            "\nSolved helpers the checker links in automatically (call them, do not "
+            "redefine them; redefining one cancels its author's royalty):\n" + "\n".join(rows)
         )
 
 
@@ -219,6 +241,9 @@ for the same task earn nothing, and the artifact list shows tasks already
 claimed. Reading an artifact you do not own (action_type read_artifact) costs
 its read price, paid to its owner, and returns its content. You may set
 read_price on your own artifacts. Use artifact ids prefixed with {principal_id}_.
+When a task depends on a helper someone already solved, the checker links that
+passing helper in ahead of your code; call it without redefining it, and its
+author earns a royalty when you pass.
 Other actions: transfer (recipient_id, amount), query_kernel (query_type, params).
 You have no assigned role or strategy; decide for yourself.
 """
