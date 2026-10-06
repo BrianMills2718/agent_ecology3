@@ -332,9 +332,10 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
 
     benches = {
         f"bench-{principal}": {
-            # Named after its owner: an empty bench read "notes" and could
-            # not be told apart while its agent was away.
-            "entity": f"bench-{principal}", "asset": "bench", "label": f"{agent_label(principal)}'s bench",
+            # Named after its owner (an empty bench read "notes"), and no wider
+            # than the agent's own "Agent N" tag: "Agent N's bench" overran its
+            # neighbours at 16 agents (plan25_codeflow_run5).
+            "entity": f"bench-{principal}", "asset": "bench", "label": agent_label(principal).replace("Agent ", "Bench "),
             "home": [bench_x, 72.0],
             "bindings": {"notes": "components.workbench.notes"},
             "render": {"inspector_fields": ["notes"]},
