@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-06"
 ---
 # Plan #26: Watch the Ecology — Feed, Graph, Messaging, Public Replay
 
-**Status:** 🚧 In Progress — M1 active (activity feed for resident runs)
+**Status:** 🚧 In Progress — M2 active (agents-only interaction graph)
 **Type:** durable living plan (company-planning `durable_solo`)
 **Priority:** Critical
 **Blocked By:** None
@@ -76,7 +76,7 @@ is published only after the privacy check passes.
 
 | Capability | Canonical seam | State | Evidence |
 |---|---|---|---|
-| Activity feed | `dashboard/server.py` `_operator_state` | broken for resident runs: built only from `loop_decision` events (`server.py:1128`); resident runs emit `resident_action` | run5 screenshot 2026-10-06: "Decision 0 of 0" |
+| Activity feed | `dashboard/server.py` `_resident_action_rows` | working: 1,595 run5 events in plain words; totals match `run_evidence.py report` (128 solved, 129 failed, 10 unpaid, 17 royalties); 52 kernel refusals shown | M1 PR |
 | Interactions graph | `dashboard/server.py` `/interaction-graph`, Cytoscape | unreadable at 16 agents (agents + ~150 task nodes) | run5 screenshot 2026-10-06 |
 | Living view | `viz/world_substrate_view.py` | working; agents at one place hide each other | Plan 25 M8, world-substrate#106 |
 | Agent messaging | kernel actions | absent: no action sends a message to another agent; turn notes are not shown to other agents | `world/actions.py` `ActionType` |
@@ -85,34 +85,31 @@ is published only after the privacy check passes.
 
 | Milestone | Planning state | Output | Review point |
 |---|---|---|---|
-| M1 Activity feed for resident runs | fully_specifiable_now (active) | plain-words feed from resident events; agent cards without the meaningless budget | run5 at localhost, press Play |
-| M2 Agents-only interaction graph | fully_specifiable_now | shared graph viewer; agents as nodes; bought / reused (royalty) / messaged edges weighted by count; click an agent for its tasks | run5 Interactions tab |
+| M1 Activity feed for resident runs | done (awaiting Brian's look) | plain-words feed from resident events; agent cards without the meaningless budget | run5 at localhost, press Play |
+| M2 Agents-only interaction graph | fully_specifiable_now (active) | shared graph viewer; agents as nodes; bought / reused (royalty) / messaged edges weighted by count; click an agent for its tasks | run5 Interactions tab |
 | M3 Agents can message each other | fully_specifiable_now | `send_message` action; inbox in the recipient's next observation; shown in feed, graph, Living view; 8 agents × 20 turns | live run link |
 | M4 Public read-only replay | conditional (after M1-M3) | static replay of one finished run on brianmills.dev after a privacy check | public URL |
 | M5 Real oracle | human_decision_required | Brian chooses what agents get paid for | Brian's choice |
 
-## Active slice: M1 — activity feed for resident runs
+## Active slice: M2 — agents-only interaction graph
 
-**Visible result:** pressing Play on run5 fills the feed with lines such as
-"Agent 7 read Agent 3's statement (1 scrip)", "Agent 7 wrote a solution",
-"Agent 7 submitted CF/…/gsum: passed, +10 scrip", "Agent 3 earned a 3-scrip
-royalty from Agent 7"; clicking a line shows the artifact it touched.
+**Visible result:** the Interactions tab on run5 shows 16 agent nodes; arrows
+for "bought from" (paid reads), "reused helper of" (royalties) and later
+"messaged"; thicker for more; clicking an agent lists its tasks and trades.
 
 **Steps:**
-1. In `_operator_state`, when a run has `resident_action` events, build the
-   action rows from them (joined to `artifact_read` prices,
-   `task_bounty_scored` results and `royalty_paid`), ordered by sequence and
-   grouped by turn; keep the old `loop_decision` path unchanged.
-2. Agent cards: show actions taken, tasks solved and scrip; drop the
-   per-agent LLM budget for resident runs (Codex runs have none).
-3. Test (no model calls) with a small resident event log; check the rendered
-   page in a browser on run5.
+1. Vendor a pinned `representation-router/graph-viewer/dist/graph-viewer.js`
+   and read its typed-graph/v1 contract.
+2. Build a typed-graph/v1 document from kernel events (agents as nodes;
+   edges aggregated by kind and count); replace the Cytoscape view.
+3. Test the projection without model calls; browser-check run5, hovering
+   every control for a visible tooltip.
 
-**Focused check:** run5 feed shows 640 turns' actions; counts in the header
-match `scripts/run_evidence.py report`.
+**Focused check:** edge totals equal the feed's counts (paid reads between
+different agents; 17 royalties).
 
-**Failure / containment:** an unrecognised event type is listed as such, not
-dropped.
+**Failure / containment:** if the shared viewer cannot express weighted
+edges, extend it in representation-router rather than hand-rolling here.
 
 ## Decisions and assumptions
 
@@ -132,8 +129,9 @@ dropped.
 
 | Date | Milestone | What Brian can open | Result |
 |---|---|---|---|
+| 2026-10-06 | M1 | http://localhost:9097/ (run5, Ecosystem tab, press Play) | built and browser-checked; awaiting Brian's look. Found while building: 52 actions refused for exceeding 4 per turn; joining results by event number alone mislabelled 9 of them (fixed by matching agent and artifact) |
 
 ## Exact next action
 
-M1 step 1: build the feed's action rows from `resident_action` events in
-`_operator_state` and check it on run5.
+M2 step 1: vendor the shared graph viewer and map run5's agent-to-agent
+trades and royalties into typed-graph/v1.
