@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-06"
 ---
 # Plan #26: Watch the Ecology — Feed, Graph, Messaging, Public Replay
 
-**Status:** 🚧 In Progress — M3 active (agents can message each other)
+**Status:** 🚧 In Progress — M4 done (public replay live); M3 awaiting Brian on a per-turn messaging reminder
 **Type:** durable living plan (company-planning `durable_solo`)
 **Priority:** Critical
 **Blocked By:** None
@@ -31,9 +31,8 @@ communicate, build and submit, and judges whether the system is set up
 correctly before choosing a real oracle.
 **Stage / investment boundary:** local prototype plus one public read-only
 replay; no oracle work, no verdicts or benchmarks.
-**Last outcome-bearing update:** 2026-10-06, defects exposed by the system
-model fixed (read prices, transfers, message join, live feed window, task
-listing).
+**Last outcome-bearing update:** 2026-10-06, M4: run5 published as a public
+read-only replay at https://brianmills.dev/agent-ecology/.
 
 ## Outcome and boundaries
 
@@ -86,6 +85,7 @@ is published only after the privacy check passes.
 | Posted prices for agent work | `mcp/loop_action_server.py` `read_price` → `write_artifact` | working, unused so far: an agent sets `read_price` on its artifact; a rewrite keeps it; another agent's read pays it | model-gap PR |
 | Turn observation | `simulation/resident.py` `observation` | every unclaimed task id by read price, newest 60 other artifacts, paging hint | model-gap PR |
 | Living view | `viz/world_substrate_view.py` | working; agents at one place hide each other | Plan 25 M8, world-substrate#106 |
+| Public replay | `scripts/build_public_replay.py` → `deploy/cloudflare/agent-ecology/`, deployed by `scripts/deploy_public_replay.sh` | working: run5 at https://brianmills.dev/agent-ecology/ (feed, matrix, living view); allow-list redaction, leak check 0 before and after deploy | M4 PR #113 |
 | Agent messaging | `simulation/resident.py` `_send_message` | working: `send_message` delivers a free note at the start of the recipient's next turn; unused in run6 (0 messages) | M3 PR |
 
 ## Model
@@ -109,7 +109,7 @@ solution rewrites absent from the Living view, and the other gaps in that page.
 | M1 Activity feed for resident runs | done (awaiting Brian's look) | plain-words feed from resident events; agent cards without the meaningless budget | run5 at localhost, press Play |
 | M2 Agents-only interaction view | done (awaiting Brian's look) | shared graph viewer; agents as nodes; bought / reused (royalty) / messaged edges weighted by count; click an agent for its tasks | run5 Interactions tab |
 | M3 Agents can message each other | built; unused in first run (awaiting Brian on a per-turn reminder) | `send_message` action; inbox in the recipient's next observation; shown in feed, graph, Living view; 8 agents × 20 turns | live run link |
-| M4 Public read-only replay | conditional (after M1-M3) | static replay of one finished run on brianmills.dev after a privacy check | public URL |
+| M4 Public read-only replay | done (awaiting Brian's look) | run5 as a static replay on brianmills.dev after a privacy check; notes and message text withheld | https://brianmills.dev/agent-ecology/ |
 | M5 Real oracle | human_decision_required | Brian chooses what agents get paid for | Brian's choice |
 
 ## Active slice: M3 — agents can message each other
@@ -154,6 +154,7 @@ reason, like any invalid action.
 
 | Date | Milestone | What Brian can open | Result |
 |---|---|---|---|
+| 2026-10-06 | M4 | **https://brianmills.dev/agent-ecology/** (public; Living view linked from the page) | run5 (16 agents × 40 turns) published read-only: feed (1,595 steps, Play/step/filter), 16×16 matrix, World Substrate living view; no server, no controls that act. Built from a redacted snapshot by the dashboard's own `_resident_action_rows` and `_agent_graph` and the pinned renderer. **Withheld:** task text, hidden tests, solution code, agents' end-of-turn notes and message text (27 of 640 run5 notes quote a bank sentence or test input verbatim, many more quote expected outputs or code, so notes are dropped, not filtered), checker detail beyond the error type, session ids and paths. Leak check (bank sentences, test inputs, tokens, home paths, Codex folders, emails): 0 on the snapshot and 0 on the files fetched from the live site; the same check finds 146 bank sentences in the raw log. Browser (Playwright, live): no page errors, no sideways scroll at 390 px, every visible control (332 feed, 282 matrix, 41 living view) shows a styled tooltip. Known limit: on a phone the living view's 16 bench names overlap (World Substrate layout). PR #113 |
 | 2026-10-06 | model-gap fixes | run5 (review mode) and a provider-free live kernel fixture with priced code, two messages in one turn, two transfers and 2,417 events | fixed five defects the system model exposed, each with a test that makes no model calls: (1) the tool had no `read_price` field although the rules offered it; added, and a rewrite now keeps the price; (2) transfers: feed "paid X N scrip", matrix "paid N"; (3) two messages in one turn showed the first text twice; the kernel now logs a per-action id on both events; (4) the live feed read the last 2,000 events; now 100,000 like the other views; (5) reproduced on the 365-task bank: the observation listed 195 of 365 tasks and no solutions; it now lists every unclaimed task (about 12,000 characters, down from 16,400) and the newest 60 other artifacts. Browser: run5 unchanged (1,595 feed rows; 256 matrix controls, all with tooltips); fixture showed 806 of 806 actions live and paid/bought/msg cells with tooltips |
 | 2026-10-06 | M3 (fixes) | run `plan26_fixes_run7` (8 Codex agents × 20 turns, same 365-task bank, after PR #110: prices through the tool, full unclaimed-task list each turn, transfers and messages visible): http://localhost:9101/ | 160/160 turns; 116/365 solved (run6: 110); 38 failed (wrong answer 30, wrong argument count 3, NameError 2, wrong argument type 1, other 2); 17-28 shell commands per agent; helper called 8, rewritten 2; 8 royalties to 5 authors. **Agents priced their own work: 68 of 128 solutions at 1-2 scrip** (first use; impossible before #110). Cross-agent reads fell to 10 (run6 had more statement purchases; the full task list now shows tasks without buying statements). Still 0 messages and 0 transfers. 9 refusals (5 not_found, 4 turn limit). Bundle `run_bundles/plan26_fixes_run7.tar.gz` |
 | 2026-10-06 | M3 | run `plan26_messages_run6` (8 Codex agents × 20 turns, 365-task bank, messaging available): http://localhost:9100/ while it served | 160/160 turns; 110/365 solved; 32 failed (wrong answer 24, NameError 6, wrong argument count 1, other 1); 15-26 shell commands per agent; another agent's helper called 12 times, rewritten 1; 12 royalties to all 8 agents; **0 messages and 0 transfers**. The rules mention send_message once, on turn 1 only; no agent's recorded thinking mentions it (weak evidence: low-effort reasoning is mostly unrecorded). Trading today is posted prices plus automatic royalties, no negotiation. Bundle `run_bundles/plan26_messages_run6.tar.gz` |
@@ -167,4 +168,7 @@ is the first that can show priced code, payments and a full task view.
 Waiting on Brian (proposed 2026-10-06): add a one-line per-turn reminder that
 agents can message anyone, keep each agent's recent messages in its turn
 summary, and rerun 8 agents × 20 turns to see whether messaging gets used.
-Otherwise continue with M4 (public replay).
+M4 is live at https://brianmills.dev/agent-ecology/ (run5). To publish a later
+run instead: `uv run python scripts/build_public_replay.py build <run_dir> --bank
+<its bank>`, open a PR with the rebuilt `deploy/cloudflare/agent-ecology/assets/`,
+merge after `make check`, then `scripts/deploy_public_replay.sh`.
