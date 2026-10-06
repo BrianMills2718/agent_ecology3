@@ -48,8 +48,8 @@ scale it is about.
 - Current goal: get the system working and the agents behaving intelligently
   so it can scale (Plan 25). Working now: long-lived Codex agents that keep
   memory and act through the kernel's MCP tool (8 agents × 20 turns completed,
-  80/80 tasks solved), and a World Substrate living view of each run. Not yet:
-  agents testing their own code, and tasks that build on each other.
+  80/80 tasks solved), and a World Substrate living view of each run. Agents also
+  test their own code before submitting. Not yet: tasks that build on each other.
 - `make check` passes (pytest and mypy), and preserved runs reopen in the
   dashboard from their committed evidence bundles.
 
