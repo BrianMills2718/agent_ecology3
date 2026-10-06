@@ -339,7 +339,7 @@ events:
   - name: resident_action
     scope: resident
     emitted_by: [act]
-    fields: [event_number, action_id, turn, principal_id, session_id, action_type, artifact_id, success, error_code]
+    fields: [event_number, action_id, turn, principal_id, session_id, action_type, artifact_id, read_price, success, error_code]
     emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 201, function: act}]
   - name: resident_turn
     scope: resident

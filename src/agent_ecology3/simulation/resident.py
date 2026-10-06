@@ -208,6 +208,9 @@ class ResidentKernel:
                     "session_id": agent.session_id,
                     "action_type": payload.get("action_type"),
                     "artifact_id": payload.get("artifact_id"),
+                    # The price an agent set on a write (None when not set), so
+                    # views can show pricing (run7: 68 priced solutions, invisible).
+                    "read_price": payload.get("read_price"),
                     "success": outcome["success"],
                     "error_code": outcome.get("error_code"),
                 },
