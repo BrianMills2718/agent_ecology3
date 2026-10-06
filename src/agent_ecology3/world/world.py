@@ -1825,6 +1825,7 @@ async def run():
                 period_seconds=self.config.mint.period_seconds,
                 mint_ratio=self.config.mint.mint_ratio,
                 scorer=scorer,
+                royalty_scrip=self.config.mint.royalty_scrip,
             )
 
     def set_disk_quota(self, principal_id: str, quota_bytes: int) -> None:

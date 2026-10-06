@@ -35,6 +35,7 @@ RULE_WRITE = "ae3.agent.write"
 RULE_SOLVED = "ae3.mint.task_solved"
 RULE_UNPAID = "ae3.mint.submission_unpaid"
 RULE_NOTE = "ae3.agent.note"
+RULE_ROYALTY = "ae3.mint.royalty"
 
 BOARD, MARKET, CHECKER = "task-board", "market", "checker"
 NOTE_CHARS = 180
@@ -193,6 +194,13 @@ def build_projection(
                     (f"entities.{CHECKER}.components.checker.last_result", f"{scored_task}: {outcome}"),
                     (member(actor, "doing"), f"{scored_task}: {outcome}"),
                 ])
+        elif kind == "royalty_paid" and actor in principals:
+            amount = int(event.get("amount", 0) or 0)
+            emit(RULE_ROYALTY, event, actor_id=actor, updates=[
+                (member(actor, "scrip"), value(member(actor, "scrip")) + amount),
+                (member(actor, "doing"),
+                 f"earned {amount} royalty: {event.get('solver')} reused {event.get('dependency_task_id')}"),
+            ])
         elif kind == "resident_turn" and actor in principals:
             text = " ".join(str(event.get("note") or "").split())
             if not text:
@@ -318,6 +326,7 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         event_visuals[f"{RULE_SOLVED}.{principal}"] = visual(principal, "solution passed the hidden tests", CHECKER)
         event_visuals[f"{RULE_UNPAID}.{principal}"] = visual(principal, "submission earned nothing", CHECKER)
         event_visuals[f"{RULE_NOTE}.{principal}"] = visual(principal, "end-of-turn note", f"bench-{principal}", transmit=True)
+        event_visuals[f"{RULE_ROYALTY}.{principal}"] = visual(principal, "earns a royalty: someone reused its helper", None)
 
     return {
         "schema_version": "world-substrate-living-scene/v1",

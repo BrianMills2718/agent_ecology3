@@ -619,12 +619,23 @@ def _seed_task_bank(world: RecoverableLoopWorld, bank_path: Path = PLAN24_TASK_B
         )
     written: list[str] = []
     for task in tasks.values():
-        number = task.task_id.split("/")[-1]
-        artifact_id = f"{task.owner}_task_{number}"
+        slug = task.task_id.split("/", 1)[-1].replace("/", "_")
+        artifact_id = f"{task.owner}_task_{slug}"
+        depends = ""
+        if task.requires:
+            names = ", ".join(
+                f"`{tasks[dep].entry_point}` (task {dep})" for dep in task.requires if dep in tasks
+            )
+            depends = (
+                f"\n\nDepends on: {names}. If a helper is already solved by anyone, "
+                "the checker links its passing code ahead of yours, so you may call it "
+                "without defining it; its author then earns a royalty when you pass. "
+                "You may also define it yourself."
+            )
         content = (
             f"Task {task.task_id}. Solve it with an artifact of artifact_type "
             f"'solution:{task.task_id}' whose content is plain Python defining "
-            f"`{task.entry_point}`, then submit_to_mint it.\n\n{task.prompt}"
+            f"`{task.entry_point}`, then submit_to_mint it.{depends}\n\n{task.prompt}"
         )
         world.artifacts.write(
             artifact_id,
