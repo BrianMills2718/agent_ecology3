@@ -29,7 +29,9 @@ from agent_ecology3.dashboard.server import create_app  # noqa: E402
 from agent_ecology3.simulation.resident import (  # noqa: E402
     ResidentKernel,
     ResidentRunError,
+    history_shell_commands,
     run_agent_turn,
+    trim_codex_home,
 )
 from agent_ecology3.world import World  # noqa: E402
 from scripts.run_recoverable_evaluation import _seed_task_bank  # noqa: E402
@@ -58,7 +60,12 @@ def _write_receipt(data_dir: Path, args: argparse.Namespace, world: World, kerne
         "acknowledgement": "plan25/resident-agents/v1",
         "model": args.model,
         "agents": {
-            pid: {"turns": a.turns_taken, "session_ids": a.session_ids_seen}
+            pid: {
+                "turns": a.turns_taken,
+                "session_ids": a.session_ids_seen,
+                # Counted from the agent's own Codex thread history, not a counter.
+                "shell_commands_from_history": history_shell_commands(a.codex_home),
+            }
             for pid, a in kernel.agents.items()
         },
         "recovery": {
@@ -108,6 +115,8 @@ async def _main(args: argparse.Namespace) -> int:
         print(json.dumps({"terminal": "invalid", "error": reason}), flush=True)
     finally:
         _write_receipt(data_dir, args, world, kernel, state, reason)
+        for agent in kernel.agents.values():
+            trim_codex_home(agent.codex_home)
         if not args.keep_serving:
             server.should_exit = True
         await serve_task

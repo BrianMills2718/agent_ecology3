@@ -127,7 +127,7 @@ def test_codex_options_use_persistent_home_with_preapproved_ae3_server(tmp_path:
     assert first["codex_session_mode"] == "fresh" and first["agent_hard_timeout"] == 0
     sessions = home / ".codex" / "sessions"
     assert sessions.is_dir() and not sessions.is_symlink(), "agent sessions must not link to the user's Codex history"
-    assert first["sandbox_mode"] == "read-only" and first["approval_policy"] == "never"
+    assert first["sandbox_mode"] == "workspace-write" and first["approval_policy"] == "never"
     agent.session_id = "01a10e02-68dc-77c1-a2a0-fe1b6de6b883"
     again = codex_call_kwargs(agent, "http://k", reasoning_effort="low")
     assert again["codex_session_mode"] == "resume" and again["codex_session_id"] == agent.session_id
@@ -146,3 +146,42 @@ def test_shell_command_counter_reads_llm_client_codex_item_shape() -> None:
     ]
     assert count_shell_commands(items) == 2
     assert count_shell_commands([]) == 0
+
+
+def _history(home: Path, items: list[dict[str, Any]]) -> None:
+    import sqlite3
+
+    (home / ".codex").mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(home / ".codex" / "thread_history_1.sqlite")
+    con.execute("create table thread_items (item_json text)")
+    con.executemany("insert into thread_items values (?)", [(json.dumps(i),) for i in items])
+    con.commit()
+    con.close()
+
+
+def test_shell_commands_are_counted_from_codex_history(tmp_path: Path) -> None:
+    from agent_ecology3.simulation.resident import history_shell_commands
+
+    _history(tmp_path, [{"type": "reasoning"}, {"type": "commandExecution"},
+                        {"type": "mcpToolCall"}, {"type": "command_execution"}])
+    assert history_shell_commands(tmp_path) == 2
+    assert history_shell_commands(tmp_path / "missing") == 0
+
+
+def test_trim_keeps_thread_history_and_removes_bulk(tmp_path: Path) -> None:
+    from agent_ecology3.simulation.resident import trim_codex_home
+
+    _history(tmp_path, [{"type": "reasoning"}])
+    base = tmp_path / ".codex"
+    for name in ("plugins", "cache", ".tmp"):
+        (base / name).mkdir()
+        (base / name / "f").write_text("x")
+    (base / "state_5.sqlite").write_text("x")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "keep").write_text("keep")
+    (base / "sessions_link").symlink_to(outside, target_is_directory=True)
+    trim_codex_home(tmp_path)
+    assert (base / "thread_history_1.sqlite").is_file()
+    assert not any((base / n).exists() for n in ("plugins", "cache", ".tmp", "state_5.sqlite"))
+    assert (outside / "keep").is_file()

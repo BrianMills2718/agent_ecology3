@@ -13,6 +13,7 @@ planning and tool use (FAILURE_MODE_DOSSIER FM-02/FM-07, design constraint 1).
 from __future__ import annotations
 
 import asyncio
+import json
 import secrets
 import sys
 from dataclasses import dataclass, field
@@ -45,6 +46,51 @@ def count_shell_commands(codex_items: list[Any]) -> int:
         1 for item in codex_items
         if isinstance(item, dict) and item.get("type") in SHELL_ITEM_TYPES
     )
+
+
+def history_shell_commands(codex_home: str | Path | None) -> int:
+    """Shell commands recorded in an agent's own Codex thread history."""
+    if not codex_home:
+        return 0
+    database = Path(codex_home) / ".codex" / "thread_history_1.sqlite"
+    if not database.is_file():
+        return 0
+    import sqlite3
+
+    connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    try:
+        rows = connection.execute("select item_json from thread_items").fetchall()
+    finally:
+        connection.close()
+    count = 0
+    for (raw,) in rows:
+        try:
+            item = json.loads(raw)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(item, dict) and item.get("type") in SHELL_ITEM_TYPES:
+            count += 1
+    return count
+
+
+TRIMMABLE_CODEX_PARTS = ("plugins", "cache", ".tmp", "state_5.sqlite", "state_5.sqlite-wal", "state_5.sqlite-shm")
+
+
+def trim_codex_home(codex_home: str | Path | None) -> None:
+    """Remove Codex's bulky regenerable files after a run; keep thread history."""
+    import shutil
+
+    if not codex_home:
+        return
+    base = Path(codex_home) / ".codex"
+    if not base.is_dir():
+        return
+    for name in TRIMMABLE_CODEX_PARTS:
+        part = base / name
+        if part.is_symlink() or part.is_file():
+            part.unlink()
+        elif part.is_dir():
+            shutil.rmtree(part)
 
 
 class ResidentRunError(RuntimeError):
@@ -149,11 +195,19 @@ class ResidentKernel:
         )
 
 
+CODEX_WORKSPACE_NOTE = """You also have a private scratch folder (your current directory) and a shell.
+Before you submit any solution, run it there against the task's examples (for
+example, save it to a file and run python on it). A failed submission earns
+nothing, so test first. Running code in your folder costs no actions and does
+not touch the economy; only ae3_action calls change the world.
+"""
+
 RESIDENT_RULES = """You are {principal_id}, a long-lived agent in an economy simulation. You keep
-your memory between turns. Your only way to act is the ae3_action tool; each
-call returns the real result. You may make up to {actions_per_turn} ae3_action
-calls this turn, then end your turn with a one-paragraph note to yourself about
-what you learned and what you plan next.
+your memory between turns. Your only way to act on the economy is the
+ae3_action tool; each call returns the real result. You may make up to
+{actions_per_turn} ae3_action calls this turn, then end your turn with a
+one-paragraph note to yourself about what you learned and what you plan next.
+{workspace_note}
 
 Rules of this economy: some artifacts state programming tasks. Solving one
 means writing an artifact (action_type write_artifact) whose artifact_type is
@@ -223,7 +277,9 @@ def codex_call_kwargs(agent: ResidentAgent, kernel_url: str, *, reasoning_effort
         "codex_transport": "cli",
         "reasoning_effort": reasoning_effort,
         "working_directory": str(agent.workdir),
-        "sandbox_mode": "read-only",
+        # The agent's own run folder is writable so it can write and run its
+        # candidate code; the economy is reachable only through ae3_action.
+        "sandbox_mode": "workspace-write",
         "approval_policy": "never",
         "skip_git_repo_check": True,
         "fallback_models": [],
@@ -283,7 +339,9 @@ async def run_agent_turn(
     prompt = kernel.observation(agent)
     if agent.session_id is None:
         prompt = RESIDENT_RULES.format(
-            principal_id=agent.principal_id, actions_per_turn=kernel.actions_per_turn
+            principal_id=agent.principal_id,
+            actions_per_turn=kernel.actions_per_turn,
+            workspace_note=CODEX_WORKSPACE_NOTE if model.startswith("codex/") else "",
         ) + "\n" + prompt
     trace_id = f"ae3/{run_id}/turn_{kernel.turn}/{agent.principal_id}"
     try:

@@ -139,10 +139,9 @@ Status ([Plan 25](plans/25_scale_shakeout.md) holds the run log and evidence):
    ChatGPT subscription) or Claude Agent SDK session that keeps its own memory
    and acts only through the `ae3_action` MCP tool, which the kernel executes
    and answers. 8 agents × 20 turns completed cleanly and solved 80/80 tasks.
-   **Not yet true:** agents do not test their own code. Codex transcripts from
-   the 8-agent run contain only reasoning, messages and ae3 tool calls (no
-   shell commands), and Claude agents have every built-in tool disabled.
-   Letting agents run code before submitting is the next intelligence step.
+   Agents now write and run their own tests in a private folder before
+   submitting (Codex history of `plan25_codex_shell_probe2`: 6 shell
+   commands, repaired a failing solution before submitting).
 3. **Work that compounds: next.** A task source whose later tasks build on
    earlier artifacts (CodeFlowBench helper chains), with royalties when
    someone's code is reused.
