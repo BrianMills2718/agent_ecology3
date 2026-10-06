@@ -134,6 +134,11 @@ class ResidentAgent:
     turns_taken: int = 0
     actions_this_turn: int = 0
     session_ids_seen: list[str] = field(default_factory=list)
+    # Messages received since this agent's last turn: (turn sent, sender, text).
+    inbox: list[tuple[int, str, str]] = field(default_factory=list)
+
+
+MESSAGE_MAX_CHARS = 1000
 
 
 class ResidentKernel:
@@ -173,6 +178,9 @@ class ResidentKernel:
                     "error": f"turn limit reached: at most {self.actions_per_turn} actions per turn",
                     "error_code": "turn_action_limit",
                 }
+            elif payload.get("action_type") == "send_message":
+                agent.actions_this_turn += 1
+                outcome = self._send_message(agent, payload)
             else:
                 agent.actions_this_turn += 1
                 result = self.world.execute_action_data(agent.principal_id, payload)
@@ -198,6 +206,27 @@ class ResidentKernel:
             )
             return outcome
 
+    def _send_message(self, agent: ResidentAgent, payload: dict[str, Any]) -> dict[str, Any]:
+        """Free agent-to-agent message, delivered at the start of the recipient's next turn (Plan 26 M3)."""
+        recipient = str(payload.get("recipient_id") or "")
+        text = payload.get("content")
+        if recipient not in self.agents or recipient == agent.principal_id:
+            return {"success": False, "error": f"unknown recipient {recipient!r}; send to another agent id",
+                    "error_code": "invalid_recipient"}
+        if not isinstance(text, str) or not text.strip():
+            return {"success": False, "error": "message text (content) is empty", "error_code": "empty_message"}
+        if len(text) > MESSAGE_MAX_CHARS:
+            return {"success": False, "error": f"message longer than {MESSAGE_MAX_CHARS} characters",
+                    "error_code": "message_too_long"}
+        self.agents[recipient].inbox.append((self.turn, agent.principal_id, text.strip()))
+        self.world.logger.log(
+            "agent_message",
+            {"event_number": self.world.event_number, "turn": self.turn,
+             "principal_id": agent.principal_id, "recipient": recipient, "text": text.strip()},
+        )
+        return {"success": True, "message": f"delivered to {recipient} at the start of its next turn",
+                "scrip_after": self.world.ledger.get_scrip(agent.principal_id)}
+
     def observation(self, agent: ResidentAgent) -> str:
         """What the agent sees at the start of its turn (kernel-generated)."""
         listing = self.world.query_handler.execute(
@@ -220,7 +249,17 @@ class ResidentKernel:
             f"{balances[agent.principal_id]}. All scrip balances: {balances}.\n"
             f"Artifacts you can see now ({len(rows)}):\n" + "\n".join(lines)
             + self._linked_helpers_section()
+            + self._inbox_section(agent)
         )
+
+    @staticmethod
+    def _inbox_section(agent: ResidentAgent) -> str:
+        """Messages sent to this agent since its last turn; shown once, then cleared."""
+        if not agent.inbox:
+            return ""
+        lines = [f"- from {sender} (turn {turn}): {text}" for turn, sender, text in agent.inbox]
+        agent.inbox.clear()
+        return "\nMessages to you since your last turn:\n" + "\n".join(lines)
 
     def _linked_helpers_section(self) -> str:
         """Solved helpers the checker links automatically (TroVE/LILO-style listing)."""
@@ -271,7 +310,9 @@ read_price on your own artifacts. Use artifact ids prefixed with {principal_id}_
 When a task depends on a helper someone already solved, the checker links that
 passing helper in ahead of your code; call it without redefining it, and its
 author earns a royalty when you pass.
-Other actions: transfer (recipient_id, amount), query_kernel (query_type, params).
+Other actions: transfer (recipient_id, amount), query_kernel (query_type, params),
+send_message (recipient_id, content): a free note to another agent, shown to
+it at the start of its next turn; it counts as one of your actions.
 You have no assigned role or strategy; decide for yourself.
 """
 

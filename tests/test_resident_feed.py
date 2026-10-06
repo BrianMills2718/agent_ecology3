@@ -55,3 +55,15 @@ def test_operator_state_uses_resident_rows_and_drops_budget() -> None:
     assert state["run_kind"] == "resident" and state["max_turn"] == 5
     by_id = {a["id"]: a for a in state["agents"]}
     assert by_id["alpha_1"]["llm_budget"] is None and by_id["alpha_2"]["tasks_solved"] == 1
+
+
+def test_message_rows_show_sender_recipient_and_text() -> None:
+    events = [
+        {"sequence": 1, "event_type": "agent_message", "event_number": 4, "turn": 2, "principal_id": "alpha_1",
+         "recipient": "alpha_2", "text": "your gcd helper fails on 0"},
+        {"sequence": 2, "event_type": "resident_action", "event_number": 4, "turn": 2, "principal_id": "alpha_1",
+         "action_type": "send_message", "success": True},
+    ]
+    rows = _resident_action_rows(events, {})
+    assert rows[0]["description"] == "messaged alpha_2: “your gcd helper fails on 0”"
+    assert rows[0]["counterparty"] == "alpha_2" and rows[0]["success"] is True

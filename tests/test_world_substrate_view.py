@@ -87,6 +87,20 @@ def test_resident_turn_note_becomes_public_message_at_the_workbench() -> None:
     assert delivery["recipient_id"] == "bench-alpha_2" and delivery["status"] == "delivered"
 
 
+def test_agent_message_becomes_public_message_from_sender_to_recipient() -> None:
+    events = [{"event_type": "agent_message", "event_number": 5, "principal_id": "alpha_1", "turn": 2,
+               "recipient": "alpha_2", "text": "your helper fails on 0"}]
+    bundle = build_projection(events, run_id="t", principals=["alpha_1", "alpha_2"],
+                              task_ids=["HumanEval/34"], starting_scrip=100)
+    world = _replay(bundle)
+    info = world["entities"]["message-1"]["components"]["information"]
+    delivery = world["entities"]["message-1-delivery"]["components"]["delivery"]
+    assert info["source_id"] == "alpha_1" and info["content"] == "your helper fails on 0" and info["visibility"] == "public"
+    assert delivery["recipient_id"] == "alpha_2" and delivery["status"] == "delivered"
+    profile = build_profile(bundle, principals=["alpha_1", "alpha_2"], task_ids=["HumanEval/34"])
+    assert "ae3.agent.message.alpha_1" in profile["event_visuals"]
+
+
 @pytest.mark.skipif(not (WORLD_SUBSTRATE_REPO / ".git").exists(), reason="world-substrate checkout not present")
 def test_living_view_endpoint_renders_with_pinned_world_substrate(tmp_path: Path) -> None:
     log_path = tmp_path / "events.jsonl"
