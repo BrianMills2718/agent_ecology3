@@ -17,7 +17,6 @@ _DASHBOARD_HTML = """<!doctype html>
 <html lang=\"en\">
 <head>
   <meta charset=\"utf-8\" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <link rel=\"icon\" href=\"data:,\" />
   <title>Agent Ecology 3 Review</title>
@@ -121,6 +120,20 @@ _DASHBOARD_HTML = """<!doctype html>
     .metric span { color: var(--muted); font-size: 11px; }
     .mix { display: flex; flex-wrap: wrap; gap: 7px; }
     .chip { display: inline-flex; padding: 5px 8px; border-radius: 999px; background: rgba(117,167,255,.13); color: #c9dcff; font: 12px var(--mono); }
+    table.gm { border-collapse: collapse; font-size: 11px; }
+    .gm th, .gm td { border: 1px solid rgba(148,163,184,.18); padding: 3px 4px; text-align: center; }
+    .gm-row { text-align: left !important; white-space: nowrap; cursor: pointer; font-weight: 600; }
+    .gm-col, .gm-corner { color: #94a3b8; font-weight: 500; }
+    .gm-cell { min-width: 38px; height: 28px; cursor: pointer; line-height: 1.2; font-size: 10px; }
+    .gm-reuse { box-shadow: inset 0 0 0 2px #f4a259; }
+    .gm-self { background: rgba(148,163,184,.08); }
+    .gm-wrap { padding-top: 64px; }
+    @media (max-width: 1100px) { .gm-wrap { overflow-x: auto; } }
+    .gm [data-tip] { position: relative; }
+    .gm [data-tip]:hover::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 6px);
+      transform: translateX(-50%); width: max-content; max-width: 280px; white-space: normal; text-align: left;
+      background: #0b1220; color: #e5e7eb; border: 1px solid #7fb3ff; border-radius: 6px; padding: 6px 8px;
+      font-size: 12px; font-weight: 400; z-index: 20; pointer-events: none; transition-delay: 0s; }
     .chip.fail { background: rgba(244,162,89,.18); color: #f4a259; }
     .economic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
     .economic-grid .metric { min-height: 70px; }
@@ -314,9 +327,10 @@ _DASHBOARD_HTML = """<!doctype html>
     </main>
     <main class="review" id="graphView">
       <section class="review-section">
-        <h2>Who traded with whom, and what got solved</h2>
-        <p class="quiet" id="graphSummary">Circles are agents (size = scrip). Blue arrows run from buyer to seller (thicker = more paid reads). Squares are tasks: an orange arrow means that agent solved it first; a dashed grey arrow means a failed or unpaid attempt. Updates live while a run is going.</p>
-        <div id="interactionGraph" style="height:620px;border-radius:12px;background:var(--panel, #111827)"></div>
+        <h2>Who works with whom</h2>
+        <p class="quiet" id="graphSummary">Each row is an agent; each column is the agent whose work it used. A cell shows how often the row agent read the column agent's code and reused its helpers (the author earned a royalty). Click a cell or a name for details. Updates live while a run is going.</p>
+        <p id="graphDetail" style="min-height:1.5em;margin:8px 0 12px">Click a cell or an agent's name.</p>
+        <div id="interactionGraph" class="gm-wrap"></div>
       </section>
     </main>
     <main class=\"review\" id=\"evidenceView\">
@@ -436,43 +450,50 @@ _DASHBOARD_HTML = """<!doctype html>
       if (view === 'graph') refreshGraph();
     }
 
-    let graphCy = null;
+    let graphDetails = {};
     async function refreshGraph() {
-      if (typeof cytoscape === 'undefined') {
-        document.getElementById('graphSummary').textContent = 'Graph library failed to load (needs network access to cdnjs.cloudflare.com).';
-        return;
-      }
       const runParam = (typeof selectedRun === 'string' && selectedRun) ? `?run=${encodeURIComponent(selectedRun)}` : '';
-      const graph = await fetchJson('/interaction-graph' + runParam);
-      if (!graph || !graph.nodes) return;
-      const elements = [
-        ...graph.nodes.map(n => ({group: 'nodes', data: {...n}})),
-        ...graph.edges.map(e => ({group: 'edges', data: {...e}})),
-      ];
-      if (!graphCy) {
-        graphCy = cytoscape({
-          container: document.getElementById('interactionGraph'),
-          elements,
-          style: [
-            {selector: 'node', style: {'label': 'data(label)', 'color': '#e5e7eb', 'font-size': 11, 'text-valign': 'bottom', 'text-margin-y': 4}},
-            {selector: 'node[kind = "agent"]', style: {'shape': 'ellipse', 'background-color': '#3b82f6', 'width': 'mapData(scrip, 0, 300, 24, 70)', 'height': 'mapData(scrip, 0, 300, 24, 70)'}},
-            {selector: 'node[kind = "task"]', style: {'shape': 'round-rectangle', 'background-color': '#6b7280', 'width': 16, 'height': 16, 'font-size': 8}},
-            {selector: 'node[kind = "task"][?solved]', style: {'background-color': '#f59e0b'}},
-            {selector: 'edge', style: {'curve-style': 'bezier', 'target-arrow-shape': 'triangle', 'arrow-scale': 0.8}},
-            {selector: 'edge[kind = "bought"]', style: {'line-color': '#60a5fa', 'target-arrow-color': '#60a5fa', 'width': 'mapData(weight, 1, 10, 1.5, 8)', 'label': 'data(label)', 'font-size': 9, 'color': '#93c5fd'}},
-            {selector: 'edge[kind = "transfer"]', style: {'line-color': '#a78bfa', 'target-arrow-color': '#a78bfa', 'width': 2, 'line-style': 'dotted'}},
-            {selector: 'edge[kind = "solved"]', style: {'line-color': '#f59e0b', 'target-arrow-color': '#f59e0b', 'width': 2}},
-            {selector: 'edge[kind = "attempted"]', style: {'line-color': '#6b7280', 'target-arrow-color': '#6b7280', 'width': 1, 'line-style': 'dashed'}},
-          ],
-          layout: {name: 'cose', animate: false},
-        });
-      } else {
-        const before = graphCy.nodes().length;
-        graphCy.json({elements});
-        if (graphCy.nodes().length !== before) graphCy.layout({name: 'cose', animate: false, randomize: false}).run();
+      const payload = await fetchJson('/agent-graph' + runParam);
+      if (!payload || !payload.graph) return;
+      graphDetails = payload.details || {};
+      const nodes = payload.graph.nodes;
+      const cell = {};
+      let most = 1;
+      for (const edge of payload.graph.edges) {
+        const key = `${edge.source}->${edge.target}`;
+        const kind = edge.id.split(':')[0];
+        const count = Number((edge.label.match(/×(\d+)/) || [0, 0])[1]);
+        cell[key] = cell[key] || {read: 0, reused: 0, messaged: 0};
+        cell[key][kind] = count;
+        most = Math.max(most, cell[key].read + cell[key].reused + cell[key].messaged);
       }
+      const short = id => id.replace('alpha_', 'A');
+      const head = nodes.map(n => `<th class="gm-col" title="${escapeHtml(n.label)}">${escapeHtml(short(n.id))}</th>`).join('');
+      const rows = nodes.map(r => {
+        const tds = nodes.map(c => {
+          if (r.id === c.id) return '<td class="gm-self"></td>';
+          const v = cell[`${r.id}->${c.id}`];
+          if (!v) return `<td class="gm-cell" data-ids="" data-tip="${escapeHtml(short(r.id) + ' did not use ' + short(c.id) + "'s work")}"></td>`;
+          const total = v.read + v.reused + v.messaged;
+          const parts = [v.read ? `code ${v.read}` : '', v.reused ? `reuse ${v.reused}` : '', v.messaged ? `msg ${v.messaged}` : ''].filter(Boolean).join('<br>');
+          const ids = ['read', 'reused', 'messaged'].filter(k => v[k]).map(k => `${k}:${r.id}->${c.id}`);
+          return `<td class="gm-cell${v.reused ? ' gm-reuse' : ''}" style="background:rgba(127,179,255,${(0.12 + 0.6 * total / most).toFixed(2)})" data-ids="${escapeHtml(ids.join('|'))}" data-tip="${escapeHtml(ids.map(i => graphDetails[i] || i).join(' '))}">${parts}</td>`;
+        }).join('');
+        return `<tr><th class="gm-row" data-ids="${escapeHtml(r.id)}" data-tip="${escapeHtml(graphDetails[r.id] || r.label)}">${escapeHtml(r.label)}</th>${tds}</tr>`;
+      }).join('');
+      const box = document.getElementById('interactionGraph');
+      box.onclick = (event) => {
+        const target = event.target.closest('[data-ids]');
+        if (!target) return;
+        const ids = target.dataset.ids ? target.dataset.ids.split('|') : [];
+        document.getElementById('graphDetail').textContent = ids.length ? ids.map(i => graphDetails[i] || i).join(' ') : 'No interaction between these two agents.';
+      };
+      box.innerHTML = `<table class="gm"><thead><tr><th class="gm-corner">used work of →</th>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+      const s = payload.summary;
       document.getElementById('graphSummary').textContent =
-        `${graph.summary.agents} agents · ${graph.summary.paid_reads} paid reads between agents · ${graph.summary.tasks_solved} tasks solved · ${graph.summary.failed_attempts} failed or unpaid attempts. Blue = buyer→seller, orange = solved first, dashed grey = failed/unpaid. Updates live during a run.`;
+        `${s.agents} agents · ${s.tasks_solved} tasks solved · read each other's code ${s.code_reads} times · reused each other's helpers ${s.reuses} times` +
+        (s.messages ? ` · ${s.messages} messages` : '') +
+        ` · ${s.statement_reads} paid reads of other agents' task descriptions (click a name). Rows used the work of columns; darker = more; an orange edge marks reuse.`;
     }
 
     function formatMoney(value) {
@@ -967,6 +988,95 @@ def _summarize_review_pair(review_runs: dict[str, Path]) -> dict[str, Any]:
             "behavioral contrast but not yet a functioning agent economy."
         ),
         "runs": runs,
+    }
+
+
+def _agent_label(principal: str) -> str:
+    return principal.replace("alpha_", "Agent ")
+
+
+def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> dict[str, Any]:
+    """Agents-only who-works-with-whom graph as a typed-graph/v1 document (Plan 26 M2).
+
+    One node per agent. Links: read another agent's code (free reads of
+    solution artifacts), reused another agent's helper (royalty events, dashed),
+    and messages once agents can send them. Paid reads of task statements are
+    per-agent totals, not links: in run5 they were 170 of 215 cross-agent reads
+    and drew 106 links among 16 agents.
+    """
+    from ..viz.world_substrate_view import principal_order
+
+    raw_balances = world_state.get("balances")
+    balances: dict[str, Any] = raw_balances if isinstance(raw_balances, dict) else {}
+    principals = sorted((str(p) for p in (world_state.get("principals") or balances.keys())), key=principal_order)
+    artifact_types = {
+        str(a.get("id")): str(a.get("type") or "")
+        for a in world_state.get("artifacts") or []
+        if isinstance(a, dict)
+    }
+    links: dict[tuple[str, str, str], int] = {}
+    statement_reads: Counter[str] = Counter()
+    statement_scrip: Counter[str] = Counter()
+    solved: Counter[str] = Counter()
+    for event in events:
+        kind = event.get("event_type")
+        if kind == "artifact_read":
+            reader, owner = str(event.get("principal_id") or ""), str(event.get("recipient") or "")
+            if not reader or not owner or reader == owner:
+                continue
+            artifact_type = artifact_types.get(str(event.get("artifact_id")), "")
+            if artifact_type.startswith("solution"):
+                links[(reader, owner, "read")] = links.get((reader, owner, "read"), 0) + 1
+            else:
+                statement_reads[reader] += 1
+                statement_scrip[reader] += int(event.get("read_price_paid", 0) or 0)
+        elif kind == "royalty_paid":
+            solver, author = str(event.get("solver") or ""), str(event.get("principal_id") or "")
+            if solver and author and solver != author:
+                links[(solver, author, "reused")] = links.get((solver, author, "reused"), 0) + 1
+        elif kind == "agent_message":
+            sender, recipient = str(event.get("principal_id") or ""), str(event.get("recipient") or "")
+            if sender and recipient and sender != recipient:
+                links[(sender, recipient, "messaged")] = links.get((sender, recipient, "messaged"), 0) + 1
+        elif kind == "task_bounty_scored" and event.get("first_claim"):
+            solved[str(event.get("principal_id"))] += 1
+    words = {"read": "read code ×{n}", "reused": "reused helper ×{n}", "messaged": "messaged ×{n}"}
+    nodes = []
+    details: dict[str, str] = {}
+    for principal in principals:
+        raw = balances.get(principal)
+        scrip = raw.get("scrip") if isinstance(raw, dict) else None
+        nodes.append({"id": principal, "kind": "Agent",
+                      "label": f"{_agent_label(principal)} · {solved[principal]} solved"})
+        details[principal] = (
+            f"{_agent_label(principal)}: {scrip if scrip is not None else '?'} scrip, {solved[principal]} tasks solved first; "
+            f"paid {statement_scrip[principal]} scrip to read {statement_reads[principal]} other agents' task descriptions."
+        )
+    edges = []
+    for (source, target, kind), count in sorted(links.items()):
+        edge_id = f"{kind}:{source}->{target}"
+        edges.append({"id": edge_id, "source": source, "target": target,
+                      "label": words[kind].format(n=count), "dashed": kind == "reused"})
+        verb = {"read": "read the code of", "reused": "reused a helper written by", "messaged": "sent messages to"}[kind]
+        details[edge_id] = f"{_agent_label(source)} {verb} {_agent_label(target)} {count} time{'s' if count != 1 else ''}."
+    return {
+        "graph": {
+            "schema": "typed-graph/v1",
+            "kinds": {"Agent": {"label": "Agent", "color": "#7fb3ff",
+                                "explain": "A long-lived Codex agent; its label counts the tasks it solved first."}},
+            "nodes": nodes,
+            "edges": edges,
+            "layout": {"direction": "RIGHT"},
+        },
+        "details": details,
+        "summary": {
+            "agents": len(nodes),
+            "code_reads": sum(c for (_, _, k), c in links.items() if k == "read"),
+            "reuses": sum(c for (_, _, k), c in links.items() if k == "reused"),
+            "messages": sum(c for (_, _, k), c in links.items() if k == "messaged"),
+            "statement_reads": sum(statement_reads.values()),
+            "tasks_solved": sum(solved.values()),
+        },
     }
 
 
@@ -1526,6 +1636,20 @@ def create_app(
             return {"success": False, "error": "live run unavailable"}
         world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
         return _interaction_graph(world.logger.read_recent(100_000), world_state)
+
+    @app.get("/agent-graph")
+    async def agent_graph(run: str | None = None) -> dict[str, Any]:
+        if review_runs:
+            payload = review_payload(run)
+            if payload is None:
+                return {"success": False, "error": "no run"}
+            world_state, log_path = payload
+            return _agent_graph(_read_jsonl_tail(log_path, 100_000), world_state)
+        world = world_provider()
+        if world is None:
+            return {"success": False, "error": "live run unavailable"}
+        world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
+        return _agent_graph(world.logger.read_recent(100_000), world_state)
 
     @app.get("/living-view", response_class=HTMLResponse)
     async def living_view(run: str | None = None) -> str:
