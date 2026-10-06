@@ -21,5 +21,6 @@ recoverable record.
 | `plan25_codeflow_run1.tar.gz` | Plan 25 8-agent CodeFlowBench run, built by `scripts/run_evidence.py bundle` (task, solution and hidden-test text withheld because redistribution terms are unverified; checker reasons keep only the error type; agents/ excluded) |
 | `plan25_codeflow_run2.tar.gz` | Plan 25 8-agent rerun on the v2 bank, built by `scripts/run_evidence.py bundle` (task, solution and hidden-test text withheld; agents/ excluded) |
 | `plan25_codeflow_run5.tar.gz` | Plan 25 16-agent, 40-turn run, built by `scripts/run_evidence.py bundle` (task, solution and hidden-test text withheld; agents/ excluded) |
+| `plan26_messages_run6.tar.gz` | Plan 26 8-agent run with messaging available (0 messages sent), built by `scripts/run_evidence.py bundle` |
 
 Verify: `sha256sum -c SHA256SUMS`. Restore: `tar -xzf <bundle> -C ~/.local/state/agent_ecology3/`.
