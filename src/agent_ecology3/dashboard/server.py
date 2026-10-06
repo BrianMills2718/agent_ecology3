@@ -1051,7 +1051,13 @@ def _living_view_inputs(
     task_ids: list[str] = []
     artifacts = world_state.get("artifacts")
     for artifact in artifacts if isinstance(artifacts, list) else []:
-        if isinstance(artifact, dict) and artifact.get("type") == "task_statement" and "_task_" in str(artifact.get("id")):
+        if not isinstance(artifact, dict) or artifact.get("type") != "task_statement":
+            continue
+        metadata = artifact.get("metadata")
+        declared = metadata.get("plan24_task_id") if isinstance(metadata, dict) else None
+        if isinstance(declared, str) and declared:
+            task_ids.append(declared)
+        elif "_task_" in str(artifact.get("id")):
             task_ids.append("HumanEval/" + str(artifact["id"]).rsplit("_task_", 1)[1])
     for event in events:
         task_id = event.get("task_id") if event.get("event_type") == "task_bounty_scored" else None
@@ -1419,7 +1425,8 @@ def create_app(
                 raise HTTPException(status_code=404, detail="live run unavailable")
             world_state = cast(dict[str, Any], world.get_state_summary(event_limit=0))
             world_state["artifacts"] = [
-                {"id": a.id, "type": a.type} for a in world.artifacts.artifacts.values()
+                {"id": a.id, "type": a.type, "metadata": dict(a.metadata)}
+                for a in world.artifacts.artifacts.values()
             ]
             events = world.logger.read_recent(100_000)
             run_id, refresh = str(getattr(world, "run_id", "live")), 10

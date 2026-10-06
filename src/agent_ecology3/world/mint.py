@@ -71,7 +71,9 @@ class MintScorer:
         self.last_cost: float = 0.0
         self.last_error: str | None = None
 
-    def score_artifact(self, artifact_id: str, artifact_type: str, content: str, code: str) -> tuple[int, str]:
+    def score_artifact(
+        self, artifact_id: str, artifact_type: str, content: str, code: str, prelude: str = ""
+    ) -> tuple[int, str]:
         prompt = (
             "Score this artifact from 0-100 for utility and correctness. "
             "Return a structured score and reason.\n\n"
@@ -106,6 +108,17 @@ SOLUTION_TYPE_PREFIX = "solution:"
 _FENCE = re.compile(r"^\s*```[A-Za-z0-9_+-]*\s*\n(?P<body>.*?)\n\s*```\s*$", re.DOTALL)
 
 
+def _defined_functions(source: str) -> set[str]:
+    import ast
+
+    fenced = _FENCE.match(source)
+    try:
+        tree = ast.parse(fenced.group("body") if fenced else source)
+    except SyntaxError:
+        return set()
+    return {node.name for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+
 @dataclass(frozen=True)
 class BenchmarkTask:
     task_id: str
@@ -113,6 +126,8 @@ class BenchmarkTask:
     entry_point: str
     prompt: str
     test: str
+    # Task ids of helpers this task's solution may call (CodeFlowBench chains).
+    requires: tuple[str, ...] = ()
 
 
 def load_task_bank(path: str | Path) -> dict[str, BenchmarkTask]:
@@ -129,6 +144,7 @@ def load_task_bank(path: str | Path) -> dict[str, BenchmarkTask]:
             entry_point=str(row["entry_point"]),
             prompt=str(row["prompt"]),
             test=str(row["test"]),
+            requires=tuple(str(dep) for dep in row.get("requires") or ()),
         )
         if task.task_id in tasks:
             raise ValueError(f"duplicate task id in bank: {task.task_id}")
@@ -161,7 +177,10 @@ class TaskCheckerScorer(MintScorer):
                 return task_id
         return None
 
-    def score_artifact(self, artifact_id: str, artifact_type: str, content: str, code: str) -> tuple[int, str]:
+    def score_artifact(
+        self, artifact_id: str, artifact_type: str, content: str, code: str, prelude: str = ""
+    ) -> tuple[int, str]:
+        """``prelude`` is already-passing dependency code linked in ahead of the submission."""
         self.last_cost = 0.0
         self.last_error = None
         task_id = self.task_id_for(artifact_type)
@@ -175,7 +194,7 @@ class TaskCheckerScorer(MintScorer):
         fenced = _FENCE.match(source)
         if fenced is not None:
             source = fenced.group("body")
-        program = f"{source}\n\n{task.test}\n\ncheck({task.entry_point})\n"
+        program = f"{prelude}\n\n{source}\n\n{task.test}\n\ncheck({task.entry_point})\n"
         try:
             with tempfile.TemporaryDirectory(prefix="ae3_checker_") as workdir:
                 completed = subprocess.run(
@@ -212,6 +231,7 @@ class MintAuction:
         period_seconds: float,
         mint_ratio: int,
         scorer: MintScorer,
+        royalty_scrip: int = 0,
     ) -> None:
         self.ledger = ledger
         self.artifacts = artifacts
@@ -227,6 +247,8 @@ class MintAuction:
 
         self._submissions: dict[str, MintSubmission] = {}
         self._claimed_tasks: dict[str, str] = {}
+        self._claimed_artifacts: dict[str, str] = {}
+        self.royalty_scrip = royalty_scrip
         self._history: list[MintResult] = []
         self._start_time = time.time()
         self._auction_started_at: float | None = None
@@ -294,9 +316,13 @@ class MintAuction:
         principal = artifact.auth_state.get("principal")
         if principal_id not in {artifact.owner, writer, principal}:
             raise ValueError("submitter is not authorized for artifact")
-        score, reason = self.scorer.score_artifact(artifact.id, artifact.type, artifact.content, artifact.code)
         task_id_for = getattr(self.scorer, "task_id_for", None)
         task_id = task_id_for(artifact.type) if callable(task_id_for) else None
+        linked = self._linked_dependencies(task_id)
+        prelude = "\n\n".join(code_text for _, _, code_text in linked)
+        score, reason = self.scorer.score_artifact(
+            artifact.id, artifact.type, artifact.content, artifact.code, prelude=prelude
+        )
         minted = 0
         claimed_by = self._claimed_tasks.get(task_id) if task_id else None
         if score > 0 and task_id is not None and claimed_by is None:
@@ -307,8 +333,10 @@ class MintAuction:
             for statement in self.artifacts.artifacts.values():
                 if statement.metadata.get("plan24_task_id") == task_id:
                     statement.metadata["bounty_claimed_by"] = principal_id
+            self._claimed_artifacts[task_id] = artifact.id
             if minted > 0:
                 self.ledger.credit_scrip(principal_id, minted)
+            self._pay_royalties(principal_id, artifact, task_id, linked)
         elif score > 0 and claimed_by is not None:
             reason = f"{reason}; bounty already claimed by {claimed_by}"
         payload = {
@@ -324,6 +352,46 @@ class MintAuction:
         }
         self.logger.log("task_bounty_scored", payload)
         return payload
+
+    def _linked_dependencies(self, task_id: str | None) -> list[tuple[str, str, str]]:
+        """(dependency task, author, passing code) for already-solved helpers."""
+        tasks = getattr(self.scorer, "tasks", None)
+        if task_id is None or not isinstance(tasks, dict) or task_id not in tasks:
+            return []
+        linked: list[tuple[str, str, str]] = []
+        for dep in tasks[task_id].requires:
+            artifact_id = self._claimed_artifacts.get(dep)
+            dep_artifact = self.artifacts.get(artifact_id) if artifact_id else None
+            if dep_artifact is None or dep_artifact.deleted:
+                continue
+            source = dep_artifact.code if dep_artifact.code.strip() else dep_artifact.content
+            fenced = _FENCE.match(source)
+            linked.append((dep, self._claimed_tasks[dep], fenced.group("body") if fenced else source))
+        return linked
+
+    def _pay_royalties(
+        self, solver: str, artifact: Any, task_id: str, linked: list[tuple[str, str, str]]
+    ) -> None:
+        """Pay each linked helper's author when the passing solution relied on it."""
+        if self.royalty_scrip <= 0 or not linked:
+            return
+        tasks = getattr(self.scorer, "tasks", {})
+        defined = _defined_functions(artifact.code if artifact.code.strip() else artifact.content)
+        for dep, author, _ in linked:
+            if author == solver or tasks[dep].entry_point in defined:
+                continue
+            self.ledger.credit_scrip(author, self.royalty_scrip)
+            self.logger.log(
+                "royalty_paid",
+                {
+                    "event_number": self.event_number,
+                    "principal_id": author,
+                    "payer_task_id": task_id,
+                    "dependency_task_id": dep,
+                    "solver": solver,
+                    "amount": self.royalty_scrip,
+                },
+            )
 
     def cancel(self, principal_id: str, submission_id: str) -> bool:
         submission = self._submissions.get(submission_id)

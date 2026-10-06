@@ -157,6 +157,9 @@ class MintConfig(StrictModel):
     mode: Literal["auction", "task_bounty"] = "auction"
     task_bank_path: str | None = None
     checker_timeout_seconds: float = Field(default=10.0, gt=0.0)
+    # Paid to a helper's author when another agent's passing solution relies
+    # on that helper's linked code (CodeFlowBench chains).
+    royalty_scrip: int = Field(default=3, ge=0)
 
     @model_validator(mode="after")
     def validate_task_bounty(self) -> MintConfig:

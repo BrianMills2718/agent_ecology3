@@ -5,4 +5,4 @@ surfaces:
   - id: agent-ecology3-dashboard
     lifecycle: candidate
     source_path: src/agent_ecology3/dashboard
-    purpose: FastAPI dashboard app (single app.get("/") HTML entry point); its matched-pair review covers prescribed/minimal and Plan 24 trading/solo (tasks passed, scrip minted, calls, and whether each solved task was bought; task count no longer fixed at 8); an Interactions tab draws the live agent/task trade graph with Cytoscape; a Living view link opens the run in World Substrate's living view via its pinned renderer.
+    purpose: FastAPI dashboard app (single app.get("/") HTML entry point); its matched-pair review covers prescribed/minimal and Plan 24 trading/solo (tasks passed, scrip minted, calls, and whether each solved task was bought; task count no longer fixed at 8); an Interactions tab draws the live agent/task trade graph with Cytoscape; a Living view link opens the run in World Substrate's living view via its pinned renderer, including royalty events and task ids read from statement metadata.
