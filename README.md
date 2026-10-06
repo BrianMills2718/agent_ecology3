@@ -20,8 +20,10 @@ complete (launch, watch, reopen a run), and
 checker that pays agents for solved benchmark tasks, a switch that turns
 trading off, and a trading-vs-solo comparison view. At toy scale (2 agents, 28
 decisions) trading gave no gain, which is expected: the project's bet is that
-cooperation pays only at scale and over long horizons. The next work is a
-long-running ecology at scale; the roadmap owns its scope.
+cooperation pays only at scale and over long horizons. The current work
+([Plan 25](docs/plans/25_scale_shakeout.md)) is a working, intelligent ecology:
+long-lived Codex agents that test their own code and build on each other's
+helpers now run at 8 agents; Plan 25 holds the next action.
 
 ## Quick start
 
@@ -37,6 +39,16 @@ make check                            # pytest + mypy, through uv
 
 A run writes `logs/<run_id>/events.jsonl` and points `logs/latest` at it.
 `--llm-loop on` makes the agents call the configured model (this spends money).
+
+Run long-lived agents (each a resumed Codex session acting only through the
+kernel; uses the ChatGPT subscription) on a locally built task bank, and watch
+them in the dashboard's Living view:
+
+```bash
+uv run python scripts/build_codeflow_bank.py --agents 8 --problems 16 --seed 25101
+uv run python scripts/run_resident_ecology.py --agents 8 --turns 20 \
+  --task-bank ~/.cache/agent_ecology3/codeflow_bank_a8_p16_s25101.jsonl --keep-serving
+```
 
 Reopen a preserved run in the dashboard, read-only and with zero model calls:
 

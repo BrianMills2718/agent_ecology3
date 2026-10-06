@@ -3,35 +3,135 @@ plan_id: "agent-ecology3#25"
 dependencies: ["agent-ecology3#24"]
 dependencies_reviewed: "2026-10-05"
 ---
-# Plan #25: Scale Shakeout Toward a Long-Running Ecology
+# Plan #25: Working, Intelligent Ecology at Scale
 
-**Status:** 🚧 In Progress — first shakeout run
-**Type:** exploratory PoC iteration
+**Status:** 🚧 In Progress — M6 next (rerun on clearer CodeFlowBench tasks)
+**Type:** durable living plan (company-planning `durable_solo`)
 **Priority:** Critical
 **Blocked By:** None
-**Blocks:** Roadmap capability 4b (long-running ecology at scale)
+**Blocks:** Roadmap capability 4b
 
-## Why
+**Authority:** Brian, 2026-10-05: "i am not even trying to figure out whether
+cooperation pays right now. just trying to get the system working and the
+agents behaving intelligently so we can scale"; "we can figure out the
+subscription capacity when we work out the bugs on smaller runs". This plan
+owns Plan 25 milestones, the active slice and the run log;
+[the roadmap](../MVP_ROADMAP.md) owns outcome and priority.
+**Planning path:** `durable_solo` — one writer, work continues across sessions,
+no parallel lanes, no shared contract changes.
+**Selected controls:** continuity = this file; coordination = single lane;
+reversibility = local, git-revertible; external effect = none (Codex runs on
+Brian's ChatGPT subscription, nothing published beyond the public repo);
+data = CodeFlowBench-derived text never committed (bank built locally,
+bundles redacted).
+**Artifact consumer / decision value:** the next session (what to run or
+build next) and Brian (what the agents now do, visible in the Living view).
+**Stage / investment boundary:** local prototype; no verdicts or benchmarks.
+**Last outcome-bearing update:** 2026-10-05, `plan25_codeflow_run1` and PR #92.
 
-Brian (2026-10-05): the current goal is to get the system working and the
-agents behaving intelligently so it can scale; whether cooperation pays is a
-later question that needs scale and long horizons. Subscription capacity and
-bugs get worked out on smaller runs first ("just start the runs now if we are
-ready"). Runs here are for finding bugs and judging agent behavior: no stop
-rule or thesis verdict.
+## Outcome and boundaries
 
-## Progress
+**Outcome:** For Brian, change "short runs of single-call agents that act
+mechanically" into "long-lived agents that remember, test their own code and
+build on each other's work, running cleanly at 8+ agents and watchable in the
+Living view", within the local-prototype boundary.
 
-| Step | State | Evidence |
+**Canonical probe:** `uv run python scripts/run_resident_ecology.py --agents 8
+--turns 20 --actions-per-turn 4 --task-bank <local CodeFlowBench bank>` →
+every turn commits with one session per agent; each agent's Codex history shows
+shell commands; royalties are paid when one agent's solution reuses another's
+helper; the dashboard's Living view replays it. Negative case: a turn error
+stops the run as invalid with its reason (no substitutes).
+
+**Success evidence:** run receipt (`lifecycle_state`, `shell_commands_from_history`
+per agent), `royalty_paid` and `task_bounty_scored` events, Living view
+screenshot, `make check` green on main.
+
+**Non-goals:** any verdict on whether cooperation pays; benchmarks or
+comparisons; Claude-based agent runs (they draw on Brian's Claude allowance);
+renderer changes in World Substrate (its renderer is frozen); running the
+economy on World Substrate's engine.
+
+**Authority limits:** deleting run data or touching `~/.codex` needs Brian's
+yes; nothing is published outside the repo.
+
+## Architecture and capability invariants
+
+- Agents act on the world only through the `ae3_action` MCP tool; the kernel
+  authenticates each agent by a launch-time token, executes, records a
+  `resident_action` receipt, and returns the real result.
+- Resident Codex agents: one resumed session per agent; Codex home is
+  run-owned with a private `sessions` directory (never linked to `~/.codex`);
+  the writable folder `agents/<id>/work` is a sibling of the Codex home; homes
+  are trimmed at run end keeping `thread_history_1.sqlite`.
+- Failures stop the run (`ResidentRunError`); no substitute actions.
+- The mint pays only on outside checker passes; dependency code is linked
+  from already-solved helpers and their authors earn `mint.royalty_scrip`.
+- Evidence bundles exclude `agents/` Codex homes and redact
+  CodeFlowBench-derived text.
+
+| Capability | Canonical seam | State | Evidence |
+|---|---|---|---|
+| Resident agents (Codex) | `src/agent_ecology3/simulation/resident.py`, `scripts/run_resident_ecology.py` | working | `plan25_resident_codex_run2`, `plan25_codeflow_run1` |
+| Agents test own code | Codex `workspace-write` folder + instruction | working | `plan25_codex_shell_probe2`; 7-21 shell commands per agent in `plan25_codeflow_run1` |
+| Compounding tasks + royalties | `scripts/build_codeflow_bank.py`, `world/mint.py` | working | 9 royalties to 7 authors in `plan25_codeflow_run1` |
+| Living view | `viz/world_substrate_view.py`, dashboard `/living-view` | working; stacking gap | PR #85, #91 |
+
+## Milestones
+
+| Milestone | Planning state | Output | Trigger / evidence |
+|---|---|---|---|
+| M1 Scale shakeout (single-call, 4 agents) | done | clean run; claimed-task visibility fix | `plan25_shakeout_run1`, PR #78 |
+| M2 Resident agents (Claude, then Codex) | done | resumed sessions acting via the kernel | PRs #79, #81; runs below |
+| M3 Isolation and cleanup | done | private Codex sessions; 5.2 GB reclaimed; agent sessions moved out of `~/.codex` | PR #88 |
+| M4 Agents test their own code | done | writable folder + instruction; history-based count | PR #89 |
+| M5 Compounding tasks and royalties | done | CodeFlowBench bank builder, linking, royalties | PRs #90, #91 |
+| M6 Rerun on clearer tasks | fully_specifiable_now (active) | 8 agents × 20 turns on the v2 bank (call shape + example per task; solved-helper listing in the agent view) | see Active slice |
+| M7 Longer and larger runs | conditional | e.g. 16 agents × 40 turns | M6 completes cleanly and Codex capacity holds |
+| M8 Agents visible when they share a place | human_decision_required | World Substrate gather/offset primitive | Brian's yes or no on a freeze exception |
+| M9 Economy on World Substrate's engine; cooperation verdicts | deliberately_deferred | — | Brian selects it |
+
+## Active slice: M6 — rerun on clearer tasks
+
+**Visible result:** fewer failures from guessing how helpers are called, and
+reuse visible as messages in the Living view.
+
+**Steps:**
+1. Build the v2 bank (already built locally:
+   `~/.cache/agent_ecology3/codeflow_bank_a8_p16_s25101_v2.jsonl`; rebuild with
+   `uv run python scripts/build_codeflow_bank.py --agents 8 --problems 16
+   --seed 25101 --out <path>` if missing).
+2. Run `LLM_CLIENT_PROJECT=agent_ecology3 uv run python
+   scripts/run_resident_ecology.py --agents 8 --turns 20 --actions-per-turn 4
+   --task-bank <v2 bank> --run-id plan25_codeflow_run2 --port <free port>
+   --keep-serving` from the main checkout.
+3. Record in the run log: tasks solved, failure causes (argument-count
+   TypeErrors vs other), shell commands per agent, royalties and authors,
+   linked-helper calls vs redefinitions; redacted bundle; Living view
+   screenshot at a royalty frame.
+
+**Focused check:** run receipt `completed` 160/160; failure-cause counts
+compared with `plan25_codeflow_run1` as an observation, not a verdict.
+
+**Failure / containment:** a turn error stops the run invalid with its reason;
+fix the cause and rerun once.
+
+## Decisions and assumptions
+
+| Choice | Disposition | Reason / evidence |
 |---|---|---|
-| Scale shakeout run 1 (4 agents, 120 decisions) | done — clean; one visibility bug fixed | `run_bundles/plan25_shakeout_run1.tar.gz`; PR #73 |
-| Live interaction graph (stopgap viewer) | done | Interactions tab, PR #75 |
-| llm_client pin with session resume | done | `ea550d2`, PR #76 |
-| `ae3_action` MCP server executes against the kernel and returns the result | done | `src/agent_ecology3/mcp/loop_action_server.py` forwards to `/agent-act/<principal>` |
-| Resident runner (Claude Agent SDK or Codex sessions, ae3_action only) | done; Claude run solved 40/40 before the weekly limit; Codex run completed 10 turns, 39/40 | `scripts/run_resident_ecology.py`, `src/agent_ecology3/simulation/resident.py`; `run_bundles/plan25_resident_probe2.tar.gz` |
-| World Substrate living-view adapter | done | `src/agent_ecology3/viz/world_substrate_view.py`; dashboard "Living view ↗" (`/living-view?run=`), rebuilt every 10 s during a live run; renderer taken read-only via `git archive` of world-substrate `33bd121`; replay of the bundle reproduces the run's final balances and hash (checked on `plan25_resident_run1`: 202/200/200/198) |
-| Living view as a scene (places, movement, note bubbles) | done; one renderer gap | PR #85: task board / market / checker plus a workbench per agent; agents walk to the place they act at; each resident note shows as a bubble; live pages jump to the latest moment. **Renderer gap (World Substrate renderer is frozen):** agents at the same place stack on one point, because `actor.move_to` targets an entity's exact anchor; per-agent standing spots were tried and rejected (the renderer labels every spot by id and adds a status dot). Needs a World Substrate primitive such as an offset or gather-ring on `actor.move_to`; raised to Brian, not patched |
-| Compounding task source (CodeFlowBench) | built and run (`plan25_codeflow_run1`) | `scripts/build_codeflow_bank.py` builds a local bank (not committed; default `~/.cache/agent_ecology3/`) of CodeFlowBench helper tasks with `requires` links; seed 25101 for 8 agents gives 52 tasks from 16 problems, 28 cross-agent dependency links. The checker links an already-solved dependency's passing code ahead of a submission, and when the submission passes without defining that helper itself, the helper's author earns `mint.royalty_scrip` (3) via a `royalty_paid` event. The dataset's "solutions" are tokenized editorial text (often C++), so tests come from the dataset as published. |
+| Goal is a working, intelligent system at scale; no cooperation verdicts | human_set (Brian, 2026-10-05) | quotes above |
+| Codex/Luna for resident agents, not Claude | agent_decided_reversible | the Sonnet run hit a Claude weekly limit (`plan25_resident_run1`) |
+| Viewer-only use of World Substrate | human_set (Brian, 2026-10-05: "i agree on option 1") | `## World Substrate living view` below |
+| CodeFlowBench text never committed | agent_decided_reversible | Codeforces redistribution terms unverified |
+| Agents told to test before submitting | agent_decided_reversible | offered-only probe ran 0 commands; told, 6 (`plan25_codex_shell_probe1/2`) |
+| Tests come from CodeFlowBench as published | assumption | its "solutions" are tokenized editorial text and cannot validate the tests; if many tests are wrong, failures will cluster on specific tasks |
+
+## Human decisions
+
+- **M8:** whether World Substrate's renderer gets one small exception to its
+  freeze (an offset or gather ring on `actor.move_to`) so agents at the same
+  place are all visible. Recommendation: yes. Default if unanswered: no change.
 
 ## World Substrate living view (viewer only)
 
@@ -54,59 +154,7 @@ Agreed with the World Substrate session on 2026-10-05:
   the generic renderer are unverified; start with periodically rebuilt
   retained bundles.
 
-## Run 1: 4-agent shakeout (now)
-
-- 4 Minimal-mode Luna-low principals, 120 decisions total (30 each), seed 25001,
-  trading open, Plan 24's outside checker and task-bounty mint.
-- New 40-task HumanEval bank `config/tasks/humaneval_scale_v1.jsonl` (seed
-  25001, excludes Plan 24's 8 tasks), 10 statements owned by each agent.
-- Prompt listing raised from 24 to 80 artifacts
-  (`llm.loop_snapshot_artifact_limit`), because at 24 most task statements
-  were invisible to agents.
-- Launch: `scripts/run_recoverable_evaluation.py start --acknowledgement
-  plan25/luna-low/scale-shakeout/v1 --target-attempts 120 --principal-count 4
-  --cognition-mode minimal --policy-seed 25001 --starting-llm-budget 1.0`.
-
-Known non-goal for this run: HumanEval tasks are independent, so this run
-cannot show compounding. It finds scale bugs (prompt size, listing, timing,
-serialization, cost per call) before the real target.
-
-## Toward the target (researched 2026-10-05, not yet built)
-
-**Resident agents (harness).** Recommended: Claude Agent SDK agents run through
-`llm_client`, one resumed session per agent. Each tick the kernel sends an
-agent its observations since its last turn; the agent acts only through the
-`ae3_action` MCP tool (built-in tools disabled), and its session id is kept in
-the kernel. Gaps found:
-
-- AE3 pins `llm_client` 2867157, which cannot resume sessions. `llm_client`
-  main already supports Claude `resume`/`session_id` and Codex
-  `codex_session_mode=resume`, so the pin moves to main.
-- `src/agent_ecology3/mcp/loop_action_server.py` only echoes the action back.
-  It must execute against the kernel (identity fixed at launch, atomic
-  settlement, receipt per tool call) and return the real outcome, so the
-  agent sees what its action did.
-- First check: 4 agents × 5 ticks; same session id every tick, every world
-  change matches an `ae3_action` call, no built-in tool calls, and the agent
-  refers to an earlier tick's result.
-- Open risk: Anthropic's Agent SDK docs say products built on it should use API
-  keys rather than claude.ai login; whether Brian's own research runs on his
-  subscription are fine is unverified. Codex with ChatGPT login is the
-  alternative route (MCP must be written into each agent's own Codex home).
-
-**Work that compounds (task source).** No openly licensed benchmark has
-dependencies between tasks through a shared library; the usable structure is
-helper functions that build on each other inside a problem. Recommended:
-CodeFlowBench-Comp (MIT; 986 Codeforces-derived problems, 2,103 helper
-functions, 948 with declared `dependencies`, standard-library tests). Each
-helper becomes a bountied task; a solution may declare which artifacts it
-uses, the checker runs them together, and each used artifact's author earns a
-royalty when a submission that uses it passes, so reuse pays instead of
-bounty-stealing. Runner-up: ClassEval (MIT, 100 classes). Risks: weak tests
-(median 2 per helper; strengthen from reference solutions), contamination, and
-unverified Codeforces redistribution terms.
-
-## Run log
+## Run log (evidence)
 
 | Run | Result | Evidence |
 |---|---|---|
@@ -119,3 +167,9 @@ unverified Codeforces redistribution terms.
 | `plan25_resident_run1` (4 resident `claude-code/sonnet` agents, 10 turns planned, 4 actions per turn, 40-task bank) | **Stopped at turn 10 by Brian's Claude weekly usage limit** ("You've hit your weekly limit · resets 6am (America/New_York)"); recorded invalid with that reason, no substituted turns. Turns 1-9 (36 agent-turns): one session per agent throughout, 0 built-in tool calls, 148 actions (53 reads, 40 writes, 40 submits, 15 queries; 4 refused over the per-turn limit). **All 40 tasks solved, every submission a first claim, 0 failed hidden tests, 0 wasted duplicates** (vs 28/40, 4 failed, 7 wasted for single-call Luna in shakeout run 1). 8 paid cross-agent reads, 0 transfers; final scrip 198-202 each. Turns took 28-123 s. **Capacity finding:** 4 Sonnet agents × 9 turns hit a Claude weekly limit. It was not the whole plan's allowance: this Claude Max session (Opus) kept working for more than an hour afterwards, so the limit applied to the agents' model/usage class (corrected 2026-10-05 by the session audit). Resident runs now default to Codex/Luna on the ChatGPT subscription. | `run_bundles/plan25_resident_run1.tar.gz` |
 | `plan25_resident_probe2` (2 resident `claude-code/sonnet` agents, 2 turns, 2 actions per turn, 8-task bank) | **Passed all four checks.** Same session id every turn per agent; every world change is a `resident_action` kernel receipt from the agent's ae3_action call; 0 built-in tool calls; memory carried over (alpha_1's turn-1 note "next turn I'll write and submit task 28" was carried out in turn 2 and passed the hidden tests). Turns took 32 s and 13 s. Cost source: subscription. A first attempt (`probe1`) failed fast because the new llm_client requires `model_justification` for non-default models; fixed. | `run_bundles/plan25_resident_probe2.tar.gz` |
 | `plan25_shakeout_run1` (seed 25001) | **System: clean.** 120/120 decisions committed, all model-selected (`llm_valid`), 0 local failures, 30 decisions per agent, prompt 21-26k tokens, median call 11.6 s, estimated internal charge USD 2.30 (actual USD 0, subscription). **Behavior: mechanical.** Actions were only read (42), write (39), submit (39); 28 of 40 tasks solved (8/7/6/7 per agent), 4 failed hidden tests, 9 paid cross-agent reads, no queries or transfers. **Bug found:** 7 passing submissions earned nothing because the task was already claimed and agents could not see claims; fixed by marking `bounty_claimed_by` on the task statement and in the artifact listing. | `run_bundles/plan25_shakeout_run1.tar.gz` |
+
+## Exact next action
+
+M6 step 2: launch the 8-agent, 20-turn run on the v2 CodeFlowBench bank and
+record it.
+
