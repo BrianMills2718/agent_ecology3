@@ -243,3 +243,33 @@ def test_codex_plugin_features_are_disabled_with_or_without_features_table() -> 
     for config in ('model = "x"\n[features]\nprevent_idle_sleep = true\n[other]\na = 1\n', 'model = "x"\n'):
         features = tomllib.loads(_disable_codex_features(config))["features"]
         assert features["plugins"] is False and features["remote_plugin"] is False
+
+
+def test_send_message_is_delivered_once_at_the_recipients_next_turn(tmp_path: Path) -> None:
+    world, kernel, client = _kernel(tmp_path)
+    a1, a2 = kernel.agents["alpha_1"], kernel.agents["alpha_2"]
+    kernel.turn = 3
+    sent = client.post("/agent-act/alpha_1", headers={"Authorization": f"Bearer {a1.token}"},
+                       json={"action_type": "send_message", "recipient_id": "alpha_2",
+                             "content": "your gcd helper fails on 0"}).json()
+    assert sent["success"] is True and a1.actions_this_turn == 1
+    events = [e for e in world.logger.read_recent(50) if e.get("event_type") == "agent_message"]
+    assert [(e["principal_id"], e["recipient"], e["text"], e["turn"]) for e in events] == [
+        ("alpha_1", "alpha_2", "your gcd helper fails on 0", 3)]
+    first = kernel.observation(a2)
+    assert "Messages to you since your last turn:\n- from alpha_1 (turn 3): your gcd helper fails on 0" in first
+    assert "Messages to you" not in kernel.observation(a2)  # shown once
+    assert "Messages to you" not in kernel.observation(a1)
+
+
+def test_send_message_refuses_bad_recipient_and_empty_text(tmp_path: Path) -> None:
+    world, kernel, client = _kernel(tmp_path, actions_per_turn=4)
+    a1 = kernel.agents["alpha_1"]
+    headers = {"Authorization": f"Bearer {a1.token}"}
+    for payload, code in (({"recipient_id": "alpha_1", "content": "hi"}, "invalid_recipient"),
+                          ({"recipient_id": "nobody", "content": "hi"}, "invalid_recipient"),
+                          ({"recipient_id": "alpha_2", "content": "  "}, "empty_message")):
+        out = client.post("/agent-act/alpha_1", headers=headers, json={"action_type": "send_message", **payload}).json()
+        assert out["success"] is False and out["error_code"] == code
+    assert not [e for e in world.logger.read_recent(50) if e.get("event_type") == "agent_message"]
+    assert kernel.agents["alpha_2"].inbox == []

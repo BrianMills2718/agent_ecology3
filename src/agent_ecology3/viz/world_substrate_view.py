@@ -37,6 +37,7 @@ RULE_SOLVED = "ae3.mint.task_solved"
 RULE_UNPAID = "ae3.mint.submission_unpaid"
 RULE_NOTE = "ae3.agent.note"
 RULE_ROYALTY = "ae3.mint.royalty"
+RULE_MESSAGE = "ae3.agent.message"
 
 BOARD, MARKET, CHECKER = "task-board", "market", "checker"
 NOTE_CHARS = 180
@@ -224,6 +225,30 @@ def build_projection(
                     }},
                 }),
             ])
+        elif kind == "agent_message" and actor in principals and str(event.get("recipient")) in principals:
+            recipient = str(event.get("recipient"))
+            text = " ".join(str(event.get("text") or "").split())
+            notes += 1
+            info_id, delivery_id = f"message-{notes}", f"message-{notes}-delivery"
+            emit(RULE_MESSAGE, event, actor_id=actor, updates=[
+                (member(actor, "doing"), f"messaged {recipient.replace('alpha_', 'Agent ')}"),
+                (f"entities.{info_id}", {
+                    "entity_id": info_id, "category_ids": ["information"],
+                    "components": {"information": {
+                        "active": True, "channel_id": "message",
+                        "content": text[:240] + ("…" if len(text) > 240 else ""),
+                        "derived_from_info_id": None, "source_id": actor,
+                        "topic": "message", "visibility": "public",
+                    }},
+                }),
+                (f"entities.{delivery_id}", {
+                    "entity_id": delivery_id, "category_ids": ["delivery"],
+                    "components": {"delivery": {
+                        "channel_id": "message", "delivered_tick": world["tick"] + 1,
+                        "info_id": info_id, "recipient_id": recipient, "status": "delivered",
+                    }},
+                }),
+            ])
         elif kind == "resident_turn" and actor in principals:
             text = " ".join(str(event.get("note") or "").split())
             if not text:
@@ -363,6 +388,7 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         event_visuals[f"{RULE_SOLVED}.{principal}"] = visual(principal, "solution passed the hidden tests", CHECKER)
         event_visuals[f"{RULE_UNPAID}.{principal}"] = visual(principal, "submission earned nothing", CHECKER)
         event_visuals[f"{RULE_NOTE}.{principal}"] = visual(principal, "end-of-turn note", f"bench-{principal}", transmit=True)
+        event_visuals[f"{RULE_MESSAGE}.{principal}"] = visual(principal, "sends a message to another agent", None, transmit=True)
         event_visuals[f"{RULE_ROYALTY}.{principal}"] = visual(
             principal, "earns a royalty: another agent reused its helper", None, transmit=True
         )

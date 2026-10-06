@@ -38,3 +38,10 @@ def test_agent_graph_links_code_reads_and_reuse_and_counts_statement_reads() -> 
     assert out["summary"]["statement_reads"] == 1
     assert "paid 2 scrip to read 1 other agents' task descriptions" in out["details"]["alpha_2"]
     assert set(graph) == {"schema", "kinds", "nodes", "edges", "layout"}
+
+
+def test_agent_graph_counts_messages() -> None:
+    events = [{"event_type": "agent_message", "principal_id": "alpha_1", "recipient": "alpha_2", "text": "hi"}] * 3
+    out = _agent_graph(events, {"principals": ["alpha_1", "alpha_2"], "artifacts": []})
+    assert [(e["id"], e["label"]) for e in out["graph"]["edges"]] == [("messaged:alpha_1->alpha_2", "messaged ×3")]
+    assert out["summary"]["messages"] == 3

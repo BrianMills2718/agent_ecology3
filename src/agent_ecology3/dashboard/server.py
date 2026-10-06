@@ -1240,7 +1240,7 @@ def _resident_action_rows(
     """
     by_number: dict[tuple[str, int], list[dict[str, Any]]] = {}
     for event in events:
-        if event.get("event_type") in {"artifact_read", "task_bounty_scored", "royalty_paid"}:
+        if event.get("event_type") in {"artifact_read", "task_bounty_scored", "royalty_paid", "agent_message"}:
             by_number.setdefault((str(event["event_type"]), int(event.get("event_number", 0) or 0)), []).append(event)
     def joined(kind: str, number: int, **match: Any) -> list[dict[str, Any]]:
         # A rejected action does not advance the event number, so a bare
@@ -1299,6 +1299,11 @@ def _resident_action_rows(
                 if royalties:
                     paid = ", ".join(f"{r.get('principal_id')} ({r.get('amount')} scrip)" for r in royalties)
                     description += f"; reused helpers, royalty to {paid}"
+            elif action == "send_message":
+                sent = (joined("agent_message", number, principal_id=who) or [{}])[0]
+                text = " ".join(str(sent.get("text") or "").split())
+                counterparty = str(sent.get("recipient") or "") or None
+                description = f"messaged {counterparty or 'another agent'}: \u201c{text[:200]}\u201d"
             elif action == "query_kernel":
                 description = "searched the world"
             else:
