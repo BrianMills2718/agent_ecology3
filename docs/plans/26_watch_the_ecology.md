@@ -90,7 +90,7 @@ is published only after the privacy check passes.
 |---|---|---|---|
 | M1 Activity feed for resident runs | done (awaiting Brian's look) | plain-words feed from resident events; agent cards without the meaningless budget | run5 at localhost, press Play |
 | M2 Agents-only interaction view | done (awaiting Brian's look) | shared graph viewer; agents as nodes; bought / reused (royalty) / messaged edges weighted by count; click an agent for its tasks | run5 Interactions tab |
-| M3 Agents can message each other | fully_specifiable_now (active) | `send_message` action; inbox in the recipient's next observation; shown in feed, graph, Living view; 8 agents × 20 turns | live run link |
+| M3 Agents can message each other | built; unused in first run (awaiting Brian on a per-turn reminder) | `send_message` action; inbox in the recipient's next observation; shown in feed, graph, Living view; 8 agents × 20 turns | live run link |
 | M4 Public read-only replay | conditional (after M1-M3) | static replay of one finished run on brianmills.dev after a privacy check | public URL |
 | M5 Real oracle | human_decision_required | Brian chooses what agents get paid for | Brian's choice |
 
@@ -136,9 +136,13 @@ reason, like any invalid action.
 
 | Date | Milestone | What Brian can open | Result |
 |---|---|---|---|
+| 2026-10-06 | M3 | run `plan26_messages_run6` (8 Codex agents × 20 turns, 365-task bank, messaging available): http://localhost:9100/ while it served | 160/160 turns; 110/365 solved; 32 failed (wrong answer 24, NameError 6, wrong argument count 1, other 1); 15-26 shell commands per agent; another agent's helper called 12 times, rewritten 1; 12 royalties to all 8 agents; **0 messages and 0 transfers**. The rules mention send_message once, on turn 1 only; no agent's recorded thinking mentions it (weak evidence: low-effort reasoning is mostly unrecorded). Trading today is posted prices plus automatic royalties, no negotiation. Bundle `run_bundles/plan26_messages_run6.tar.gz` |
 | 2026-10-06 | M2 | http://localhost:9097/ → Interactions | built and browser-checked: 16×16 matrix; 256 cells and names hover-checked, all show a tooltip. Found while building: all 170 paid cross-agent reads were task descriptions; reading another agent's code was free (45 times) |
 | 2026-10-06 | M1 | http://localhost:9097/ (run5, Ecosystem tab, press Play) | built and browser-checked; awaiting Brian's look. Found while building: 52 actions refused for exceeding 4 per turn; joining results by event number alone mislabelled 9 of them (fixed by matching agent and artifact) |
 
 ## Exact next action
 
-M3 step 1: add the `send_message` kernel action and `agent_message` event.
+Waiting on Brian (proposed 2026-10-06): add a one-line per-turn reminder that
+agents can message anyone, keep each agent's recent messages in its turn
+summary, and rerun 8 agents × 20 turns to see whether messaging gets used.
+Otherwise continue with M4 (public replay).
