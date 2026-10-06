@@ -1045,9 +1045,11 @@ def _living_view_inputs(
     events: list[dict[str, Any]], world_state: dict[str, Any]
 ) -> tuple[list[str], list[str]]:
     """Principals and task ids for the World Substrate living view."""
+    from ..viz.world_substrate_view import principal_order
+
     raw_balances = world_state.get("balances")
     balances: dict[str, Any] = raw_balances if isinstance(raw_balances, dict) else {}
-    principals = sorted(str(p) for p in (world_state.get("principals") or balances.keys()))
+    principals = sorted((str(p) for p in (world_state.get("principals") or balances.keys())), key=principal_order)
     task_ids: list[str] = []
     artifacts = world_state.get("artifacts")
     for artifact in artifacts if isinstance(artifacts, list) else []:

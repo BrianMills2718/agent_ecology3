@@ -127,3 +127,15 @@ def test_title_is_short_and_run_id_is_in_subtitle() -> None:
     profile = build_profile(bundle, principals=["alpha_1"], task_ids=["HumanEval/34"])
     assert profile["title"] == "Agent Ecology 3"
     assert "plan25_codeflow_run2" in profile["subtitle"]
+
+
+def test_sixteen_agents_are_in_number_order_with_named_benches() -> None:
+    """plan25_codeflow_run3 showed Agent 1, 10, 11, ... 16, 2 and benches labelled "notes"."""
+    principals = [f"alpha_{n}" for n in range(1, 17)]
+    shuffled = sorted(principals)  # text order: alpha_1, alpha_10, ..., alpha_2
+    bundle = build_projection(EVENTS, run_id="t", principals=shuffled, task_ids=["HumanEval/34"], starting_scrip=100)
+    profile = build_profile(bundle, principals=shuffled, task_ids=["HumanEval/34"])
+    actors = profile["actors"]
+    xs = [actors[p]["home"][0] for p in principals]
+    assert xs == sorted(xs) and len(set(xs)) == 16
+    assert profile["entities"]["bench-alpha_4"]["label"] == "Agent 4's bench"
