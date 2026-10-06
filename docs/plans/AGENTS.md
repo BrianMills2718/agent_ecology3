@@ -45,7 +45,8 @@ larger task bank for longer runs.
 | 22 | [Fail-loud authentic runs](22_fail_loud_authentic_runs.md) | Critical | ✅ Complete — canary and 14-call run passed | Brian's usefulness review |
 | 23 | [Emergent economic interaction](23_emergent_interaction.md) | Critical | ✅ Closed — plumbing evidence, not emergence (2026-10-05) | - |
 | 24 | [Outside-scored mint and trading-vs-solo comparison](24_external_score_vs_solo.md) | Critical | ✅ Complete — instrument built; toy-scale comparison showed no trading gain | Further emergence or scale work |
-| 25 | [Working, intelligent ecology at scale](25_scale_shakeout.md) | Critical | 🚧 In Progress — M10 next (larger task supply for longer runs) | Roadmap capability 4b |
+| 25 | [Working, intelligent ecology at scale](25_scale_shakeout.md) | Critical | ⏸️ Paused — M10 waits behind Plan 26 | Roadmap capability 4b |
+| 26 | [Watch the ecology: feed, graph, messaging, public replay](26_watch_the_ecology.md) | Critical | 🚧 In Progress — M1 active (activity feed for resident runs) | Choosing a real oracle |
 
 ## Status Key
 
