@@ -88,7 +88,7 @@ yes; nothing is published outside the repo.
 | M5 Compounding tasks and royalties | done | CodeFlowBench bank builder, linking, royalties | PRs #90, #91 |
 | M6 Rerun on clearer tasks | fully_specifiable_now (active) | 8 agents × 20 turns on the v2 bank (call shape + example per task; solved-helper listing in the agent view) | see Active slice |
 | M7 Longer and larger runs | conditional | e.g. 16 agents × 40 turns | M6 completes cleanly and Codex capacity holds |
-| M8 Agents visible when they share a place | human_decision_required | World Substrate gather/offset primitive | Brian's yes or no on a freeze exception |
+| M8 Agents visible when they share a place | blocked_on_owner (approved by Brian 2026-10-05) | World Substrate spreads actors that move to the same place; then bump the pin here | [world-substrate#106](https://github.com/BrianMills2718/world-substrate/issues/106); its renderer files are under a live World Builder claim |
 | M9 Economy on World Substrate's engine; cooperation verdicts | deliberately_deferred | — | Brian selects it |
 
 ## Active slice: M6 — rerun on clearer tasks
@@ -123,6 +123,19 @@ fix the cause and rerun once.
 | Goal is a working, intelligent system at scale; no cooperation verdicts | human_set (Brian, 2026-10-05) | quotes above |
 | Codex/Luna for resident agents, not Claude | agent_decided_reversible | the Sonnet run hit a Claude weekly limit (`plan25_resident_run1`) |
 | Viewer-only use of World Substrate | human_set (Brian, 2026-10-05: "i agree on option 1") | `## World Substrate living view` below |
+| CodeFlowBench text never committed | agent_decided_reversible | Codeforces redistribution terms unverified |
+| Agents told to test before submitting | agent_decided_reversible | offered-only probe ran 0 commands; told, 6 (`plan25_codex_shell_probe1/2`) |
+| Tests come from CodeFlowBench as published | assumption | its "solutions" are tokenized editorial text and cannot validate the tests; if many tests are wrong, failures will cluster on specific tasks |
+
+## Human decisions
+
+- **M8 (decided 2026-10-05):** Brian approved one small exception to World
+  Substrate's renderer freeze so agents at the same place are spread in a
+  ring. Filed as world-substrate#106 for the session that owns its renderer;
+  when it merges, bump the pin in `viz/world_substrate_view.py` and re-check
+  the Living view.
+
+## World Substrate living view` below |
 | CodeFlowBench text never committed | agent_decided_reversible | Codeforces redistribution terms unverified |
 | Agents told to test before submitting | agent_decided_reversible | offered-only probe ran 0 commands; told, 6 (`plan25_codex_shell_probe1/2`) |
 | Tests come from CodeFlowBench as published | assumption | its "solutions" are tokenized editorial text and cannot validate the tests; if many tests are wrong, failures will cluster on specific tasks |
