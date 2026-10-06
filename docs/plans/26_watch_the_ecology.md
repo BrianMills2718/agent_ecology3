@@ -82,7 +82,20 @@ is published only after the privacy check passes.
 | Activity feed | `dashboard/server.py` `_resident_action_rows` | working: 1,595 run5 events in plain words; totals match `run_evidence.py report` (128 solved, 129 failed, 10 unpaid, 17 royalties); 52 kernel refusals shown | M1 PR |
 | Interactions view | `dashboard/server.py` `/agent-graph`, matrix in the Interactions tab | working: 16×16 matrix of code reads, helper reuse (orange edge) and messages; click or hover any cell or name for a plain-words explanation | M2 PR |
 | Living view | `viz/world_substrate_view.py` | working; agents at one place hide each other | Plan 25 M8, world-substrate#106 |
-| Agent messaging | kernel actions | absent: no action sends a message to another agent; turn notes are not shown to other agents | `world/actions.py` `ActionType` |
+| Agent messaging | `simulation/resident.py` `_send_message` | working: `send_message` delivers a free note at the start of the recipient's next turn; unused in run6 (0 messages) | M3 PR |
+
+## Model
+
+The model the views project is written down in [docs/model/ODD.md](../model/ODD.md)
+(ODD protocol) and [docs/model/ae3_model.yaml](../model/ae3_model.yaml)
+(entities, processes, events; `tests/test_model_declaration.py` keeps its event
+list equal to the code). [docs/model/VIEW_COVERAGE.md](../model/VIEW_COVERAGE.md)
+checks the feed, matrix and Living view against it and lists the gaps
+(2026-10-06): transfers missing from the matrix and half-shown in the feed,
+repeated messages mislabelled in the feed, the live feed reading only the last
+2,000 events, and free code reads and solution rewrites absent from the Living
+view. It also found that agents cannot set read prices (the tool has no
+`read_price` field), so "trade at posted prices" cannot happen for their work.
 
 ## Milestones
 
@@ -138,7 +151,7 @@ reason, like any invalid action.
 |---|---|---|---|
 | 2026-10-06 | M3 | run `plan26_messages_run6` (8 Codex agents × 20 turns, 365-task bank, messaging available): http://localhost:9100/ while it served | 160/160 turns; 110/365 solved; 32 failed (wrong answer 24, NameError 6, wrong argument count 1, other 1); 15-26 shell commands per agent; another agent's helper called 12 times, rewritten 1; 12 royalties to all 8 agents; **0 messages and 0 transfers**. The rules mention send_message once, on turn 1 only; no agent's recorded thinking mentions it (weak evidence: low-effort reasoning is mostly unrecorded). Trading today is posted prices plus automatic royalties, no negotiation. Bundle `run_bundles/plan26_messages_run6.tar.gz` |
 | 2026-10-06 | M2 | http://localhost:9097/ → Interactions | built and browser-checked: 16×16 matrix; 256 cells and names hover-checked, all show a tooltip. Found while building: all 170 paid cross-agent reads were task descriptions; reading another agent's code was free (45 times) |
-| 2026-10-06 | M1 | http://localhost:9097/ (run5, Ecosystem tab, press Play) | built and browser-checked; awaiting Brian's look. Found while building: 52 actions refused for exceeding 4 per turn; joining results by event number alone mislabelled 9 of them (fixed by matching agent and artifact) |
+| 2026-10-06 | M1 | http://localhost:9097/ (run5, Ecosystem tab, press Play) | built and browser-checked; awaiting Brian's look. Found while building: 52 actions refused by the kernel (9 for exceeding 4 per turn, 23 reads of missing artifacts, 19 malformed, 1 rejected submission); joining results by event number alone mislabelled 9 of them (fixed by matching agent and artifact) |
 
 ## Exact next action
 
