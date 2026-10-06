@@ -18,6 +18,6 @@ recoverable record.
 | `plan25_resident_codex_run1.tar.gz` | Plan 25 4-agent resident Codex/Luna run, 10 turns (agents/ excluded) |
 | `plan25_resident_codex_run2.tar.gz` | Plan 25 8-agent resident Codex/Luna run, 20 turns (agents/ excluded) |
 | `plan25_codex_shell_probe2.tar.gz` | Plan 25 probe: Codex agent tests its own code (Codex home excluded) |
-| `plan25_codeflow_run1.tar.gz` | Plan 25 8-agent CodeFlowBench run (redacted: CodeFlowBench-derived task and solution text withheld because redistribution terms are unverified; agents/ excluded) |
+| `plan25_codeflow_run1.tar.gz` | Plan 25 8-agent CodeFlowBench run, built by `scripts/run_evidence.py bundle` (task, solution and hidden-test text withheld because redistribution terms are unverified; checker reasons keep only the error type; agents/ excluded) |
 
 Verify: `sha256sum -c SHA256SUMS`. Restore: `tar -xzf <bundle> -C ~/.local/state/agent_ecology3/`.

@@ -15,7 +15,7 @@ judgment with an outside automatic score and a solo baseline. Plan 24 finished
 the same day. At toy scale (2 agents, 28 decisions) trading beat solo in 0 of 3
 pairs. Brian judged that setting too small to test a thesis about scale and long
 horizons, so the roadmap now selects a long-running ecology at scale. Plan 25 is the active plan: long-lived Codex agents that test their own code
-and build on each other's helpers now run at 8 agents; its next action is a
+on tasks meant to build on each other's helpers now run at 8 agents; its next action is a
 rerun on clearer tasks.
 
 ## Gap Summary

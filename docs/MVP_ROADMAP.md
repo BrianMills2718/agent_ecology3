@@ -70,8 +70,9 @@ which remains the MVP evidence).
   `ae3_action` tool; the checker linked already-solved helpers and paid their
   authors royalties.
 - Inspectable result: 160/160 turns, 33/52 tasks solved, 7-21 shell commands
-  per agent from their Codex histories, 9 royalties to 7 authors; the Living
-  view shows agents moving, their notes, and royalties as messages.
+  per agent from their Codex histories; 9 royalties were paid but no passing
+  solution actually called an earlier agent's helper (payout bug, fixed); the Living
+  view shows agents moving and their notes.
 - Durable evidence: `evaluations/evidence/run_bundles/plan25_codeflow_run1.tar.gz`
   (redacted) and `evaluations/evidence/plan25_codeflow_run1_living_view.png`.
 - Known negative case: 89 of 125 submissions failed hidden tests, mostly
@@ -145,11 +146,13 @@ Status ([Plan 25](plans/25_scale_shakeout.md) holds the milestones, run log, evi
    Agents now write and run their own tests in a private folder before
    submitting (Codex history of `plan25_codex_shell_probe2`: 6 shell
    commands, repaired a failing solution before submitting).
-3. **Work that compounds: working.** A local CodeFlowBench bank of helper
-   tasks with dependencies; the checker links already-solved helpers and pays
-   their authors royalties. 8 agents × 20 turns: 33/52 solved, 9 royalties to 7
-   authors, every agent tested its own code (7-21 shell commands each). Next:
-   rerun with the clearer task statements and solved-helper listing.
+3. **Work that compounds: built, not yet observed.** A local CodeFlowBench
+   bank of helper tasks with dependencies; the checker links already-solved
+   helpers and pays their authors a royalty when a passing solution calls
+   them. In the first 8-agent run no passing solution called an earlier
+   agent's helper (they wrote the logic inline), and 9 royalties were paid in
+   error; the payout now requires a real call. Every agent tested its own
+   code (7-21 shell commands each).
 4. **Watching it: done, one gap.** The dashboard's Living view renders runs in
    World Substrate's world-agnostic living view (viewer only, pinned
    `33bd121`, labelled "rendered with the World Substrate living view;

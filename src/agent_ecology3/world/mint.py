@@ -108,15 +108,18 @@ SOLUTION_TYPE_PREFIX = "solution:"
 _FENCE = re.compile(r"^\s*```[A-Za-z0-9_+-]*\s*\n(?P<body>.*?)\n\s*```\s*$", re.DOTALL)
 
 
-def _defined_functions(source: str) -> set[str]:
+def _defined_and_called(source: str) -> tuple[set[str], set[str]]:
+    """Function names a solution defines, and plain names it calls."""
     import ast
 
     fenced = _FENCE.match(source)
     try:
         tree = ast.parse(fenced.group("body") if fenced else source)
     except SyntaxError:
-        return set()
-    return {node.name for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        return set(), set()
+    defined = {n.name for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    called = {n.func.id for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+    return defined, called
 
 
 @dataclass(frozen=True)
@@ -372,13 +375,17 @@ class MintAuction:
     def _pay_royalties(
         self, solver: str, artifact: Any, task_id: str, linked: list[tuple[str, str, str]]
     ) -> None:
-        """Pay each linked helper's author when the passing solution relied on it."""
+        """Pay each linked helper's author when the passing solution calls it.
+
+        A helper the solution redefines, or never calls, earns nothing.
+        """
         if self.royalty_scrip <= 0 or not linked:
             return
         tasks = getattr(self.scorer, "tasks", {})
-        defined = _defined_functions(artifact.code if artifact.code.strip() else artifact.content)
+        defined, called = _defined_and_called(artifact.code if artifact.code.strip() else artifact.content)
         for dep, author, _ in linked:
-            if author == solver or tasks[dep].entry_point in defined:
+            helper = tasks[dep].entry_point
+            if author == solver or helper in defined or helper not in called:
                 continue
             self.ledger.credit_scrip(author, self.royalty_scrip)
             self.logger.log(
