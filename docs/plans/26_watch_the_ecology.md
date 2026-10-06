@@ -110,7 +110,7 @@ solution rewrites absent from the Living view, and the other gaps in that page.
 | M2 Agents-only interaction view | done (awaiting Brian's look) | shared graph viewer; agents as nodes; bought / reused (royalty) / messaged edges weighted by count; click an agent for its tasks | run5 Interactions tab |
 | M3 Agents can message each other | built; unused in first run (awaiting Brian on a per-turn reminder) | `send_message` action; inbox in the recipient's next observation; shown in feed, graph, Living view; 8 agents × 20 turns | live run link |
 | M4 Public read-only replay | done (awaiting Brian's look) | run5 as a static replay on brianmills.dev after a privacy check; notes and message text withheld | https://brianmills.dev/agent-ecology/ |
-| M5 Real oracle | human_decision_required | Brian chooses what agents get paid for | Brian's choice |
+| M5 Real oracle | decided (Brian, 2026-10-06): shared projects judged by AES → [Plan 27](27_aes_shared_projects.md) | — | — |
 
 ## Active slice: M3 — agents can message each other
 

@@ -215,6 +215,8 @@ exact destructive targets, visible failures, and recoverable Git checkpoints.
   outside-scored checker and trading switch, and its toy-scale comparison.
 - [Plan 25](plans/25_scale_shakeout.md) owns the current milestones, active
   slice, run log, and human decisions for the working, intelligent ecology.
+- [Plan 27](plans/27_aes_shared_projects.md) owns the next oracle: agents
+  build one shared AES-governed codebase and are paid only by AES evidence.
 - [Plan 26](plans/26_watch_the_ecology.md) owns making the ecology watchable
   (activity feed, agents-only graph, agent messaging, public replay) before a
   real oracle is chosen.
