@@ -124,3 +124,22 @@ def test_observation_lists_solved_helpers_to_call_not_redefine(tmp_path: Path) -
     text = kernel.observation(kernel.agents["alpha_2"])
     assert "`digits` (task CF/X/digits) solved by alpha_1" in text
     assert "do not redefine them" in text
+
+
+GSUM_INLINE = "from math import gcd\ndef gsum(x):\n    return gcd(x, sum(int(c) for c in str(x)))\n"
+
+
+def test_no_royalty_when_the_solution_never_calls_the_helper(tmp_path: Path) -> None:
+    """plan25_codeflow_run1 paid 9 royalties to solutions that never called the helper."""
+    world = _world(tmp_path)
+    _submit(world, "alpha_1", "alpha_1_d", "CF/X/digits", DIGITS)
+    outcome = _submit(world, "alpha_2", "alpha_2_g", "CF/X/gsum", GSUM_INLINE)
+    assert outcome["passed"] is True and outcome["first_claim"] is True
+    assert _royalties(world) == []
+
+
+def test_royalty_when_a_fenced_solution_calls_the_helper(tmp_path: Path) -> None:
+    world = _world(tmp_path)
+    _submit(world, "alpha_1", "alpha_1_d", "CF/X/digits", DIGITS)
+    _submit(world, "alpha_2", "alpha_2_g", "CF/X/gsum", "```python\n" + GSUM_REUSING + "```\n")
+    assert [r["principal_id"] for r in _royalties(world)] == ["alpha_1"]

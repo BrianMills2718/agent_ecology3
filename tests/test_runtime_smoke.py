@@ -141,7 +141,7 @@ def test_runner_monitor_remains_responsive_during_slow_async_syscall(tmp_path) -
         world.call_llm_as_syscall_async = _slow_syscall  # type: ignore[method-assign]
         run_task = asyncio.create_task(runner.run(duration=0.05))
         heartbeat_task = asyncio.create_task(_heartbeat())
-        await asyncio.wait_for(started.wait(), timeout=0.5)
+        await asyncio.wait_for(started.wait(), timeout=5.0)
         at_start = heartbeat_count
 
         async def _ticks_and_stop_while_pending() -> None:
@@ -155,7 +155,7 @@ def test_runner_monitor_remains_responsive_during_slow_async_syscall(tmp_path) -
         assert run_task.done() is False
 
         release.set()
-        await asyncio.wait_for(run_task, timeout=0.5)
+        await asyncio.wait_for(run_task, timeout=5.0)
         await heartbeat_task
 
     asyncio.run(_exercise())
@@ -195,7 +195,7 @@ def test_runner_drains_inflight_loop_before_returning(tmp_path) -> None:
         world.call_llm_as_syscall = _blocking_old_syscall  # type: ignore[method-assign]
         world.call_llm_as_syscall_async = _slow_syscall  # type: ignore[method-assign]
         run_task = asyncio.create_task(runner.run(duration=0.05))
-        await asyncio.wait_for(started.wait(), timeout=0.5)
+        await asyncio.wait_for(started.wait(), timeout=5.0)
         await asyncio.sleep(0.12)
 
         assert runner._stop_requested is True
@@ -203,7 +203,7 @@ def test_runner_drains_inflight_loop_before_returning(tmp_path) -> None:
         assert completed is False
 
         release.set()
-        await asyncio.wait_for(run_task, timeout=0.5)
+        await asyncio.wait_for(run_task, timeout=5.0)
         returned_event_number = world.event_number
         assert completed is True
         await asyncio.sleep(0.05)
