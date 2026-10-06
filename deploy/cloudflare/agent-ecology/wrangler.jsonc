@@ -1,0 +1,14 @@
+{
+  // Public, read-only replay of one finished agent_ecology3 run at brianmills.dev/agent-ecology/
+  // (Plan 26 M4). Static assets only: no server code, no API, no controls that act.
+  // Built and leak-checked by scripts/build_public_replay.py; deployed by scripts/deploy_public_replay.sh.
+  "name": "agent-ecology-replay",
+  "account_id": "8edd43859e873330b3b07bada17d183b",
+  "compatibility_date": "2026-10-06",
+  "workers_dev": false,
+  "assets": { "directory": "./assets", "html_handling": "auto-trailing-slash" },
+  "routes": [
+    { "pattern": "brianmills.dev/agent-ecology", "zone_name": "brianmills.dev" },
+    { "pattern": "brianmills.dev/agent-ecology/*", "zone_name": "brianmills.dev" }
+  ]
+}
