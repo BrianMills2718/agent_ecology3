@@ -23,7 +23,7 @@ decisions) trading gave no gain, which is expected: the project's bet is that
 cooperation pays only at scale and over long horizons. The current work
 ([Plan 25](docs/plans/25_scale_shakeout.md)) is a working, intelligent ecology:
 long-lived Codex agents that test their own code, on tasks meant to build on each other's
-helpers now run at 8 agents; Plan 25 holds the next action.
+helpers now run at 16 agents for 40 turns; Plan 25 holds the next action.
 
 ## Quick start
 

@@ -93,7 +93,7 @@ which remains the MVP evidence).
 | 5 | Explain relationships when the activity feed stops being enough | conditional | A compact economic summary answers who paid whom, for what, how balances changed, and which artifacts were reused; add a synchronized graph only if Brian cannot follow a richer run from the list | Brian cannot follow Plan 23 or a richer run from the list |
 | 6 | Explore scenarios without source edits | vertical / conditional | Two versioned scenario configurations change opportunities or rules while reusing the same runner, dashboard, and receipt contract | Brian selects scenario exploration as more valuable than repeating the canonical profile |
 | 7 | Compare or replicate runs | exploration required | A preregistered question, representative cells, equal call exposure, valid receipts, and an independently signed-off comparison support only the stated decision | Brian needs evidence beyond one-run product observation and approves the spend |
-| 8 | Expand ecology size and dynamics | vertical / **8 agents working; larger next (Plan 25 M7)** | A 4–8 agent run remains legible, bounded, and economically active; scaling work addresses only reproduced limits | Two-agent runs are repeatable and the next uncertainty is network behavior |
+| 8 | Expand ecology size and dynamics | vertical / **16 agents × 40 turns working; longer runs next (Plan 25 M10)** | A 4–8 agent run remains legible, bounded, and economically active; scaling work addresses only reproduced limits | Two-agent runs are repeatable and the next uncertainty is network behavior |
 | 9 | Internal pilot or external release | deliberately deferred | Deployment target, users, data, access, uptime, and release authority are explicit before production controls enter scope | A real remote or multi-user consumer exists |
 
 Success criteria derive from the explicit user outcome and the observed current
@@ -146,14 +146,14 @@ Status ([Plan 25](plans/25_scale_shakeout.md) holds the milestones, run log, evi
    Agents now write and run their own tests in a private folder before
    submitting (Codex history of `plan25_codex_shell_probe2`: 6 shell
    commands, repaired a failing solution before submitting).
-3. **Work that compounds: first real reuse.** A local CodeFlowBench bank of
-   helper tasks with dependencies; the checker links already-solved helpers
-   and pays their authors a royalty when a passing solution calls them. Run 1
-   showed no real reuse (its royalties were a payout bug, fixed). Run 2, with
-   tasks that state their call shape: 43/52 solved, no argument-count
-   failures, and passing solutions called another agent's helper 7 times.
-   Every agent tested its own code (6-25 shell commands each). Next: 16
-   agents × 40 turns.
+3. **Work that compounds: working at 16 agents.** A local CodeFlowBench bank
+   of helper tasks with dependencies; the checker links already-solved helpers
+   (declared, or same-problem helpers a solution calls) and pays their authors
+   a royalty when a passing solution calls them. 16 agents × 40 turns
+   (`plan25_codeflow_run5`): 640/640 turns, 128/146 solved, another agent's
+   helper called 19 times, 17 royalties to 9 authors; every agent tested its
+   own code (13-36 shell commands each). Next: banks that do not run dry for
+   longer runs (Plan 25 M10).
 4. **Watching it: done, one gap.** The dashboard's Living view renders runs in
    World Substrate's world-agnostic living view (viewer only, pinned
    `33bd121`, labelled "rendered with the World Substrate living view;
