@@ -118,3 +118,12 @@ def test_royalty_becomes_a_message_from_reuser_to_author() -> None:
     assert info["source_id"] == "alpha_2" and info["content"] == "Agent 2 reused your digits: +3 scrip"
     assert world["entities"]["royalty-1-delivery"]["components"]["delivery"]["recipient_id"] == "alpha_1"
     assert world["entities"]["alpha_1"]["components"]["member"]["scrip"] == 103
+
+
+def test_title_is_short_and_run_id_is_in_subtitle() -> None:
+    """The renderer's tick badge covered long titles (plan25_codeflow_run2)."""
+    bundle = build_projection(EVENTS, run_id="plan25_codeflow_run2", principals=["alpha_1"],
+                              task_ids=["HumanEval/34"], starting_scrip=100)
+    profile = build_profile(bundle, principals=["alpha_1"], task_ids=["HumanEval/34"])
+    assert profile["title"] == "Agent Ecology 3"
+    assert "plan25_codeflow_run2" in profile["subtitle"]

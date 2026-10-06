@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-05"
 ---
 # Plan #25: Working, Intelligent Ecology at Scale
 
-**Status:** 🚧 In Progress — M6 next (rerun on clearer CodeFlowBench tasks)
+**Status:** 🚧 In Progress — M7 next (16 agents × 40 turns)
 **Type:** durable living plan (company-planning `durable_solo`)
 **Priority:** Critical
 **Blocked By:** None
@@ -86,35 +86,33 @@ yes; nothing is published outside the repo.
 | M3 Isolation and cleanup | done | private Codex sessions; 5.2 GB reclaimed; agent sessions moved out of `~/.codex` | PR #88 |
 | M4 Agents test their own code | done | writable folder + instruction; history-based count | PR #89 |
 | M5 Compounding tasks and royalties | done | CodeFlowBench bank builder, linking, royalties | PRs #90, #91 |
-| M6 Rerun on clearer tasks | fully_specifiable_now (active) | 8 agents × 20 turns on the v2 bank (call shape + example per task; solved-helper listing in the agent view) | see Active slice |
-| M7 Longer and larger runs | conditional | e.g. 16 agents × 40 turns | M6 completes cleanly and Codex capacity holds |
+| M6 Rerun on clearer tasks | done | 43/52 solved, 0 argument-count failures, 7 real helper calls; royalty payout and evidence bundling fixed | `plan25_codeflow_run2`, PRs #95 and this one |
+| M7 Longer and larger runs | fully_specifiable_now (active) | 16 agents × 40 turns on a fresh 146-task bank | see Active slice |
 | M8 Agents visible when they share a place | blocked_on_owner (approved by Brian 2026-10-05) | World Substrate spreads actors that move to the same place; then bump the pin here | [world-substrate#106](https://github.com/BrianMills2718/world-substrate/issues/106); its renderer files are under a live World Builder claim |
 | M9 Economy on World Substrate's engine; cooperation verdicts | deliberately_deferred | — | Brian selects it |
 
-## Active slice: M6 — rerun on clearer tasks
+## Active slice: M7 — 16 agents × 40 turns
 
-**Visible result:** fewer failures from guessing how helpers are called, and
-reuse visible as messages in the Living view.
+**Visible result:** twice the agents, twice the turns, on a bank with more
+cross-agent dependencies, replayed in the Living view.
 
 **Steps:**
-1. Build the v2 bank (already built locally:
-   `~/.cache/agent_ecology3/codeflow_bank_a8_p16_s25101_v2.jsonl`; rebuild with
-   `uv run python scripts/build_codeflow_bank.py --agents 8 --problems 16
-   --seed 25101 --out <path>` if missing).
-2. Run `LLM_CLIENT_PROJECT=agent_ecology3 uv run python
-   scripts/run_resident_ecology.py --agents 8 --turns 20 --actions-per-turn 4
-   --task-bank <v2 bank> --run-id plan25_codeflow_run2 --port <free port>
-   --keep-serving` from the main checkout.
-3. Record in the run log: tasks solved, failure causes (argument-count
-   TypeErrors vs other), shell commands per agent, royalties and authors,
-   linked-helper calls vs redefinitions; redacted bundle; Living view
-   screenshot at a royalty frame.
+1. Bank (built locally): `uv run python scripts/build_codeflow_bank.py
+   --agents 16 --problems 40 --seed 25201` →
+   `~/.cache/agent_ecology3/codeflow_bank_a16_p40_s25201.jsonl` (146 tasks, 40
+   problems, 94 cross-agent dependency links).
+2. Run detached from the main checkout: `LLM_CLIENT_PROJECT=agent_ecology3 uv
+   run python scripts/run_resident_ecology.py --agents 16 --turns 40
+   --actions-per-turn 4 --task-bank <bank> --run-id plan25_codeflow_run3
+   --port <free port> --keep-serving`.
+3. `uv run python scripts/run_evidence.py report <run dir> --bank <bank>` and
+   `... bundle ... --out docs/evaluations/evidence/run_bundles/plan25_codeflow_run3.tar.gz`;
+   Living view screenshot at a genuine royalty frame; record in the run log.
 
-**Focused check:** run receipt `completed` 160/160; failure-cause counts
-compared with `plan25_codeflow_run1` as an observation, not a verdict.
+**Focused check:** receipt `completed` with 640 agent-turns recorded, or a
+named failure that is fixed and rerun once.
 
-**Failure / containment:** a turn error stops the run invalid with its reason;
-fix the cause and rerun once.
+**Failure / containment:** a turn error stops the run invalid with its reason.
 
 ## Decisions and assumptions
 
@@ -171,6 +169,7 @@ Agreed with the World Substrate session on 2026-10-05:
 
 | Run | Result | Evidence |
 |---|---|---|
+| `plan25_codeflow_run2` (8 resident `codex/gpt-5.6-luna` agents, low effort, 20 turns, 4 actions per turn, v2 bank seed 25101: same 52 tasks, each stating its call shape and one example; agents see solved helpers) | **Completed 160/160 agent-turns**, one session per agent. Numbers from `scripts/run_evidence.py report` (run1 in brackets): **43 of 52 solved** [33]; 109 submissions [125], **64 failed** [89]: wrong answer 56 [60], **wrong argument count 0** [11], wrong argument type 1 [14], NameError 4, IndexError 2, AttributeError 1; 2 unpaid duplicates [3]. **Shell commands** from each agent's Codex history: alpha_1 19, alpha_2 6, alpha_3 16, alpha_4 15, alpha_5 21, alpha_6 25, alpha_7 14, alpha_8 15 (131) [128]. **Reuse:** where a needed helper was already solved by another agent, passing solutions called it **7 times** and rewrote it 3 [0 and 2]. **Royalties:** 11 paid (33 scrip) to alpha_3 3, alpha_4 2, alpha_5 2, alpha_6 2, alpha_2 1, alpha_7 1; 6 of them are genuine calls, 5 were paid by the old rule (run started before PR #95 required a call). Final scrip 132-172. Living view checked: no page errors, label present, 11 royalty frames; the tick badge covered the run name in the title (fixed in this PR); an agent standing at the market hides the "Market" label (World Substrate layout, same family as world-substrate#106). | `run_bundles/plan25_codeflow_run2.tar.gz` (built by `run_evidence.py bundle`, 0 bank leaks); `plan25_codeflow_run2_living_view.png` (genuine royalty: Agent 5's solution calls Agent 4's `go`) |
 | `plan25_codeflow_run1` (8 resident `codex/gpt-5.6-luna` agents, low effort, 20 turns, 4 actions per turn, CodeFlowBench bank seed 25101: 52 helper tasks, 16 problems, 28 cross-agent dependency links) | **Completed 160/160 agent-turns**, one session per agent. **Agents tested their own code:** shell commands from each agent's Codex history: alpha_1 20, alpha_2 7, alpha_3 16, alpha_4 12, alpha_5 13, alpha_6 20, alpha_7 19, alpha_8 21 (128 total). **Work built on work: not yet.** Correction (2026-10-06, `scripts/run_evidence.py`): where a needed helper had already been solved by another agent, passing solutions called it 0 times and rewrote it 2 times; the 11/3 figures first written here were wrong. The 9 `royalty_paid` events (27 scrip, 7 authors) were paid to solutions that never called the helper: the payout checked only that the helper was not redefined. Fixed to require a call. **33 of 52 tasks solved**; 125 submissions, 89 failed hidden tests (mostly argument-count TypeErrors and assertions: CodeFlowBench helper statements never state how a helper is called), 3 unpaid duplicates. Final scrip 132-164. Fixes for the next run (same PR): each task states its arity and one example; the agent view lists solved helpers to call rather than redefine; the Living view shows each royalty as a message from the reusing agent to the author. Bundle rebuilt 2026-10-06 with `scripts/run_evidence.py`: the first version also carried about 120 hidden test cases inside checker failure reasons. | `run_bundles/plan25_codeflow_run1.tar.gz` (redacted: task and solution text withheld, agents/ excluded); `plan25_codeflow_run1_living_view.png` |
 | `plan25_codex_shell_probe2` (1 Codex agent, 2 turns, 2 HumanEval tasks incl. /81) | **Agents now test their own code.** Resident Codex agents get a writable private folder (`sandbox_mode=workspace-write`) and an instruction to run each solution on the task's examples before submitting. The agent's Codex history (`thread_history_1.sqlite`) shows 6 shell commands: it wrote `test_grade.py`, failed 4 times on HumanEval/81, fixed it until the test passed, then tested /137; both passed the hidden tests. Probe 1 (same setup, testing only offered, not asked) recorded 0 commands: the agent skipped testing on easy tasks. Receipts now carry `shell_commands_from_history` per agent, and each agent's Codex home is trimmed at run end (thread history kept). | `run_bundles/plan25_codex_shell_probe2.tar.gz` (agent test files included, Codex home excluded) |
 | Codex isolation fix (2026-10-05) | **Found by the session audit:** llm_client's `_create_codex_home` links each home's `sessions` to the user's real `~/.codex/sessions` (deliberately, so throwaway homes cannot lose transcripts). For persistent resident-agent homes this meant every agent indexed Brian's whole Codex history (2,572 threads, about 300 MB per agent, 5.2 GB over two runs) and 16 agent sessions were written among Brian's own sessions. Fixed in AE3: resident homes replace the link with a private `sessions` directory (test asserts it). Approved cleanup removed the bulk and the links, keeping each agent's own `thread_history_1.sqlite`; Brian's 2,580 session files were unchanged before and after. The 16 agent sessions remain in Brian's Codex history (not deleted). | this PR |
@@ -183,6 +182,4 @@ Agreed with the World Substrate session on 2026-10-05:
 
 ## Exact next action
 
-M6 step 2: launch the 8-agent, 20-turn run on the v2 CodeFlowBench bank and
-record it.
-
+M7 step 2: launch the 16-agent, 40-turn run on the 146-task bank and record it.
