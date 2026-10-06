@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-06"
 ---
 # Plan #27: Shared Projects Judged by AES
 
-**Status:** 📋 Planned — M1 next (pilot project scaffold)
+**Status:** 🚧 In progress — M1 done (pilot scaffold); M2 next (kernel adapter)
 **Type:** durable living plan (company-planning `durable_solo`)
 **Priority:** Critical
 **Blocked By:** None
@@ -32,7 +32,7 @@ criterion is met, and decides whether this oracle produces cooperation worth
 scaling.
 **Stage / investment boundary:** local prototype; no verdict on whether
 cooperation pays (that needs scale); no benchmarks.
-**Last outcome-bearing update:** 2026-10-06, plan created.
+**Last outcome-bearing update:** 2026-10-06, M1 done: tinydb pilot governed by AES; the oracle says no on the stubs and yes on the reference.
 
 ## Outcome and boundaries
 
@@ -116,26 +116,39 @@ the replay; M5 (scale) waits for Brian. Details below.
 
 | Milestone | Planning state | Output | Review point |
 |---|---|---|---|
-| M1 Pilot project scaffold | fully_specifiable_now (next) | One small real Python library chosen (Commit0 lite, MIT, smallest with clear module dependencies; candidates checked, not assumed); its function bodies stubbed in a sandbox repo; `aes init` with criteria = groups of the library's own tests; `aes status` shows every criterion INSUFFICIENT; a dashboard panel lists the open gaps as bounties | pilot `aes status` in the dashboard |
-| M2 Kernel adapter for AES judging | fully_specifiable_now | `propose_change` / `integrate` / `judge` / `pay` in the resident gateway; AES called as a subprocess on the sandbox; model YAML, ODD and drift test updated; tests with a scripted agent (no model calls) prove pay on SUPPORTED, no pay on REFUTED or STALE, royalty on cross-author import | test run + feed rows on a scripted run |
+| M1 Pilot project scaffold | done 2026-10-06 (see Pilot facts) | One small real Python library chosen (Commit0 lite, MIT, smallest with clear module dependencies; candidates checked, not assumed); its function bodies stubbed in a sandbox repo; `aes init` with criteria = groups of the library's own tests; `aes status` shows every criterion INSUFFICIENT; a dashboard panel lists the open gaps as bounties | pilot `aes status` in the dashboard |
+| M2 Kernel adapter for AES judging | fully_specifiable_now (next) | `propose_change` / `integrate` / `judge` / `pay` in the resident gateway; AES called as a subprocess on the sandbox; model YAML, ODD and drift test updated; tests with a scripted agent (no model calls) prove pay on SUPPORTED, no pay on REFUTED or STALE, royalty on cross-author import | test run + feed rows on a scripted run |
 | M3 4-agent live run | conditional (after M2) | 4 Codex agents × 20 turns on the pilot, systemd unit; record criteria met, contributions per agent, cross-author imports, messages, payments | live dashboard link |
 | M4 Public replay | conditional (after M3) | republish via `scripts/deploy_public_replay.sh` after the leak check (pilot library code is MIT, so code may be shown; agent notes still checked) | brianmills.dev/agent-ecology/ |
 | M5 Scale | deliberately_deferred | 16+ agents, longer runs, larger library | Brian selects it |
 
-## Active slice: M1 — pilot project scaffold
+## Pilot facts (M1, 2026-10-06)
+
+- **Library:** tinydb from Commit0's lite split: fork https://github.com/commit-0/tinydb, upstream msiemens/tinydb, MIT licence.
+- **Commits:** `base_commit` ed761a72c8c1e1cb24ca4dbcc089f35c5264d357 is Commit0's stubbed version (function bodies replaced by `pass`, 1,073 lines removed against the reference); `reference_commit` 429b27a513f0ad301632379e55667dd99865fb16 is the full implementation.
+- **Module dependencies:** database → storages, table, utils; table → queries, storages, utils; queries → utils; middlewares → storages.
+- **Tests:** 7 modules, 201 tests on the reference: middlewares 8, operations 14, queries 32, storages 13, tables 28, tinydb 97, utils 9. On the stubs every module fails at import (NameError `_immutable` in tinydb/utils.py, reached through tests/conftest.py).
+- **Sandbox:** `~/.local/state/agent_ecology3/pilots/tinydb`, built by `uv run python scripts/build_aes_pilot.py` (outside this repo; no library code is committed here). `main` starts at ed761a72 itself, fetched shallow, so the reference commit is not reachable from the sandbox (checked: `git cat-file -e 429b27a5` fails there). Its `.venv` holds pytest 9.1.1, pytest-cov 7.1.0, pyyaml 6.0.3.
+- **AES target** (project `ae3-pilot-tinydb`, actor "agent_ecology3 agents", outcome "tinydb works as its own tests specify", governed roots `tinydb/` and `tests/`), derived mechanically from `git ls-files` and accepted as `PLAN-001-TEST-MODULES` through `aes plan prepare/validate/accept`:
+  - for each `tests/test_<m>.py`: `NI-<M>` → `SC-<M>` (evidence requirement `ER-<M>-01`) → `VS-<M>` with locator `tests/test_<m>.py`; M ∈ MIDDLEWARES, OPERATIONS, QUERIES, STORAGES, TABLES, TINYDB, UTILS;
+  - one planned artifact per tracked governed file (20), components `CMP-LIBRARY` (tinydb/), `CMP-TEST-SUPPORT` (tests/__init__.py, conftest.py) and `CMP-<M>` per test module.
+- **Test command:** AES has no command field on a verification subject ([AES #154](https://github.com/BrianMills2718/agentic-engineering-system-canonical/issues/154)), so the sandbox's committed `pilot.json` holds each subject's command, passed to `aes evidence record --command`: `.venv/bin/python -m pytest -p no:cacheprovider -o addopts= -q tests/test_<m>.py` (`-o addopts=` drops tinydb's coverage options).
+- **Gate order:** the AES pre-commit hook is installed after the plan is accepted; before that every existing file is an orphan and the hook refuses the init commit ([AES #155](https://github.com/BrianMills2718/agentic-engineering-system-canonical/issues/155)).
+- **Reproducibility:** rebuilding gives identical file content; commit ids differ only by AES's own `initialized_at` / `accepted_at` timestamps.
+- **Gap count:** a criterion gap appears under several components in `aes reconcile --json`; the board counts each gap id once, the same rule as AES's `Reconciliation.open_gaps()`.
+
+## Active slice: M2 — kernel adapter for AES judging
 
 **Steps:**
-1. Read the Commit0 dataset or repo for the lite split. Pick the smallest library (by functions and tests) that has at least 3 modules importing each other. Record the choice, its licence and its counts.
-2. Create a sandbox git repo outside agent_ecology3 (e.g. `~/.local/state/agent_ecology3/pilots/<lib>`). Use the library at its pinned commit with function bodies replaced by `raise NotImplementedError` (Commit0's own stubbing). Keep the tests intact.
-3. `aes init --project-id ae3-pilot-<lib> --actor "agent_ecology3 agents" --outcome "<lib> works as its tests specify"`. Add one criterion per test module, and one verification subject per criterion that runs that module's tests. Accept the target through `aes plan prepare/validate/accept`.
-4. `aes status`: all criteria INSUFFICIENT. A reference run with the original bodies restored makes all criteria SUPPORTED (proves the oracle can say yes), then the repo is reset to stubs.
-5. A dashboard panel lists `aes reconcile --json` gaps as bounties (tooltips; blue/orange).
+1. Read `src/agent_ecology3/simulation/resident.py` (the resident gateway) and the M1 sandbox's `pilot.json`; write the model-YAML and ODD additions for the entities, processes and events in the system model above.
+2. `propose_change`: an agent's files land on its own branch of a per-run clone of the pilot sandbox; `integrate` merges into that clone's `main` when it applies cleanly.
+3. `judge`: for each verification subject whose dependency files changed, `aes evidence record <VS> --depends-on tests/conftest.py --command <pilot.json command>`, commit the observation, then `aes reconcile --json`; emit `aes_judged` with standings before and after.
+4. `pay`: a criterion that moved to SUPPORTED pays its bounty to the contributors whose commits the supporting commit contains; REFUTED or STALE pays nothing; royalty when a contribution imports another agent's module.
+5. Scripted-agent tests (no model calls) on a fresh pilot build: pay on SUPPORTED, no pay on REFUTED or STALE, royalty on a cross-author import; drift test green.
 
-**Focused check:** stubbed: 0 supported; reference: all supported; the panel's gap count equals `reconcile --json`'s.
+**Focused check:** the scripted run's feed shows `aes_judged` and `bounty_paid` rows whose criterion ids match `aes reconcile --json` before and after.
 
-**Failure / containment:**
-- If AES cannot express per-test-module criteria cleanly, record the exact gap as an issue on AES and use the closest supported form.
-- If no lite library fits, take the smallest full-split one and say why.
+**Failure / containment:** if recording per change is too slow for a 20-turn run (the reference run of all 7 subjects took 13–58 s), record only the subjects whose dependency paths a change touched and say so in the review log.
 
 ## Decisions and assumptions
 
@@ -156,11 +169,13 @@ the replay; M5 (scale) waits for Brian. Details below.
 
 | Date | Milestone | What Brian can open | Result |
 |---|---|---|---|
+| 2026-10-06 | M1 | The bounty board: `uv run python -m agent_ecology3.dashboard --pilot ~/.local/state/agent_ecology3/pilots/tinydb --port 9095`, then http://127.0.0.1:9095/ (opens on the Bounties tab) | Pilot sandbox at 325a7b953eac. **Stubs** (`aes status`): `criteria: 0 supported, 7 insufficient, 0 refuted; 0 unsupported evidence requirement(s) with no route` / `observations: 0 current, 0 stale, 0 unknown, 0 unreachable; 0 superseded`. **Stubs recorded** (throwaway copy, `--stub-check`): `criteria: 0 supported, 0 insufficient, 7 refuted` (every module exits non-zero at import). **Reference** (throwaway copy `~/code/.scratch/ae3/pilot-reference-check-325a7b9`, tinydb/ restored from 429b27a5, `--reference-check`): `criteria: 7 supported, 0 insufficient, 0 refuted; 0 unsupported evidence requirement(s) with no route` / `observations: 7 current, 0 stale, 0 unknown, 0 unreachable; 0 superseded`; passes 8/14/32/13/28/97/9 = 201. Sandbox afterwards: tinydb/ and tests/ identical to ed761a72, clean tree. Board: 7 open gaps shown = 7 unique gap ids in `reconcile --json`; Playwright hovered 31 controls, 0 without a styled tooltip, standing colour blue only (no REFUTED rows), 0 page errors. Unit tests: tests/test_pilot_bounties.py 7 passed on real reconcile fixtures. |
 
 ## Exact next action
 
-M1 step 1: choose the pilot library from the Commit0 lite split and record its
-counts.
+M2 step 1: read `src/agent_ecology3/simulation/resident.py` and the pilot's
+`pilot.json`, then add the pilot entities, processes and events to
+`docs/model/ae3_model.yaml` and `docs/model/ODD.md` with the drift test green.
 
 ## Goal text (to start this plan)
 

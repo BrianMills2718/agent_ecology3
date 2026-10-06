@@ -8,6 +8,7 @@ Two kinds of scripts live here. All support `--help`; run them through
 | Script | Purpose |
 |--------|---------|
 | `run_recoverable_evaluation.py` | Start, serve, operate, and read-only `review` bounded recoverable runs (the dashboard workbench path) |
+| `build_aes_pilot.py` | Plan 27: build the stubbed tinydb sandbox governed by AES (outside this repo), print its `aes status`, or run `--stub-check` / `--reference-check` in a throwaway copy |
 | `export_prescription_ablation_evidence.py` | Export the frozen Evaluation 04 evidence from ignored runtime logs |
 
 ## Process scripts (`scripts/meta/`)

@@ -89,7 +89,7 @@ async def _main(args: argparse.Namespace) -> int:
     world = World(_config(args, data_dir), run_id=args.run_id)
     _seed_task_bank(world, Path(args.task_bank).resolve())
     kernel = ResidentKernel(world, data_dir / "agents", actions_per_turn=args.actions_per_turn)
-    app = create_app(world_provider=lambda: world)
+    app = create_app(world_provider=lambda: world, pilot_path=args.pilot)
     kernel.install_routes(app)
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=args.port, log_level="warning"))
     serve_task = asyncio.create_task(server.serve())
@@ -138,6 +138,8 @@ def main() -> int:
     parser.add_argument("--run-id", default=f"plan25_resident_{time.strftime('%Y%m%d_%H%M%S')}")
     parser.add_argument("--data-dir", default=None)
     parser.add_argument("--port", type=int, default=9080)
+    parser.add_argument("--pilot", default=None,
+                        help="Plan 27 pilot sandbox whose open AES gaps the Bounties tab lists (env AE3_PILOT_PATH)")
     parser.add_argument("--keep-serving", action="store_true", help="keep the dashboard up after the run")
     args = parser.parse_args()
     if args.data_dir is None:

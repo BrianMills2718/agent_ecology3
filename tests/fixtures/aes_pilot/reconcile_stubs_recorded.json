@@ -1,0 +1,493 @@
+{
+ "schema_version": "aes.v0_2.reconciliation.probe0",
+ "subject_revision": "fbd17e498075358be670ae7a80d6c3369e6c196a",
+ "dirty": false,
+ "producer": {
+  "identity": "aes",
+  "version": "0.1.dev535+g618a6e475 (running: 60ad743)"
+ },
+ "target_id": "ae3-pilot-tinydb-target",
+ "artifacts": [
+  {
+   "artifact_id": "ART-TESTS-INIT-PY",
+   "path": "tests/__init__.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TESTS-CONFTEST-PY",
+   "path": "tests/conftest.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TESTS-TEST-MIDDLEWARES-PY",
+   "path": "tests/test_middlewares.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TESTS-TEST-OPERATIONS-PY",
+   "path": "tests/test_operations.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TESTS-TEST-QUERIES-PY",
+   "path": "tests/test_queries.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TESTS-TEST-STORAGES-PY",
+   "path": "tests/test_storages.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TESTS-TEST-TABLES-PY",
+   "path": "tests/test_tables.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TESTS-TEST-TINYDB-PY",
+   "path": "tests/test_tinydb.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TESTS-TEST-UTILS-PY",
+   "path": "tests/test_utils.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-INIT-PY",
+   "path": "tinydb/__init__.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-DATABASE-PY",
+   "path": "tinydb/database.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-MIDDLEWARES-PY",
+   "path": "tinydb/middlewares.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-MYPY-PLUGIN-PY",
+   "path": "tinydb/mypy_plugin.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-OPERATIONS-PY",
+   "path": "tinydb/operations.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-PY-TYPED",
+   "path": "tinydb/py.typed",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-QUERIES-PY",
+   "path": "tinydb/queries.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-STORAGES-PY",
+   "path": "tinydb/storages.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-TABLE-PY",
+   "path": "tinydb/table.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-UTILS-PY",
+   "path": "tinydb/utils.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  },
+  {
+   "artifact_id": "ART-TINYDB-VERSION-PY",
+   "path": "tinydb/version.py",
+   "status": "REALIZED",
+   "drift": [],
+   "note": null
+  }
+ ],
+ "criteria": [
+  {
+   "criterion_id": "SC-MIDDLEWARES",
+   "standing": "REFUTED",
+   "missing": [
+    {
+     "er_id": "ER-MIDDLEWARES-01",
+     "status": "REFUTED",
+     "detail": "refuted by OBS-MIDDLEWARES-205c3aad",
+     "verification_subject_refs": [
+      "VS-MIDDLEWARES"
+     ],
+     "external_boundary": null,
+     "has_route": true
+    }
+   ]
+  },
+  {
+   "criterion_id": "SC-OPERATIONS",
+   "standing": "REFUTED",
+   "missing": [
+    {
+     "er_id": "ER-OPERATIONS-01",
+     "status": "REFUTED",
+     "detail": "refuted by OBS-OPERATIONS-205c3aad",
+     "verification_subject_refs": [
+      "VS-OPERATIONS"
+     ],
+     "external_boundary": null,
+     "has_route": true
+    }
+   ]
+  },
+  {
+   "criterion_id": "SC-QUERIES",
+   "standing": "REFUTED",
+   "missing": [
+    {
+     "er_id": "ER-QUERIES-01",
+     "status": "REFUTED",
+     "detail": "refuted by OBS-QUERIES-205c3aad",
+     "verification_subject_refs": [
+      "VS-QUERIES"
+     ],
+     "external_boundary": null,
+     "has_route": true
+    }
+   ]
+  },
+  {
+   "criterion_id": "SC-STORAGES",
+   "standing": "REFUTED",
+   "missing": [
+    {
+     "er_id": "ER-STORAGES-01",
+     "status": "REFUTED",
+     "detail": "refuted by OBS-STORAGES-205c3aad",
+     "verification_subject_refs": [
+      "VS-STORAGES"
+     ],
+     "external_boundary": null,
+     "has_route": true
+    }
+   ]
+  },
+  {
+   "criterion_id": "SC-TABLES",
+   "standing": "REFUTED",
+   "missing": [
+    {
+     "er_id": "ER-TABLES-01",
+     "status": "REFUTED",
+     "detail": "refuted by OBS-TABLES-205c3aad",
+     "verification_subject_refs": [
+      "VS-TABLES"
+     ],
+     "external_boundary": null,
+     "has_route": true
+    }
+   ]
+  },
+  {
+   "criterion_id": "SC-TINYDB",
+   "standing": "REFUTED",
+   "missing": [
+    {
+     "er_id": "ER-TINYDB-01",
+     "status": "REFUTED",
+     "detail": "refuted by OBS-TINYDB-205c3aad",
+     "verification_subject_refs": [
+      "VS-TINYDB"
+     ],
+     "external_boundary": null,
+     "has_route": true
+    }
+   ]
+  },
+  {
+   "criterion_id": "SC-UTILS",
+   "standing": "REFUTED",
+   "missing": [
+    {
+     "er_id": "ER-UTILS-01",
+     "status": "REFUTED",
+     "detail": "refuted by OBS-UTILS-205c3aad",
+     "verification_subject_refs": [
+      "VS-UTILS"
+     ],
+     "external_boundary": null,
+     "has_route": true
+    }
+   ]
+  }
+ ],
+ "observations": [
+  {
+   "observation_id": "OBS-MIDDLEWARES-205c3aad",
+   "freshness": "CURRENT",
+   "detail": "no dependency or target entry changed since 205c3aad1377",
+   "superseded_by": null
+  },
+  {
+   "observation_id": "OBS-OPERATIONS-205c3aad",
+   "freshness": "CURRENT",
+   "detail": "no dependency or target entry changed since 205c3aad1377",
+   "superseded_by": null
+  },
+  {
+   "observation_id": "OBS-QUERIES-205c3aad",
+   "freshness": "CURRENT",
+   "detail": "no dependency or target entry changed since 205c3aad1377",
+   "superseded_by": null
+  },
+  {
+   "observation_id": "OBS-STORAGES-205c3aad",
+   "freshness": "CURRENT",
+   "detail": "no dependency or target entry changed since 205c3aad1377",
+   "superseded_by": null
+  },
+  {
+   "observation_id": "OBS-TABLES-205c3aad",
+   "freshness": "CURRENT",
+   "detail": "no dependency or target entry changed since 205c3aad1377",
+   "superseded_by": null
+  },
+  {
+   "observation_id": "OBS-TINYDB-205c3aad",
+   "freshness": "CURRENT",
+   "detail": "no dependency or target entry changed since 205c3aad1377",
+   "superseded_by": null
+  },
+  {
+   "observation_id": "OBS-UTILS-205c3aad",
+   "freshness": "CURRENT",
+   "detail": "no dependency or target entry changed since 205c3aad1377",
+   "superseded_by": null
+  }
+ ],
+ "plans": [
+  {
+   "plan_id": "PLAN-001-TEST-MODULES",
+   "accepted_at_revision": "e82a5ca5ec379c1c517b02aefe55c11375a9e0e4",
+   "reachable": true
+  }
+ ],
+ "orphans": [],
+ "components": [
+  {
+   "component_id": "CMP-LIBRARY",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-MIDDLEWARES",
+     "detail": "ER-MIDDLEWARES-01 REFUTED",
+     "id": "refuted:SC-MIDDLEWARES"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-OPERATIONS",
+     "detail": "ER-OPERATIONS-01 REFUTED",
+     "id": "refuted:SC-OPERATIONS"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-QUERIES",
+     "detail": "ER-QUERIES-01 REFUTED",
+     "id": "refuted:SC-QUERIES"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-STORAGES",
+     "detail": "ER-STORAGES-01 REFUTED",
+     "id": "refuted:SC-STORAGES"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-TABLES",
+     "detail": "ER-TABLES-01 REFUTED",
+     "id": "refuted:SC-TABLES"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-TINYDB",
+     "detail": "ER-TINYDB-01 REFUTED",
+     "id": "refuted:SC-TINYDB"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-UTILS",
+     "detail": "ER-UTILS-01 REFUTED",
+     "id": "refuted:SC-UTILS"
+    }
+   ]
+  },
+  {
+   "component_id": "CMP-TEST-SUPPORT",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-MIDDLEWARES",
+     "detail": "ER-MIDDLEWARES-01 REFUTED",
+     "id": "refuted:SC-MIDDLEWARES"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-OPERATIONS",
+     "detail": "ER-OPERATIONS-01 REFUTED",
+     "id": "refuted:SC-OPERATIONS"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-QUERIES",
+     "detail": "ER-QUERIES-01 REFUTED",
+     "id": "refuted:SC-QUERIES"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-STORAGES",
+     "detail": "ER-STORAGES-01 REFUTED",
+     "id": "refuted:SC-STORAGES"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-TABLES",
+     "detail": "ER-TABLES-01 REFUTED",
+     "id": "refuted:SC-TABLES"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-TINYDB",
+     "detail": "ER-TINYDB-01 REFUTED",
+     "id": "refuted:SC-TINYDB"
+    },
+    {
+     "kind": "refuted",
+     "ref": "SC-UTILS",
+     "detail": "ER-UTILS-01 REFUTED",
+     "id": "refuted:SC-UTILS"
+    }
+   ]
+  },
+  {
+   "component_id": "CMP-MIDDLEWARES",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-MIDDLEWARES",
+     "detail": "ER-MIDDLEWARES-01 REFUTED",
+     "id": "refuted:SC-MIDDLEWARES"
+    }
+   ]
+  },
+  {
+   "component_id": "CMP-OPERATIONS",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-OPERATIONS",
+     "detail": "ER-OPERATIONS-01 REFUTED",
+     "id": "refuted:SC-OPERATIONS"
+    }
+   ]
+  },
+  {
+   "component_id": "CMP-QUERIES",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-QUERIES",
+     "detail": "ER-QUERIES-01 REFUTED",
+     "id": "refuted:SC-QUERIES"
+    }
+   ]
+  },
+  {
+   "component_id": "CMP-STORAGES",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-STORAGES",
+     "detail": "ER-STORAGES-01 REFUTED",
+     "id": "refuted:SC-STORAGES"
+    }
+   ]
+  },
+  {
+   "component_id": "CMP-TABLES",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-TABLES",
+     "detail": "ER-TABLES-01 REFUTED",
+     "id": "refuted:SC-TABLES"
+    }
+   ]
+  },
+  {
+   "component_id": "CMP-TINYDB",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-TINYDB",
+     "detail": "ER-TINYDB-01 REFUTED",
+     "id": "refuted:SC-TINYDB"
+    }
+   ]
+  },
+  {
+   "component_id": "CMP-UTILS",
+   "gaps": [
+    {
+     "kind": "refuted",
+     "ref": "SC-UTILS",
+     "detail": "ER-UTILS-01 REFUTED",
+     "id": "refuted:SC-UTILS"
+    }
+   ]
+  }
+ ],
+ "unassigned_gaps": [],
+ "produced_at": "2026-10-06T20:42:31Z"
+}
