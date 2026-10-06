@@ -16,6 +16,7 @@ import asyncio
 import json
 import secrets
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -74,6 +75,32 @@ def history_shell_commands(codex_home: str | Path | None) -> int:
 
 
 TRIMMABLE_CODEX_PARTS = ("plugins", "cache", ".tmp", "state_5.sqlite", "state_5.sqlite-wal", "state_5.sqlite-shm")
+# Copied from the user's Codex home at creation but never used by resident
+# agents (hooks read the user's own ~/.codex). plan25_codeflow_run3 carried
+# ~130 MB of them per agent (2.5 GB for 16) on a nearly full C: drive until
+# WSL restarted at turn 28; drop them before the first turn, not after the run.
+UNUSED_COPIED_CODEX_PARTS = ("plugins", "cache")
+# Codex re-syncs ~156 MB of plugins at every session start unless these
+# features are off (measured on plan25_disk_probe2).
+DISABLED_CODEX_FEATURES = ("plugins", "remote_plugin")
+
+
+def _disable_codex_features(config: str) -> str:
+    """Turn off plugin syncing in an agent's copied config.toml; verified by re-parsing."""
+    import tomllib
+
+    lines = "".join(f"{name} = false\n" for name in DISABLED_CODEX_FEATURES)
+    existing = tomllib.loads(config).get("features", {})
+    if any(name in existing for name in DISABLED_CODEX_FEATURES):
+        raise ResidentRunError("codex config already sets a plugin feature; refusing to guess")
+    if "\n[features]\n" in "\n" + config:
+        config = ("\n" + config).replace("\n[features]\n", "\n[features]\n" + lines, 1)[1:]
+    else:
+        config = config.rstrip("\n") + "\n\n[features]\n" + lines
+    features = tomllib.loads(config).get("features", {})
+    if any(features.get(name) is not False for name in DISABLED_CODEX_FEATURES):
+        raise ResidentRunError("could not disable Codex plugin features in the agent config")
+    return config
 
 
 def trim_codex_home(codex_home: str | Path | None) -> None:
@@ -291,6 +318,10 @@ def codex_call_kwargs(agent: ResidentAgent, kernel_url: str, *, reasoning_effort
         if sessions.is_symlink():
             sessions.unlink()
         sessions.mkdir(exist_ok=True)
+        for name in UNUSED_COPIED_CODEX_PARTS:
+            part = target / ".codex" / name
+            if part.is_dir() and not part.is_symlink():
+                shutil.rmtree(part)
         # Under approval_policy=never Codex rejects MCP calls that need approval;
         # pre-approve only this server's tools (the kernel is the authority).
         config_path = target / ".codex" / "config.toml"
@@ -299,7 +330,7 @@ def codex_call_kwargs(agent: ResidentAgent, kernel_url: str, *, reasoning_effort
         if header not in config:
             raise ResidentRunError("codex home is missing the ae3 MCP server table")
         config_path.write_text(
-            config.replace(header, header + 'default_tools_approval_mode = "approve"\n', 1),
+            _disable_codex_features(config.replace(header, header + 'default_tools_approval_mode = "approve"\n', 1)),
             encoding="utf-8",
         )
         agent.codex_home = str(target)
@@ -377,6 +408,7 @@ async def run_agent_turn(
             workspace_note=CODEX_WORKSPACE_NOTE if model.startswith("codex/") else "",
         ) + "\n" + prompt
     trace_id = f"ae3/{run_id}/turn_{kernel.turn}/{agent.principal_id}"
+    started = time.monotonic()
     try:
         result = await acall_llm(
             model,
@@ -394,6 +426,9 @@ async def run_agent_turn(
         )
     except Exception as exc:  # noqa: BLE001 - surface the original boundary error
         raise ResidentRunError(f"{agent.principal_id} turn {kernel.turn} failed: {type(exc).__name__}: {exc}") from exc
+    # Measured here: Codex results carry no duration_ms, so plan25_codeflow_run3
+    # logged it as null on all 414 turns.
+    elapsed_ms = int((time.monotonic() - started) * 1000)
     usage = getattr(result, "usage", {}) or {}
     raw = getattr(result, "raw_response", None)
     session_id = usage.get("session_id") or (raw.get("session_id") if isinstance(raw, dict) else None)
@@ -424,7 +459,7 @@ async def run_agent_turn(
             "trace_id": trace_id,
             "actions": agent.actions_this_turn,
             "num_turns": usage.get("num_turns"),
-            "duration_ms": usage.get("duration_ms"),
+            "duration_ms": elapsed_ms,
             "builtin_tool_calls": len(builtin_calls),
             "sandboxed_shell_commands": shell_commands,
             "note": note[:2000],
