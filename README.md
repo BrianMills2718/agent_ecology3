@@ -72,6 +72,7 @@ plan that owns a run gives its exact command and spend limit.
 | See the latest completed plan (outside checker, trading switch) | [docs/plans/24_external_score_vs_solo.md](docs/plans/24_external_score_vs_solo.md) |
 | Browse all plans and their status | [docs/plans/AGENTS.md](docs/plans/AGENTS.md) |
 | Understand how the code is organized and how runs work | [docs/IMPLEMENTATION_BASELINE.md](docs/IMPLEMENTATION_BASELINE.md) |
+| Know the exact model (entities, rules, events) and which events each view shows | [docs/model/ODD.md](docs/model/ODD.md), [docs/model/VIEW_COVERAGE.md](docs/model/VIEW_COVERAGE.md) |
 | Understand resource accounting and its constants | [docs/RESOURCE_ACCOUNTING.md](docs/RESOURCE_ACCOUNTING.md) |
 | Know why AE3 exists and which rebuild constraints still bind | [docs/LINEAGE_AND_RESTARTS.md](docs/LINEAGE_AND_RESTARTS.md) |
 | Avoid repeating a known failure | [docs/FAILURE_MODE_DOSSIER.md](docs/FAILURE_MODE_DOSSIER.md) |

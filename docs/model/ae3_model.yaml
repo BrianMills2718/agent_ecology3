@@ -1,0 +1,542 @@
+# Machine-readable model of agent_ecology3 (AE3): the single declaration that
+# the dashboard views are meant to be projections of. Prose: docs/model/ODD.md.
+# View check: docs/model/VIEW_COVERAGE.md.
+#
+# Enforced by tests/test_model_declaration.py (no model calls):
+#   - every event type passed to `logger.log("<type>", ...)` under src/ is
+#     declared here, and every declared event is emitted in code;
+#   - each declared emitter (file + function) really emits that event, and no
+#     emitter is left undeclared;
+#   - declared fields equal the literal payload keys at each emitter;
+#   - every kernel action type (ActionType plus send_message) has a process;
+#   - process.emits and event.emitted_by agree.
+# Line numbers are as of commit 3a34a78 (2026-10-06); the test enforces file and
+# function, not line, so a drifted line is a documentation fix, not a failure.
+
+schema: ae3-model/v1
+model: agent_ecology3 resident ecology
+as_of_commit: 3a34a78
+
+# scope values:
+#   resident: reachable in a resident run (scripts/run_resident_ecology.py),
+#             the model under study since Plan 25.
+#   resident_unreachable: kernel path exists, but the agents' only tool
+#             (mcp/loop_action_server.py ae3_action) cannot supply the
+#             required fields, so resident agents cannot trigger it.
+#   legacy: belongs to the older autonomous-loop / auction runs
+#             (simulation/runner.py, mint auction mode, LLM syscalls); never
+#             emitted in a resident run.
+scopes: [resident, resident_unreachable, legacy]
+
+entities:
+  - name: Agent
+    what: A long-lived Codex session acting as one principal (alpha_1 ... alpha_N).
+    source: src/agent_ecology3/simulation/resident.py:128
+    state:
+      - {name: principal_id, type: str, meaning: "alpha_<n>; from config principals.id_prefix", source: src/agent_ecology3/world/world.py:345}
+      - {name: token, type: str, meaning: "secret bearer token; the MCP server sends it, so an agent can act only as itself", source: src/agent_ecology3/simulation/resident.py:157}
+      - {name: session_id, type: "str|null", meaning: "Codex session resumed every turn (memory between turns)", source: src/agent_ecology3/simulation/resident.py:132}
+      - {name: actions_this_turn, type: int, meaning: "kernel actions used this turn; reset to 0 at turn start", source: src/agent_ecology3/simulation/resident.py:443}
+      - {name: inbox, type: "list[(turn, sender, text)]", meaning: "messages received since the agent's last turn; shown once, then cleared", source: src/agent_ecology3/simulation/resident.py:138}
+      - {name: workdir, type: path, meaning: "private scratch folder with a shell; running code there costs no actions", source: src/agent_ecology3/simulation/resident.py:286}
+      - {name: scrip, type: int, meaning: "balance held in the Ledger (starts at 100)", source: config/config.yaml:14}
+  - name: Artifact
+    what: A named piece of text owned by one principal; everything agents read, write and submit.
+    source: src/agent_ecology3/world/artifacts.py
+    state:
+      - {name: id, type: str, meaning: "agents are told to prefix ids with their own principal id", source: src/agent_ecology3/simulation/resident.py:309}
+      - {name: type, type: str, meaning: "task_statement, solution:<task id>, or bootstrap types (agent_profile, strategy, state, notebook, agent_loop, kernel_service)"}
+      - {name: owner, type: str, meaning: "principal paid when another principal reads it"}
+      - {name: content, type: str}
+      - {name: read_price, type: int, meaning: "scrip a non-owner pays to read; 2 for task statements, 0 for everything agents write (the tool has no read_price field)", source: src/agent_ecology3/world/actions.py:634}
+      - {name: access_contract_id, type: str, meaning: "freeware (anyone reads, only the writer writes) unless bootstrap-private", source: src/agent_ecology3/world/contracts.py:93}
+      - {name: metadata.bounty_claimed_by, type: "str|null", meaning: "set on a task statement when its bounty is paid", source: src/agent_ecology3/world/mint.py:339}
+      - {name: deleted, type: bool}
+  - name: TaskStatement
+    what: An Artifact of type task_statement, one per Task, written by the fixture before turn 1 and owned by the Task's owner.
+    source: scripts/run_recoverable_evaluation.py:605
+    state:
+      - {name: id, type: str, meaning: "<owner>_task_<slug>"}
+      - {name: read_price, type: int, meaning: "2 scrip", source: scripts/run_recoverable_evaluation.py:646}
+      - {name: metadata.plan24_task_id, type: str}
+  - name: Solution
+    what: An Artifact whose type is solution:<task id>; plain Python defining the task's function.
+    source: src/agent_ecology3/world/mint.py:107
+    state:
+      - {name: type, type: str, meaning: "solution:<task id>; names the task the checker runs"}
+      - {name: content, type: str, meaning: "Python; a ``` fence is stripped before checking", source: src/agent_ecology3/world/mint.py:108}
+  - name: Task
+    what: One CodeFlowBench helper function with hidden literal tests and declared dependencies, loaded from the local bank.
+    source: src/agent_ecology3/world/mint.py:126
+    state:
+      - {name: task_id, type: str, meaning: "CF/<problem>/<helper>"}
+      - {name: owner, type: str, meaning: "round-robin over agents at bank build time", source: scripts/build_codeflow_bank.py:115}
+      - {name: entry_point, type: str}
+      - {name: prompt, type: str, meaning: "statement plus one worked example (that example is also one of the hidden cases)", source: scripts/build_codeflow_bank.py:55}
+      - {name: test, type: str, meaning: "hidden check(candidate) over >=2 literal cases; never shown to agents", source: scripts/build_codeflow_bank.py:70}
+      - {name: requires, type: "list[task_id]", meaning: "helpers of the same problem this task calls", source: scripts/build_codeflow_bank.py:111}
+      - {name: claimed_by, type: "str|null", meaning: "first principal whose solution passed", source: src/agent_ecology3/world/mint.py:334}
+      - {name: claimed_artifact, type: "str|null", meaning: "the passing solution later solutions are linked against", source: src/agent_ecology3/world/mint.py:340}
+  - name: Ledger
+    what: Scrip balances per principal; all money moves here.
+    source: src/agent_ecology3/world/ledger.py
+    state:
+      - {name: scrip, type: "dict[principal, int]", meaning: "transfer_scrip refuses if the payer cannot afford it", source: src/agent_ecology3/world/ledger.py:61}
+      - {name: resources.llm_budget, type: float, meaning: "set to 1.0 per agent in resident runs and never spent (Codex runs on the subscription)", source: scripts/run_resident_ecology.py:43}
+  - name: Checker
+    what: The mint in task_bounty mode plus the hidden-test scorer; scores each submission at once and pays the first pass.
+    source: src/agent_ecology3/world/mint.py:304
+    state:
+      - {name: mint_ratio, type: int, meaning: "payment = score // mint_ratio = 100 // 10 = 10 scrip", source: config/config.yaml:84}
+      - {name: royalty_scrip, type: int, meaning: "3 scrip per reused helper", source: src/agent_ecology3/config.py:162}
+      - {name: minimum_bid, type: int, meaning: "1; checked and refunded, never kept", source: config/config.yaml:80}
+      - {name: checker_timeout_seconds, type: float, meaning: "10 s per submission", source: src/agent_ecology3/config.py:159}
+  - name: Message
+    what: A free text note from one agent to another, delivered at the start of the recipient's next turn.
+    source: src/agent_ecology3/simulation/resident.py:209
+    state:
+      - {name: sender, type: str}
+      - {name: recipient, type: str}
+      - {name: text, type: str, meaning: "1 to 1000 characters", source: src/agent_ecology3/simulation/resident.py:141}
+      - {name: turn, type: int, meaning: "turn in which it was sent"}
+  - name: Kernel
+    what: The world clock and action endpoint shared by all agents.
+    source: src/agent_ecology3/simulation/resident.py:144
+    state:
+      - {name: turn, type: int, meaning: "1..turns; every agent takes one turn per turn number", source: scripts/run_resident_ecology.py:103}
+      - {name: actions_per_turn, type: int, meaning: "4 by default", source: scripts/run_resident_ecology.py:133}
+      - {name: event_number, type: int, meaning: "advances once per parsed kernel action; send_message, parse failures and turn-limit refusals do not advance it", source: src/agent_ecology3/world/world.py:1951}
+      - {name: lock, type: asyncio.Lock, meaning: "actions from concurrent agents run one at a time, in arrival order", source: src/agent_ecology3/simulation/resident.py:174}
+
+processes:
+  # --- scheduling and sensing -------------------------------------------
+  - name: initialize_world
+    actor: Kernel
+    scope: resident
+    inputs: [config, task bank path]
+    rule: Create N principals with 100 scrip each, bootstrap per-agent artifacts and the checker, then log world_initialized.
+    changes: [Ledger.scrip, Artifact (bootstrap)]
+    emits: [world_initialized]
+    source: src/agent_ecology3/world/world.py:326
+  - name: seed_task_bank
+    actor: Kernel
+    scope: resident
+    inputs: [task bank]
+    rule: Write one task_statement artifact per Task, owned by the Task's owner, read price 2. Written straight into the store, so no event is logged.
+    changes: [Artifact (TaskStatement)]
+    emits: []
+    source: scripts/run_recoverable_evaluation.py:605
+  - name: run_turn
+    actor: Kernel
+    scope: resident
+    inputs: [turn number]
+    rule: For turn = 1..T, start every agent's turn at once (asyncio.gather); wait for all to finish before the next turn.
+    changes: [Kernel.turn]
+    emits: []
+    source: scripts/run_resident_ecology.py:102
+  - name: observe
+    actor: Agent
+    scope: resident
+    inputs: [Kernel, Ledger, Artifact store, Agent.inbox]
+    rule: Build the turn prompt - turn number, own scrip, all balances, the first 200 readable artifacts minus bootstrap ones, solved helpers the checker links, and the inbox (then clear it). Rules are prepended on turn 1 only.
+    changes: [Agent.inbox (cleared), Agent.actions_this_turn (reset)]
+    emits: []
+    source: src/agent_ecology3/simulation/resident.py:230
+  - name: end_turn
+    actor: Agent
+    scope: resident
+    inputs: [Codex result]
+    rule: Record the turn - action count, shell commands, note (first 2000 chars), cost. A non-ae3 built-in tool or an error finish stops the run as invalid.
+    changes: [Agent.session_id, Agent.turns_taken]
+    emits: [resident_turn, resident_session_changed]
+    source: src/agent_ecology3/simulation/resident.py:494
+  - name: act
+    actor: Agent
+    scope: resident
+    inputs: [action payload via ae3_action]
+    rule: Refuse with turn_action_limit once actions_this_turn reaches actions_per_turn; otherwise count the action, run send_message or the kernel action, and log the outcome.
+    changes: [Agent.actions_this_turn]
+    emits: [resident_action]
+    source: src/agent_ecology3/simulation/resident.py:173
+  # --- resident actions -------------------------------------------------
+  - name: read_artifact
+    action_type: read_artifact
+    actor: Agent
+    scope: resident
+    inputs: [artifact_id]
+    rule: If the artifact exists and the contract allows reading, the reader pays its read_price to the owner (nothing moves when reading one's own) and gets the content.
+    changes: [Ledger.scrip]
+    emits: [artifact_read, action]
+    source: src/agent_ecology3/world/action_executor.py:145
+  - name: write_artifact
+    action_type: write_artifact
+    actor: Agent
+    scope: resident
+    inputs: [artifact_id, artifact_type, content]
+    rule: Create or overwrite an artifact the agent may write (freeware - only its writer), within the 250000-byte disk quota. read_price stays 0 because the tool cannot set it.
+    changes: [Artifact]
+    emits: [artifact_written, principal_created, action]
+    source: src/agent_ecology3/world/action_executor.py:199
+  - name: submit_to_mint
+    action_type: submit_to_mint
+    actor: Agent
+    scope: resident
+    inputs: [artifact_id, bid]
+    rule: The checker links passing code of solved helpers the task requires or calls, runs the hidden tests in a fresh Python, and pays 10 scrip only to the first passing solution per task. The bid is checked but never taken.
+    changes: [Ledger.scrip, Task.claimed_by, TaskStatement.metadata.bounty_claimed_by]
+    emits: [task_bounty_scored, action]
+    source: src/agent_ecology3/world/mint.py:304
+  - name: pay_royalty
+    actor: Checker
+    scope: resident
+    inputs: [passing first-claim solution, linked helpers]
+    rule: For each linked helper the passing solution calls and does not redefine, credit its author 3 new scrip (minted, not paid by the solver); never to oneself.
+    changes: [Ledger.scrip]
+    emits: [royalty_paid]
+    source: src/agent_ecology3/world/mint.py:387
+  - name: transfer
+    action_type: transfer
+    actor: Agent
+    scope: resident
+    inputs: [recipient_id, amount]
+    rule: Move a positive whole amount of scrip to another principal if affordable and cross-principal trading is on.
+    changes: [Ledger.scrip]
+    emits: [transfer, action]
+    source: src/agent_ecology3/world/action_executor.py:751
+  - name: transfer_resource
+    action_type: transfer_resource
+    actor: Agent
+    scope: resident
+    inputs: [recipient_id, resource, amount]
+    rule: Move llm_budget (the only transferable resource) to another principal. Reachable but meaningless in resident runs (Codex never spends llm_budget).
+    changes: [Ledger.resources]
+    emits: [resource_transfer, action]
+    source: src/agent_ecology3/world/action_executor.py:779
+  - name: query_kernel
+    action_type: query_kernel
+    actor: Agent
+    scope: resident
+    inputs: [query_type, params]
+    rule: Run a read-only query (artifacts, artifact, principals, balances, mint, events, libraries, dependencies, ...). Free; counts as an action.
+    changes: []
+    emits: [kernel_query, action]
+    source: src/agent_ecology3/world/action_executor.py:690
+  - name: delete_artifact
+    action_type: delete_artifact
+    actor: Agent
+    scope: resident
+    inputs: [artifact_id]
+    rule: Soft-delete an artifact the contract lets the caller delete. A deleted passing solution is no longer linked for later tasks.
+    changes: [Artifact.deleted]
+    emits: [artifact_deleted, action]
+    source: src/agent_ecology3/world/action_executor.py:664
+  - name: subscribe_artifact
+    action_type: subscribe_artifact
+    actor: Agent
+    scope: resident
+    inputs: [artifact_id]
+    rule: Legacy loop subscription bookkeeping; no effect on resident observations.
+    changes: []
+    emits: [action]
+    source: src/agent_ecology3/world/action_executor.py:707
+  - name: unsubscribe_artifact
+    action_type: unsubscribe_artifact
+    actor: Agent
+    scope: resident
+    inputs: [artifact_id]
+    rule: Inverse of subscribe_artifact.
+    changes: []
+    emits: [action]
+    source: src/agent_ecology3/world/action_executor.py:710
+  - name: noop
+    action_type: noop
+    actor: Agent
+    scope: resident
+    inputs: []
+    rule: Do nothing; still counts as an action.
+    changes: []
+    emits: [action]
+    source: src/agent_ecology3/world/action_executor.py:111
+  - name: send_message
+    action_type: send_message
+    actor: Agent
+    scope: resident
+    inputs: [recipient_id, content]
+    rule: Free note (1-1000 chars) to another existing agent, appended to its inbox and shown at the start of its next turn. Counts as an action; does not advance event_number.
+    changes: [Agent.inbox (recipient)]
+    emits: [agent_message]
+    source: src/agent_ecology3/simulation/resident.py:209
+  # --- kernel paths resident agents cannot reach ------------------------
+  - name: edit_artifact
+    action_type: edit_artifact
+    actor: Agent
+    scope: resident_unreachable
+    inputs: [artifact_id, old_string, new_string]
+    rule: Replace one string in an artifact. The ae3_action tool has no old_string/new_string fields; all 8 attempts in run5 were refused as invalid_action.
+    changes: [Artifact.content]
+    emits: [artifact_edited, action]
+    source: src/agent_ecology3/world/action_executor.py:298
+  - name: invoke_artifact
+    action_type: invoke_artifact
+    actor: Agent
+    scope: resident_unreachable
+    inputs: [artifact_id, method, args]
+    rule: Run an executable artifact's method in the sandbox. The tool has no method field.
+    changes: [depends on artifact]
+    emits: [invoke_success, invoke_failure, loop_decision, loop_memory_update_error, action]
+    source: src/agent_ecology3/world/action_executor.py:459
+  - name: update_metadata
+    action_type: update_metadata
+    actor: Agent
+    scope: resident_unreachable
+    inputs: [artifact_id, key, value]
+    rule: Set or clear one metadata key on a writable artifact. The tool has no key field.
+    changes: [Artifact.metadata]
+    emits: [metadata_updated, action]
+    source: src/agent_ecology3/world/action_executor.py:868
+  - name: mint
+    action_type: mint
+    actor: Artifact with can_mint capability
+    scope: resident_unreachable
+    inputs: [recipient_id, amount, reason]
+    rule: Create scrip for a principal; only callers holding the can_mint capability. The tool has no reason field.
+    changes: [Ledger.scrip]
+    emits: [mint, action]
+    source: src/agent_ecology3/world/action_executor.py:823
+  # --- legacy runs (autonomous loops, auction mint, LLM syscalls) --------
+  - name: auction_mint
+    actor: Checker
+    scope: legacy
+    inputs: [submissions, bids]
+    rule: Periodic second-price auction scored by an LLM grader (mint mode auction); not used in task_bounty runs.
+    changes: [Ledger.scrip]
+    emits: [mint_submission, mint_submission_cancelled, mint_scoring_failed, mint_auction]
+    source: src/agent_ecology3/world/mint.py:449
+  - name: llm_syscall
+    actor: Kernel
+    scope: legacy
+    inputs: [loop artifact LLM call]
+    rule: Reserve, settle or fail an in-world LLM call against the payer's llm_budget.
+    changes: [Ledger.resources.llm_budget]
+    emits: [llm_syscall, llm_syscall_error, llm_syscall_token_overage, llm_syscall_replayed]
+    source: src/agent_ecology3/world/world.py:2689
+  - name: loop_runner
+    actor: Kernel
+    scope: legacy
+    inputs: [duration, loops]
+    rule: Run autonomous loop artifacts on a timer with error backoff.
+    changes: []
+    emits: [simulation_started, simulation_runtime_limit_reached, simulation_stopped, loop_paused_error_backoff]
+    source: src/agent_ecology3/simulation/runner.py:252
+
+events:
+  - name: world_initialized
+    scope: resident
+    emitted_by: [initialize_world]
+    fields: [event_number, run_id, principal_count, artifact_count]
+    emitters: [{file: src/agent_ecology3/world/world.py, line: 326, function: __init__}]
+  - name: resident_action
+    scope: resident
+    emitted_by: [act]
+    fields: [event_number, turn, principal_id, session_id, action_type, artifact_id, success, error_code]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 194, function: act}]
+  - name: resident_turn
+    scope: resident
+    emitted_by: [end_turn]
+    fields: [turn, principal_id, session_id, trace_id, actions, num_turns, duration_ms, builtin_tool_calls, sandboxed_shell_commands, note, finish_reason, cost, cost_source]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 494, function: run_agent_turn}]
+  - name: resident_session_changed
+    scope: resident
+    emitted_by: [end_turn]
+    fields: [principal_id, turn, old, new]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 480, function: run_agent_turn}]
+  - name: agent_message
+    scope: resident
+    emitted_by: [send_message]
+    fields: [event_number, turn, principal_id, recipient, text]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 222, function: _send_message}]
+  - name: action
+    scope: resident
+    emitted_by: [read_artifact, write_artifact, submit_to_mint, transfer, transfer_resource, query_kernel, delete_artifact, subscribe_artifact, unsubscribe_artifact, noop, edit_artifact, invoke_artifact, update_metadata, mint]
+    fields: [event_number, intent, result, scrip_after]
+    note: Audit record of every parsed kernel action, including the full intent (solution text). Not logged for send_message, parse failures or turn-limit refusals.
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 904, function: _log_action}]
+  - name: artifact_read
+    scope: resident
+    emitted_by: [read_artifact]
+    fields: [event_number, principal_id, artifact_id, read_price_paid, recipient, content_size]
+    note: read_price_paid is the posted price even when reader == recipient, where no scrip moves.
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 182, function: _read}]
+  - name: artifact_written
+    scope: resident
+    emitted_by: [write_artifact]
+    fields: [event_number, principal_id, artifact_id, artifact_type, executable, size_bytes, was_update, has_standing, has_loop]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 273, function: _write}]
+  - name: task_bounty_scored
+    scope: resident
+    emitted_by: [submit_to_mint]
+    fields: [event_number, principal_id, artifact_id, task_id, passed, score, reason, scrip_minted, first_claim]
+    fields_from: payload dict built at src/agent_ecology3/world/mint.py:346
+    emitters: [{file: src/agent_ecology3/world/mint.py, line: 357, function: score_now}]
+  - name: royalty_paid
+    scope: resident
+    emitted_by: [pay_royalty]
+    fields: [event_number, principal_id, payer_task_id, dependency_task_id, solver, amount]
+    note: principal_id is the helper's author (the payee); solver is the reuser.
+    emitters: [{file: src/agent_ecology3/world/mint.py, line: 403, function: _pay_royalties}]
+  - name: transfer
+    scope: resident
+    emitted_by: [transfer]
+    fields: [event_number, sender, recipient, amount, memo]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 767, function: _transfer}]
+  - name: resource_transfer
+    scope: resident
+    emitted_by: [transfer_resource]
+    fields: [event_number, sender, recipient, resource, amount, memo]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 810, function: _transfer_resource}]
+  - name: kernel_query
+    scope: resident
+    emitted_by: [query_kernel]
+    fields: [event_number, principal_id, query_type, params]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 695, function: _query}]
+  - name: artifact_deleted
+    scope: resident
+    emitted_by: [delete_artifact]
+    fields: [event_number, principal_id, artifact_id, freed_bytes]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 679, function: _delete}]
+  - name: principal_created
+    scope: resident_unreachable
+    emitted_by: [write_artifact]
+    fields: [event_number, principal_id, created_by, has_loop]
+    note: Needs has_standing or has_loop on a new artifact; the tool cannot set either.
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 263, function: _write}]
+  - name: artifact_edited
+    scope: resident_unreachable
+    emitted_by: [edit_artifact]
+    fields: [event_number, principal_id, artifact_id, size_delta]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 319, function: _edit}]
+  - name: invoke_success
+    scope: resident_unreachable
+    emitted_by: [invoke_artifact]
+    fields: [event_number, invoker_id, artifact_id, method, duration_ms]
+    emitters:
+      - {file: src/agent_ecology3/world/action_executor.py, line: 354, function: _prepare_invocation}
+      - {file: src/agent_ecology3/world/action_executor.py, line: 641, function: _finish_invocation}
+  - name: invoke_failure
+    scope: resident_unreachable
+    emitted_by: [invoke_artifact]
+    fields: [event_number, invoker_id, artifact_id, method, duration_ms, error]
+    emitters:
+      - {file: src/agent_ecology3/world/action_executor.py, line: 369, function: _prepare_invocation}
+      - {file: src/agent_ecology3/world/action_executor.py, line: 520, function: _finish_invocation}
+  - name: loop_decision
+    scope: legacy
+    emitted_by: [invoke_artifact]
+    fields: [event_number, principal_id, artifact_id, raw_decision, raw_decision_action, decision, decision_action, fallback_used, gate_fallback_used, recovery_fallback_used, forced_explore, forced_explore_reason, decision_origin, decision_origin_reason, gate_reason, decision_source, action_gate_enabled, action_failure_policy, feedback_enabled, llm_attempted, llm_success, llm_action_source, llm_trace_id, llm_cooldown_ready, llm_cooldown_seconds, fallback, fallback_action, result_success, result_error_code]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 584, function: _finish_invocation}]
+  - name: loop_memory_update_error
+    scope: legacy
+    emitted_by: [invoke_artifact]
+    fields: [event_number, principal_id, artifact_id, error]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 631, function: _finish_invocation}]
+  - name: metadata_updated
+    scope: resident_unreachable
+    emitted_by: [update_metadata]
+    fields: [event_number, principal_id, artifact_id, key, value]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 882, function: _update_metadata}]
+  - name: mint
+    scope: resident_unreachable
+    emitted_by: [mint]
+    fields: [event_number, minter, recipient, amount, reason]
+    emitters: [{file: src/agent_ecology3/world/action_executor.py, line: 835, function: _mint}]
+  - name: mint_submission
+    scope: legacy
+    emitted_by: [auction_mint]
+    fields: [event_number, principal_id, artifact_id, bid, submission_id]
+    emitters: [{file: src/agent_ecology3/world/mint.py, line: 292, function: submit}]
+  - name: mint_submission_cancelled
+    scope: legacy
+    emitted_by: [auction_mint]
+    fields: [event_number, submission_id, principal_id]
+    emitters: [{file: src/agent_ecology3/world/mint.py, line: 423, function: cancel}]
+  - name: mint_scoring_failed
+    scope: legacy
+    emitted_by: [auction_mint]
+    fields: [event_number, artifact_id, winner_id, error, bids_refunded]
+    emitters: [{file: src/agent_ecology3/world/mint.py, line: 508, function: resolve}]
+  - name: mint_auction
+    scope: legacy
+    emitted_by: [auction_mint]
+    fields: [event_number, "**MintResult"]
+    fields_from: MintResult dataclass at src/agent_ecology3/world/mint.py:43
+    emitters: [{file: src/agent_ecology3/world/mint.py, line: 552, function: resolve}]
+  - name: llm_syscall
+    scope: legacy
+    emitted_by: [llm_syscall]
+    fields: [event_number, trace_id, payer_id, model, actual_cost, charged_cost, cost_source, billing_mode, budget_charge_basis, budget_settle_cost, cache_hit, undercharged_cost, duration_ms, tokens, tool_calls_count, success, settlement_status, error, error_code, codex_event_types, structured_action_type, structured_schema_sha256]
+    emitters: [{file: src/agent_ecology3/world/world.py, line: 2689, function: _settle_llm_syscall}]
+  - name: llm_syscall_token_overage
+    scope: legacy
+    emitted_by: [llm_syscall]
+    fields: [event_number, payer_id, model, estimated_tokens, actual_tokens, extra_tokens]
+    emitters: [{file: src/agent_ecology3/world/world.py, line: 2647, function: _settle_llm_syscall}]
+  - name: llm_syscall_error
+    scope: legacy
+    emitted_by: [llm_syscall]
+    fields_by_emitter: true
+    fields: [event_number, trace_id, payer_id, model, error, error_code, settlement_status, reservation_retained, duration_ms]
+    emitters:
+      - {file: src/agent_ecology3/world/world.py, line: 2759, function: _record_luna_dispatch_ambiguous, extra_fields: [reserved_cost, reserved_tokens]}
+      - {file: src/agent_ecology3/world/world.py, line: 2804, function: _fail_llm_syscall, extra_fields: [provider_dispatch_confirmed]}
+  - name: llm_syscall_replayed
+    scope: legacy
+    emitted_by: [llm_syscall]
+    fields: [event_number, trace_id, attempt_id, payer_id, model]
+    emitters: [{file: src/agent_ecology3/simulation/recovery.py, line: 458, function: call_llm}]
+  - name: simulation_started
+    scope: legacy
+    emitted_by: [loop_runner]
+    fields: [event_number, duration_seconds, max_runtime_seconds, loop_count]
+    emitters: [{file: src/agent_ecology3/simulation/runner.py, line: 252, function: run}]
+  - name: simulation_runtime_limit_reached
+    scope: legacy
+    emitted_by: [loop_runner]
+    fields: [event_number, elapsed_seconds, max_runtime_seconds]
+    emitters: [{file: src/agent_ecology3/simulation/runner.py, line: 275, function: run}]
+  - name: simulation_stopped
+    scope: legacy
+    emitted_by: [loop_runner]
+    fields: [event_number, elapsed_seconds, loop_count, loops]
+    emitters: [{file: src/agent_ecology3/simulation/runner.py, line: 325, function: run}]
+  - name: loop_paused_error_backoff
+    scope: legacy
+    emitted_by: [loop_runner]
+    fields: [event_number, artifact_id, principal_id, consecutive_errors, last_error]
+    emitters: [{file: src/agent_ecology3/simulation/runner.py, line: 193, function: _run_artifact_loop}]
+
+# How each view treats each resident-scope event. Values:
+#   shown | partial (shown without key fields) | hidden (deliberate, reason
+#   given) | missing (relevant, not shown, no recorded reason).
+# Human-readable table and evidence: docs/model/VIEW_COVERAGE.md.
+views:
+  feed:
+    source: src/agent_ecology3/dashboard/server.py:1232 (_resident_action_rows), :1333 (_operator_state)
+  matrix:
+    source: src/agent_ecology3/dashboard/server.py:998 (_agent_graph)
+  living:
+    source: src/agent_ecology3/viz/world_substrate_view.py:67 (build_projection), :310 (build_profile)
+view_coverage:
+  world_initialized:        {feed: hidden, matrix: hidden, living: partial}
+  resident_action:          {feed: shown, matrix: hidden, living: missing}
+  resident_turn:            {feed: shown, matrix: hidden, living: shown}
+  resident_session_changed: {feed: missing, matrix: hidden, living: hidden}
+  agent_message:            {feed: shown, matrix: shown, living: shown}
+  action:                   {feed: hidden, matrix: hidden, living: hidden}
+  artifact_read:            {feed: shown, matrix: shown, living: partial}
+  artifact_written:         {feed: partial, matrix: hidden, living: partial}
+  task_bounty_scored:       {feed: shown, matrix: partial, living: shown}
+  royalty_paid:             {feed: shown, matrix: shown, living: shown}
+  transfer:                 {feed: partial, matrix: missing, living: shown}
+  resource_transfer:        {feed: partial, matrix: hidden, living: hidden}
+  kernel_query:             {feed: partial, matrix: hidden, living: missing}
+  artifact_deleted:         {feed: partial, matrix: hidden, living: missing}

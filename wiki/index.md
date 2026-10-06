@@ -2,7 +2,7 @@
 title: Agent Ecology 3
 type: index
 authority: derived
-updated: 2026-10-05
+updated: 2026-10-06
 entry:
   answers: "What Agent Ecology 3 is, whether it is still being worked on, what the current experiment is, how to run or reopen a run, and where its decisions and past results live."
   not_when: "You want the older full-featured runtime (see agent_ecology2) or the shared LLM client itself (see llm_client)."
@@ -20,6 +20,9 @@ topics:
   - title: "Implementation reference"
     path: "docs/IMPLEMENTATION_BASELINE.md"
     answers: "Which module owns what, and how is a run started and reopened?"
+  - title: "Model description (ODD) and view coverage"
+    path: "docs/model/ODD.md"
+    answers: "What exactly the agents, artifacts, tasks, checker and actions are, what each agent sees per turn, which events the kernel logs, and which of them each dashboard view shows."
   - title: "Lineage and standing constraints"
     path: "docs/LINEAGE_AND_RESTARTS.md"
     answers: "Why do three Agent Ecology repositories exist, and which rebuild rules still bind?"
@@ -58,6 +61,7 @@ scale it is about.
 |---|---|
 | Know the goal, status, and next work | [MVP roadmap](../docs/MVP_ROADMAP.md) |
 | See the outside checker and the toy-scale comparison | [Plan 24](../docs/plans/24_external_score_vs_solo.md) |
+| Know the exact model rules and which events each view shows | [Model description](../docs/model/ODD.md), [view coverage](../docs/model/VIEW_COVERAGE.md) |
 | Run a simulation or reopen a run | [README](../README.md) |
 | Find which module owns what | [Implementation reference](../docs/IMPLEMENTATION_BASELINE.md) |
 | Understand resource accounting | [Resource accounting](../docs/RESOURCE_ACCOUNTING.md) |
