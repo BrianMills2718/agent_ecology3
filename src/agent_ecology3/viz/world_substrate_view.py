@@ -196,10 +196,32 @@ def build_projection(
                 ])
         elif kind == "royalty_paid" and actor in principals:
             amount = int(event.get("amount", 0) or 0)
+            solver = str(event.get("solver"))
+            helper = str(event.get("dependency_task_id")).rsplit("/", 1)[-1]
+            notes += 1
+            info_id, delivery_id = f"royalty-{notes}", f"royalty-{notes}-delivery"
+            # A public message from the reusing agent to the helper's author, so
+            # the view shows who reused whose code (line + bubble at the author).
             emit(RULE_ROYALTY, event, actor_id=actor, updates=[
                 (member(actor, "scrip"), value(member(actor, "scrip")) + amount),
-                (member(actor, "doing"),
-                 f"earned {amount} royalty: {event.get('solver')} reused {event.get('dependency_task_id')}"),
+                (member(actor, "doing"), f"earned {amount} royalty: {solver} reused {helper}"),
+                (f"entities.{info_id}", {
+                    "entity_id": info_id, "category_ids": ["information"],
+                    "components": {"information": {
+                        "active": True, "channel_id": "royalty",
+                        "content": f"{solver.replace('alpha_', 'Agent ')} reused your {helper}: +{amount} scrip",
+                        "derived_from_info_id": None,
+                        "source_id": solver if solver in principals else actor,
+                        "topic": "royalty", "visibility": "public",
+                    }},
+                }),
+                (f"entities.{delivery_id}", {
+                    "entity_id": delivery_id, "category_ids": ["delivery"],
+                    "components": {"delivery": {
+                        "channel_id": "royalty", "delivered_tick": world["tick"] + 1,
+                        "info_id": info_id, "recipient_id": actor, "status": "delivered",
+                    }},
+                }),
             ])
         elif kind == "resident_turn" and actor in principals:
             text = " ".join(str(event.get("note") or "").split())
@@ -326,7 +348,9 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         event_visuals[f"{RULE_SOLVED}.{principal}"] = visual(principal, "solution passed the hidden tests", CHECKER)
         event_visuals[f"{RULE_UNPAID}.{principal}"] = visual(principal, "submission earned nothing", CHECKER)
         event_visuals[f"{RULE_NOTE}.{principal}"] = visual(principal, "end-of-turn note", f"bench-{principal}", transmit=True)
-        event_visuals[f"{RULE_ROYALTY}.{principal}"] = visual(principal, "earns a royalty: someone reused its helper", None)
+        event_visuals[f"{RULE_ROYALTY}.{principal}"] = visual(
+            principal, "earns a royalty: another agent reused its helper", None, transmit=True
+        )
 
     return {
         "schema_version": "world-substrate-living-scene/v1",
