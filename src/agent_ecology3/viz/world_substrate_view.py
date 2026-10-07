@@ -38,8 +38,14 @@ RULE_UNPAID = "ae3.mint.submission_unpaid"
 RULE_NOTE = "ae3.agent.note"
 RULE_ROYALTY = "ae3.mint.royalty"
 RULE_MESSAGE = "ae3.agent.message"
+# Plan 27 shared project.
+RULE_INTEGRATED = "ae3.project.integrated"
+RULE_REJECTED = "ae3.project.rejected"
+RULE_JUDGED = "ae3.aes.judged"
+RULE_BOUNTY = "ae3.aes.bounty"
 
-BOARD, MARKET, CHECKER = "task-board", "market", "checker"
+BOARD, MARKET, CHECKER, PROJECT = "task-board", "market", "checker", "project"
+PROJECT_EVENTS = {"change_integrated", "change_rejected", "aes_judged", "bounty_paid"}
 NOTE_CHARS = 180
 
 
@@ -103,6 +109,11 @@ def build_projection(
         "entity_id": CHECKER,
         "components": {"checker": {"passed": 0, "failed_or_unpaid": 0, "last_result": None}},
     }
+    if any(e.get("event_type") in PROJECT_EVENTS for e in events):
+        world["entities"][PROJECT] = {
+            "entity_id": PROJECT,
+            "components": {"project": {"integrated": 0, "rejected": 0, "criteria_met": 0, "last": None}},
+        }
     initial = {"schema_version": "world-substrate-snapshot/v1", "world": deepcopy(world)}
     projected: list[dict[str, Any]] = []
 
@@ -196,10 +207,59 @@ def build_projection(
                     (f"entities.{CHECKER}.components.checker.last_result", f"{scored_task}: {outcome}"),
                     (member(actor, "doing"), f"{scored_task}: {outcome}"),
                 ])
+        elif kind in ("change_integrated", "change_rejected") and actor in principals:
+            project = f"entities.{PROJECT}.components.project"
+            if kind == "change_integrated":
+                files = ", ".join(str(f).rsplit("/", 1)[-1] for f in event.get("files") or [])
+                emit(RULE_INTEGRATED, event, actor_id=actor, updates=[
+                    (f"{project}.integrated", value(f"{project}.integrated") + 1),
+                    (f"{project}.last", f"{agent_label(str(actor))} integrated {files}"),
+                    (member(actor, "doing"), f"integrated {files} into the project"),
+                ])
+            else:
+                emit(RULE_REJECTED, event, actor_id=actor, updates=[
+                    (f"{project}.rejected", value(f"{project}.rejected") + 1),
+                    (member(actor, "doing"), "change rejected: " + str(event.get("reason") or "")[:80]),
+                ])
+        elif kind == "aes_judged" and actor in principals:
+            rows = event.get("standings") or []
+            moved = [f"{r.get('criterion_id')}: {str(r.get('before')).lower()} → {str(r.get('after')).lower()}"
+                     for r in rows if r.get("before") != r.get("after")]
+            project = f"entities.{PROJECT}.components.project"
+            emit(RULE_JUDGED, event, actor_id=actor, updates=[
+                (f"{project}.criteria_met", sum(1 for r in rows if r.get("after") == "SUPPORTED")),
+                (f"{project}.last", "AES: " + ("; ".join(moved) or "no criterion changed")),
+            ])
+        elif kind == "bounty_paid" and actor in principals:
+            share = int(event.get("share", 0) or 0)
+            criterion = str(event.get("criterion_id"))
+            notes += 1
+            info_id, delivery_id = f"bounty-{notes}", f"bounty-{notes}-delivery"
+            emit(RULE_BOUNTY, event, actor_id=actor, updates=[
+                (member(actor, "scrip"), value(member(actor, "scrip")) + share),
+                (member(actor, "doing"), f"paid {share} for {criterion} (AES evidence)"),
+                (f"entities.{info_id}", {
+                    "entity_id": info_id, "category_ids": ["information"],
+                    "components": {"information": {
+                        "active": True, "channel_id": "bounty",
+                        "content": f"{criterion} met: +{share} scrip to {agent_label(str(actor))}",
+                        "derived_from_info_id": None, "source_id": PROJECT,
+                        "topic": "bounty", "visibility": "public",
+                    }},
+                }),
+                (f"entities.{delivery_id}", {
+                    "entity_id": delivery_id, "category_ids": ["delivery"],
+                    "components": {"delivery": {
+                        "channel_id": "bounty", "delivered_tick": world["tick"] + 1,
+                        "info_id": info_id, "recipient_id": actor, "status": "delivered",
+                    }},
+                }),
+            ])
         elif kind == "royalty_paid" and actor in principals:
             amount = int(event.get("amount", 0) or 0)
             solver = str(event.get("solver"))
-            helper = str(event.get("dependency_task_id")).rsplit("/", 1)[-1]
+            helper = (str(event.get("function")) if event.get("source") == "pilot_function_call"
+                      else str(event.get("dependency_task_id")).rsplit("/", 1)[-1])
             notes += 1
             info_id, delivery_id = f"royalty-{notes}", f"royalty-{notes}-delivery"
             # A public message from the reusing agent to the helper's author, so
@@ -355,6 +415,23 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         },
     }
 
+    if PROJECT in bundle["initial_snapshot"]["world"]["entities"]:
+        # Shared-project run (Plan 27): no task board or checker desk; agents
+        # integrate at the project and AES pays from there.
+        stations = {
+            PROJECT: {
+                "entity": PROJECT, "asset": "project", "label": "Project (judged by AES)", "home": [30.0, 28.0],
+                "bindings": {
+                    "integrated": "components.project.integrated",
+                    "rejected": "components.project.rejected",
+                    "criteria_met": "components.project.criteria_met",
+                    "last": "components.project.last",
+                },
+                "render": {"inspector_fields": ["criteria_met", "integrated", "rejected", "last"]},
+            },
+            MARKET: {**stations[MARKET], "home": [70.0, 28.0]},
+        }
+
     benches = {
         f"bench-{principal}": {
             # Named after its owner (an empty bench read "notes"), and no wider
@@ -389,6 +466,12 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         event_visuals[f"{RULE_UNPAID}.{principal}"] = visual(principal, "submission earned nothing", CHECKER)
         event_visuals[f"{RULE_NOTE}.{principal}"] = visual(principal, "end-of-turn note", f"bench-{principal}", transmit=True)
         event_visuals[f"{RULE_MESSAGE}.{principal}"] = visual(principal, "sends a message to another agent", None, transmit=True)
+        event_visuals[f"{RULE_INTEGRATED}.{principal}"] = visual(principal, "integrates a change into the project", PROJECT)
+        event_visuals[f"{RULE_REJECTED}.{principal}"] = visual(principal, "change rejected (conflict or not allowed)", PROJECT)
+        event_visuals[f"{RULE_JUDGED}.{principal}"] = visual(principal, "AES runs the tests on the new main", None)
+        event_visuals[f"{RULE_BOUNTY}.{principal}"] = visual(
+            principal, "paid a bounty: AES recorded a criterion as met", None, transmit=True
+        )
         event_visuals[f"{RULE_ROYALTY}.{principal}"] = visual(
             principal, "earns a royalty: another agent reused its helper", None, transmit=True
         )
@@ -401,7 +484,10 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
         # (plan25_codeflow_run2 rendered as "plan25_codeflo…"); the run id
         # goes in the subtitle instead.
         "title": "Agent Ecology 3",
-        "subtitle": f"Run {bundle['world_id'].removeprefix('ae3-')}. Agents read tasks at the board, buy each other's work at the market, and earn scrip when the checker's hidden tests pass.",
+        "subtitle": f"Run {bundle['world_id'].removeprefix('ae3-')}. " + (
+            "Agents build one shared project, integrate their changes at the project, and earn scrip when AES records a test module as met."
+            if PROJECT in stations else
+            "Agents read tasks at the board, buy each other's work at the market, and earn scrip when the checker's hidden tests pass."),
         "note": LABEL,
         "assets": {
             "agent": {"kind": "text", "value": "A"},
@@ -409,6 +495,7 @@ def build_profile(bundle: dict[str, Any], *, principals: list[str], task_ids: li
             "board": {"kind": "text", "value": "▤"},
             "market": {"kind": "text", "value": "⇄"},
             "checker": {"kind": "text", "value": "✓"},
+            "project": {"kind": "text", "value": "⌂"},
         },
         "scene": {"aspect_ratio": "16 / 9", "autoplay_ms": 650, "mobile_min_height": 680,
                   "background": "#1b2532", "shell_background": "#111827"},

@@ -38,7 +38,7 @@ entities:
       - {name: session_id, type: "str|null", meaning: "Codex session resumed every turn (memory between turns)", source: src/agent_ecology3/simulation/resident.py:132}
       - {name: actions_this_turn, type: int, meaning: "kernel actions used this turn; reset to 0 at turn start", source: src/agent_ecology3/simulation/resident.py:480}
       - {name: inbox, type: "list[(turn, sender, text)]", meaning: "messages received since the agent's last turn; shown once, then cleared", source: src/agent_ecology3/simulation/resident.py:138}
-      - {name: workdir, type: path, meaning: "private scratch folder with a shell; running code there costs no actions", source: src/agent_ecology3/simulation/resident.py:321}
+      - {name: workdir, type: path, meaning: "private scratch folder with a shell (agents/<id>/work; in a shared-project run, the agent's git worktree); running code there costs no actions", source: src/agent_ecology3/simulation/resident.py:321}
       - {name: scrip, type: int, meaning: "balance held in the Ledger (starts at 100)", source: config/config.yaml:14}
   - name: Artifact
     what: A named piece of text owned by one principal; everything agents read, write and submit.
@@ -109,6 +109,50 @@ entities:
       - {name: action_count, type: int, meaning: "one id per /agent-act call (action_id), logged on resident_action and agent_message so views can join them; event_number cannot (send_message does not advance it)", source: src/agent_ecology3/simulation/resident.py:155}
       - {name: lock, type: asyncio.Lock, meaning: "actions from concurrent agents run one at a time, in arrival order", source: src/agent_ecology3/simulation/resident.py:179}
 
+  # --- Plan 27 shared project (runs started with --aes-pilot) ------------
+  - name: SharedProject
+    what: The run's own git copy of an AES-governed pilot (stubbed tinydb; M1), cloned from the pilot sandbox so the sandbox is never changed. main is the integrated project; each agent has a worktree on branch agent/<id>.
+    source: src/agent_ecology3/simulation/pilot.py:137
+    state:
+      - {name: root, type: path, meaning: "<run data dir>/pilot_project", source: scripts/run_resident_ecology.py:112}
+      - {name: manifest, type: dict, meaning: "pilot.json: governed roots and each verification subject's criterion, test module and command", source: src/agent_ecology3/simulation/pilot.py:176}
+      - {name: library_roots, type: "list[str]", meaning: "governed roots except tests/; the only files agents may change (existing files only)", source: src/agent_ecology3/simulation/pilot.py:196}
+      - {name: last_reconcile, type: dict, meaning: "the latest aes reconcile --json; its criteria standings are the bounty board", source: src/agent_ecology3/simulation/pilot.py:203}
+      - {name: held, type: "set[criterion id]", meaning: "criteria paid and SUPPORTED ever since; a criterion leaves when it is not SUPPORTED", source: src/agent_ecology3/simulation/pilot.py:383}
+      - {name: bounty_scrip, type: int, meaning: "30 by default (--bounty-scrip), split among contributors", source: scripts/run_resident_ecology.py:175}
+      - {name: test_timeout_seconds, type: int, meaning: "120; a hanging test run is killed and recorded as a failure", source: src/agent_ecology3/simulation/pilot.py:147}
+  - name: AgentBranch
+    what: An agent's git worktree of the SharedProject on branch agent/<id>; it is the agent's writable Codex folder (agents/<id>/work), a sibling of its Codex home.
+    source: src/agent_ecology3/simulation/pilot.py:129
+    state:
+      - {name: path, type: path, meaning: "agents/<id>/work, with .venv linked to the pilot's test environment"}
+      - {name: last_rejection, type: "str|null", meaning: "reason of the last rejected proposal, shown in the next observation"}
+  - name: SuccessCriterion
+    what: One AES success criterion SC-<M> per test module tests/test_<m>.py of the pilot; its standing comes only from aes reconcile --json.
+    source: scripts/build_aes_pilot.py:120
+    state:
+      - {name: criterion_id, type: str}
+      - {name: standing, type: str, meaning: "INSUFFICIENT (no current evidence, including evidence gone STALE), SUPPORTED or REFUTED"}
+  - name: Observation
+    what: An AES observation written by aes evidence record for one verification subject at one commit.
+    source: src/agent_ecology3/simulation/pilot.py:344
+    state:
+      - {name: observation_id, type: str, meaning: "OBS-<M>-<commit[:8]>"}
+      - {name: dependency_paths, type: "list[path]", meaning: "the test module, tests/conftest.py and the library files the test imports (AES discovers them); contributors are counted in these files"}
+      - {name: freshness, type: str, meaning: "CURRENT or STALE (a dependency changed since the recorded commit)"}
+  - name: Bounty
+    what: The scrip a criterion pays when it becomes SUPPORTED and is not held; one per open criterion on the board.
+    source: src/agent_ecology3/simulation/pilot.py:95
+    state:
+      - {name: amount, type: int, meaning: "bounty_scrip"}
+  - name: Contribution
+    what: An agent's surviving lines (git blame at the judged commit; author email <id>@agents.agent-ecology3.invalid) in a criterion's observation dependency files under the library roots.
+    source: src/agent_ecology3/simulation/pilot.py:375
+    state:
+      - {name: agent, type: str}
+      - {name: commit, type: str}
+      - {name: files, type: "list[path]"}
+
 processes:
   # --- scheduling and sensing -------------------------------------------
   - name: initialize_world
@@ -139,7 +183,7 @@ processes:
     actor: Agent
     scope: resident
     inputs: [Kernel, Ledger, Artifact store, Agent.inbox]
-    rule: Build the turn prompt - turn number, own scrip, all balances, every unclaimed task statement id grouped by read price (with claimed and total counts), the newest 60 other readable artifacts minus bootstrap ones (with a query_kernel paging hint for the rest), solved helpers the checker links, and the inbox (then clear it). Rules are prepended on turn 1 only.
+    rule: Build the turn prompt - turn number, own scrip, all balances, every unclaimed task statement id grouped by read price (with claimed and total counts), the newest 60 other readable artifacts minus bootstrap ones (with a query_kernel paging hint for the rest), solved helpers the checker links, and the inbox (then clear it). In a shared-project run the task and artifact lists are replaced by the project section - open criteria with test module and standing, criteria met, the agent's branch state (unproposed files, ahead/behind main, merge in progress, last rejection) and integrations by others since its last turn. Rules (RESIDENT_RULES, or PILOT_RULES in a shared-project run) are prepended on turn 1 only.
     changes: [Agent.inbox (cleared), Agent.actions_this_turn (reset)]
     emits: []
     source: src/agent_ecology3/simulation/resident.py:238
@@ -155,7 +199,7 @@ processes:
     actor: Agent
     scope: resident
     inputs: [action payload via ae3_action]
-    rule: Refuse with turn_action_limit once actions_this_turn reaches actions_per_turn; otherwise count the action, run send_message or the kernel action, and log the outcome.
+    rule: Refuse with turn_action_limit once actions_this_turn reaches actions_per_turn; otherwise count the action, run send_message, propose_change (shared-project runs) or the kernel action, and log the outcome.
     changes: [Agent.actions_this_turn]
     emits: [resident_action]
     source: src/agent_ecology3/simulation/resident.py:178
@@ -267,6 +311,47 @@ processes:
     changes: [Agent.inbox (recipient)]
     emits: [agent_message]
     source: src/agent_ecology3/simulation/resident.py:217
+  - name: propose_change
+    action_type: propose_change
+    actor: Agent
+    scope: resident
+    inputs: [content (optional note)]
+    rule: Shared-project runs only. Log change_submitted with the branch state, then integrate; on success judge, pay bounties and pay function royalties, and answer with the standings that moved and what was paid. Counts as an action; does not advance event_number. A git or aes failure sets the kernel's fatal error and the run stops as invalid after the turn.
+    changes: [SharedProject, Ledger.scrip]
+    emits: [change_submitted]
+    source: src/agent_ecology3/simulation/resident.py:252
+  - name: integrate
+    actor: Kernel
+    scope: resident
+    inputs: [AgentBranch]
+    rule: Commit the agent's edits to tracked library files (git add -u on the library roots; authored as the agent), merge main into its branch, and fast-forward main to it. Rejected when conflict markers remain, the merge conflicts (the conflicted merge stays in the agent's folder to resolve), nothing is new, or the change touches anything but existing library files. Untracked files and edits elsewhere stay in the folder unproposed.
+    changes: [SharedProject (main), AgentBranch]
+    emits: [change_integrated, change_rejected]
+    source: src/agent_ecology3/simulation/pilot.py:259
+  - name: judge
+    actor: Kernel
+    scope: resident
+    inputs: [integrated commit]
+    rule: Run aes evidence record for every verification subject at the new main (command from pilot.json behind a 120 s timeout, --depends-on tests/conftest.py), commit the observations as the kernel, then aes reconcile --json. Standings before are the previous reconcile's.
+    changes: [Observation, SharedProject.last_reconcile]
+    emits: [aes_judged]
+    source: src/agent_ecology3/simulation/pilot.py:315
+  - name: pay_bounty
+    actor: Kernel
+    scope: resident
+    inputs: [standings after judge, SharedProject.held]
+    rule: A criterion SUPPORTED now and not held pays bounty_scrip (minted) split equally (remainder one each, most lines first) among the agents with surviving lines in its observation's library dependency files; it becomes held. A held criterion that is not SUPPORTED now (REFUTED, or INSUFFICIENT because its evidence went STALE) is released and pays nothing; SUPPORTED again later pays again with regained true. No agent-authored line means no payment and the criterion stays unheld.
+    changes: [Ledger.scrip, SharedProject.held]
+    emits: [bounty_paid]
+    source: src/agent_ecology3/simulation/pilot.py:383
+  - name: pay_function_royalty
+    actor: Kernel
+    scope: resident
+    inputs: [integrated diff]
+    rule: For each module-level library function the change's added lines call or import, resolved through the file's imports (f() with f imported from a library module or defined at module level in the same file; mod.f() with mod an imported library module; from <library module> import f), whose body (docstring excluded) is mostly authored by another agent per git blame, credit that author royalty_scrip (3, minted) once per (change, author, function). Method calls on objects are not resolved, so a builtin or dict method never pays by name alone.
+    changes: [Ledger.scrip]
+    emits: [royalty_paid]
+    source: src/agent_ecology3/simulation/pilot.py:432
   # --- kernel paths resident agents cannot reach ------------------------
   - name: edit_artifact
     action_type: edit_artifact
@@ -381,10 +466,39 @@ events:
     emitters: [{file: src/agent_ecology3/world/mint.py, line: 357, function: score_now}]
   - name: royalty_paid
     scope: resident
-    emitted_by: [pay_royalty]
-    fields: [event_number, principal_id, payer_task_id, dependency_task_id, solver, amount]
-    note: principal_id is the helper's author (the payee); solver is the reuser.
-    emitters: [{file: src/agent_ecology3/world/mint.py, line: 403, function: _pay_royalties}]
+    emitted_by: [pay_royalty, pay_function_royalty]
+    fields: [event_number, principal_id, solver, amount, source]
+    note: principal_id is the author (the payee); solver is the reuser. source is checker_linked_helper (task-bank runs) or pilot_function_call (shared project).
+    emitters:
+      - {file: src/agent_ecology3/world/mint.py, line: 403, function: _pay_royalties, extra_fields: [payer_task_id, dependency_task_id]}
+      - {file: src/agent_ecology3/simulation/resident.py, line: 316, function: _propose_change, extra_fields: [action_id, turn, commit, function, file]}
+  - name: change_submitted
+    scope: resident
+    emitted_by: [propose_change]
+    fields: [event_number, action_id, turn, principal_id, message, ahead, behind, changed_files]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 263, function: _propose_change}]
+  - name: change_integrated
+    scope: resident
+    emitted_by: [integrate]
+    fields: [event_number, action_id, turn, principal_id, commit, previous_commit, files]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 279, function: _propose_change}]
+  - name: change_rejected
+    scope: resident
+    emitted_by: [integrate]
+    fields: [event_number, action_id, turn, principal_id, reason, files]
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 271, function: _propose_change}]
+  - name: aes_judged
+    scope: resident
+    emitted_by: [judge]
+    fields: [event_number, action_id, turn, principal_id, commit, evidence_commit, standings, observation_ids, released, seconds]
+    note: principal_id is the proposer; standings is [{criterion_id, before, after}] from aes reconcile --json; released lists criteria that stopped being held.
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 290, function: _propose_change}]
+  - name: bounty_paid
+    scope: resident
+    emitted_by: [pay_bounty]
+    fields: [event_number, action_id, turn, principal_id, criterion_id, commit, share, bounty, contributors, regained, observation_id, proposer]
+    note: One per payee; principal_id is the payee.
+    emitters: [{file: src/agent_ecology3/simulation/resident.py, line: 303, function: _propose_change}]
   - name: transfer
     scope: resident
     emitted_by: [transfer]
@@ -541,3 +655,8 @@ view_coverage:
   resource_transfer:        {feed: partial, matrix: hidden, living: hidden}
   kernel_query:             {feed: partial, matrix: hidden, living: missing}
   artifact_deleted:         {feed: partial, matrix: hidden, living: missing}
+  change_submitted:         {feed: shown, matrix: hidden, living: hidden}
+  change_integrated:        {feed: shown, matrix: hidden, living: shown}
+  change_rejected:          {feed: shown, matrix: hidden, living: shown}
+  aes_judged:               {feed: shown, matrix: hidden, living: shown}
+  bounty_paid:              {feed: shown, matrix: shown, living: shown}

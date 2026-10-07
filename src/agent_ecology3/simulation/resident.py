@@ -24,6 +24,7 @@ from typing import Any
 from fastapi import FastAPI, Header, HTTPException, Request
 
 from ..world.world import World
+from .pilot import PilotError, PilotProject
 
 MCP_SERVER_SCRIPT = Path(__file__).resolve().parents[1] / "mcp" / "loop_action_server.py"
 AE3_TOOL_NAME = "mcp__ae3__ae3_action"
@@ -145,8 +146,15 @@ OTHER_ARTIFACTS_SHOWN = 60
 class ResidentKernel:
     """Authenticated action endpoint plus per-turn bookkeeping over one World."""
 
-    def __init__(self, world: World, agents_root: Path, *, actions_per_turn: int) -> None:
+    def __init__(
+        self, world: World, agents_root: Path, *, actions_per_turn: int, pilot: PilotProject | None = None
+    ) -> None:
         self.world = world
+        # Plan 27: the shared AES-governed project, when the run has one.
+        self.pilot = pilot
+        # A git or aes failure inside an action: the run stops as invalid
+        # after the current turn instead of continuing on a broken project.
+        self.fatal_error: str | None = None
         self.actions_per_turn = actions_per_turn
         self.turn = 0
         # One id per /agent-act call, logged on the resident_action and on any
@@ -188,6 +196,9 @@ class ResidentKernel:
             elif payload.get("action_type") == "send_message":
                 agent.actions_this_turn += 1
                 outcome = self._send_message(agent, payload, action_id)
+            elif payload.get("action_type") == "propose_change":
+                agent.actions_this_turn += 1
+                outcome = await self._propose_change(agent, payload, action_id)
             else:
                 agent.actions_this_turn += 1
                 result = self.world.execute_action_data(agent.principal_id, payload)
@@ -238,6 +249,89 @@ class ResidentKernel:
         return {"success": True, "message": f"delivered to {recipient} at the start of its next turn",
                 "scrip_after": self.world.ledger.get_scrip(agent.principal_id)}
 
+    async def _propose_change(self, agent: ResidentAgent, payload: dict[str, Any], action_id: int) -> dict[str, Any]:
+        """Plan 27: integrate the agent's branch, judge it with AES, pay bounties and royalties."""
+        if self.pilot is None:
+            return {"success": False, "error": "this run has no shared project", "error_code": "no_shared_project"}
+        pilot = self.pilot
+        who = agent.principal_id
+        message = payload.get("content") if isinstance(payload.get("content"), str) else payload.get("memo")
+        message = " ".join(str(message or "").split())[:MESSAGE_MAX_CHARS] or None
+        logger = self.world.logger
+        number, turn = self.world.event_number, self.turn
+        state = await asyncio.to_thread(pilot.branch_state, who)
+        logger.log("change_submitted", {
+            "event_number": number, "action_id": action_id, "turn": turn, "principal_id": who,
+            "message": message, "ahead": state["ahead"], "behind": state["behind"],
+            "changed_files": state["changed_files"],
+        })
+        try:
+            result = await asyncio.to_thread(pilot.propose, who)
+            if result["status"] != "integrated":
+                logger.log("change_rejected", {
+                    "event_number": number, "action_id": action_id, "turn": turn, "principal_id": who,
+                    "reason": result["reason"], "files": result["files"],
+                })
+                return {"success": False, "error": f"change rejected: {result['reason']}" + _ignored_note(result),
+                        "error_code": "change_rejected", "scrip_after": self.world.ledger.get_scrip(who)}
+            commit, previous = result["commit"], result["previous_commit"]
+            pilot.record_integration(self.turn, who, commit, result["files"])
+            logger.log("change_integrated", {
+                "event_number": number, "action_id": action_id, "turn": turn, "principal_id": who,
+                "commit": commit, "previous_commit": previous, "files": result["files"],
+            })
+            royalties = await asyncio.to_thread(pilot.royalties, previous, commit, who)
+            judged = await asyncio.to_thread(pilot.judge, commit)
+            settled = await asyncio.to_thread(pilot.settle, judged)
+        except PilotError as exc:
+            self.fatal_error = f"shared project failed during {who}'s propose_change: {exc}"
+            return {"success": False, "error": "the kernel could not integrate or judge this change; the run stops",
+                    "error_code": "pilot_error"}
+        logger.log("aes_judged", {
+            "event_number": number, "action_id": action_id, "turn": turn, "principal_id": who,
+            "commit": commit, "evidence_commit": judged["evidence_commit"],
+            "standings": [{"criterion_id": c, "before": judged["before"].get(c), "after": s}
+                          for c, s in sorted(judged["after"].items())],
+            "observation_ids": judged["observation_ids"], "released": settled["released"],
+            "seconds": judged["seconds"],
+        })
+        paid_lines = []
+        for payment in settled["payments"]:
+            contributors = sorted(payment["shares"])
+            for payee, share in payment["shares"].items():
+                self.world.ledger.credit_scrip(payee, share)
+                logger.log("bounty_paid", {
+                    "event_number": number, "action_id": action_id, "turn": turn, "principal_id": payee,
+                    "criterion_id": payment["criterion_id"], "commit": commit, "share": share,
+                    "bounty": pilot.bounty_scrip, "contributors": contributors, "regained": payment["regained"],
+                    "observation_id": payment["observation_id"], "proposer": who,
+                })
+            paid_lines.append(f"{payment['criterion_id']} met: " + ", ".join(
+                f"{p} +{s}" for p, s in payment["shares"].items()))
+        for royalty in royalties:
+            amount = pilot.royalty_scrip
+            if amount <= 0:
+                break
+            self.world.ledger.credit_scrip(royalty["author"], amount)
+            logger.log("royalty_paid", {
+                "event_number": number, "action_id": action_id, "turn": turn, "principal_id": royalty["author"],
+                "solver": who, "amount": amount, "source": "pilot_function_call", "commit": commit,
+                "function": royalty["function"], "file": royalty["file"],
+            })
+            paid_lines.append(f"royalty {amount} to {royalty['author']} for {royalty['function']}")
+        moved = [f"{c}: {str(judged['before'].get(c)).lower()} -> {s.lower()}"
+                 for c, s in sorted(judged["after"].items()) if judged["before"].get(c) != s]
+        return {
+            "success": True,
+            "message": f"integrated as {commit[:7]} ({', '.join(result['files'])}). AES judged it: "
+                       + ("; ".join(moved) or "no criterion changed") + ". "
+                       + ("Paid: " + "; ".join(paid_lines) + "." if paid_lines else "No payments.")
+                       + _ignored_note(result),
+            "data": {"commit": commit, "files": result["files"], "ignored": result["ignored"],
+                     "standings": judged["after"]},
+            "scrip_after": self.world.ledger.get_scrip(who),
+        }
+
     def observation(self, agent: ResidentAgent) -> str:
         """What the agent sees at the start of its turn (kernel-generated).
 
@@ -245,8 +339,18 @@ class ResidentKernel:
         an agent can find all open work at once (Plan 26: a single 200-row
         query showed 195 of 365 tasks and never the newest solutions). Other
         artifacts are listed newest first up to OTHER_ARTIFACTS_SHOWN, with
-        the query that pages through the rest.
+        the query that pages through the rest. In a shared-project run
+        (Plan 27) the task list is replaced by the project's bounty board,
+        the agent's branch state and recent integrations by others.
         """
+        if self.pilot is not None:
+            balances = {pid: self.world.ledger.get_scrip(pid) for pid in self.world.principal_ids}
+            return (
+                f"Turn {self.turn}. You are {agent.principal_id}. Your scrip: "
+                f"{balances[agent.principal_id]}. All scrip balances: {balances}."
+                + self.pilot.observation_text(agent.principal_id, self.turn)
+                + self._inbox_section(agent)
+            )
         listing = self.world.query_handler.execute(
             "artifacts", {"_principal_id": agent.principal_id, "readable_only": True, "limit": 1_000_000}
         )
@@ -321,6 +425,14 @@ class ResidentKernel:
         )
 
 
+def _ignored_note(result: dict[str, Any]) -> str:
+    ignored = result.get("ignored") or []
+    if not ignored:
+        return ""
+    return (" Left in your folder, not proposed (only edits to existing library files are): "
+            + ", ".join(ignored[:8]) + ("…" if len(ignored) > 8 else "") + ".")
+
+
 CODEX_WORKSPACE_NOTE = """You also have a private scratch folder (your current directory) and a shell.
 Before you submit any solution, run it there against the task's examples (for
 example, save it to a file and run python on it). A failed submission earns
@@ -353,6 +465,45 @@ author earns a royalty when you pass.
 Other actions: transfer (recipient_id, amount), query_kernel (query_type, params),
 send_message (recipient_id, content): a free note to another agent, shown to
 it at the start of its next turn; it counts as one of your actions.
+You have no assigned role or strategy; decide for yourself.
+"""
+
+
+PILOT_RULES = """You are {principal_id}, a long-lived agent in an economy simulation. You keep
+your memory between turns. Your only way to act on the economy is the
+ae3_action tool; each call returns the real result. You may make up to
+{actions_per_turn} ae3_action calls this turn, then end your turn with a
+one-paragraph note to yourself about what you learned and what you plan next.
+
+You and the other agents are building one real Python library together. Its
+function bodies were removed; its own tests say what it must do.
+- Your current directory is your own copy of the shared project (a git
+  worktree on your branch agent/{principal_id}). Edit the library files there
+  and run the tests there with the shell, for example
+  .venv/bin/python -m pytest -q tests/test_utils.py. Running code in your folder
+  costs no actions and changes nothing for anyone else.
+- When your edits help, call ae3_action with action_type propose_change
+  (optional content: a short note on what you changed). The kernel commits
+  your edits to existing library files as yours, merges the shared main into
+  your branch and, if that merges cleanly, makes it the new main. Only edits
+  to existing files under the library folder are accepted; edits to tests or
+  new files are left in your folder. If it conflicts, the result says so and
+  your folder holds the merge with conflict markers: fix them and propose
+  again. propose_change with nothing new just brings your folder up to date.
+- After every integration the outside checker AES runs every test module on
+  the new main. Each test module is one success criterion with a bounty. When
+  AES records a criterion as met for the first time, its bounty is split
+  equally among the agents whose code (lines still present in the files that
+  test depends on) is in the project. A criterion that breaks stops counting
+  as met and pays nothing more; fixed again later, it pays again.
+- When code you propose calls or imports a function whose current body
+  another agent wrote, that agent earns a royalty of {royalty_scrip} scrip.
+- The bounty board, your branch state and others' integrations are shown at
+  the start of each turn.
+Other actions: send_message (recipient_id, content): a free note to another
+agent, shown at the start of its next turn; transfer (recipient_id, amount);
+read_artifact (artifact_id). Each counts as one of your actions. Messaging the
+others to split the work, or to agree who fixes what, is allowed and free.
 You have no assigned role or strategy; decide for yourself.
 """
 
@@ -483,11 +634,18 @@ async def run_agent_turn(
     agent.actions_this_turn = 0
     prompt = kernel.observation(agent)
     if agent.session_id is None:
-        prompt = RESIDENT_RULES.format(
-            principal_id=agent.principal_id,
-            actions_per_turn=kernel.actions_per_turn,
-            workspace_note=CODEX_WORKSPACE_NOTE if model.startswith("codex/") else "",
-        ) + "\n" + prompt
+        if kernel.pilot is not None:
+            rules = PILOT_RULES.format(
+                principal_id=agent.principal_id, actions_per_turn=kernel.actions_per_turn,
+                royalty_scrip=kernel.pilot.royalty_scrip,
+            )
+        else:
+            rules = RESIDENT_RULES.format(
+                principal_id=agent.principal_id,
+                actions_per_turn=kernel.actions_per_turn,
+                workspace_note=CODEX_WORKSPACE_NOTE if model.startswith("codex/") else "",
+            )
+        prompt = rules + "\n" + prompt
     trace_id = f"ae3/{run_id}/turn_{kernel.turn}/{agent.principal_id}"
     started = time.monotonic()
     try:
@@ -551,6 +709,8 @@ async def run_agent_turn(
     )
     if builtin_calls:
         raise ResidentRunError(f"{agent.principal_id} used a non-ae3 tool: {builtin_calls[:1]}")
+    if kernel.fatal_error:
+        raise ResidentRunError(kernel.fatal_error)
     if getattr(result, "finish_reason", None) == "error":
         raise ResidentRunError(f"{agent.principal_id} turn {kernel.turn} ended in error: {note[:300]}")
     return {"principal_id": agent.principal_id, "session_id": session_id, "actions": agent.actions_this_turn}

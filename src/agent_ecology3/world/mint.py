@@ -409,6 +409,7 @@ class MintAuction:
                     "dependency_task_id": dep,
                     "solver": solver,
                     "amount": self.royalty_scrip,
+                    "source": "checker_linked_helper",
                 },
             )
 

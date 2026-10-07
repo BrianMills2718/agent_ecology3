@@ -127,7 +127,7 @@ def test_processes_and_events_agree(model: dict[str, Any]) -> None:
 
 def test_every_kernel_action_has_a_process(model: dict[str, Any]) -> None:
     declared = {p["action_type"] for p in model["processes"] if "action_type" in p}
-    expected = {a.value for a in ActionType} | {"send_message"}
+    expected = {a.value for a in ActionType} | {"send_message", "propose_change"}
     assert sorted(expected - declared) == [], "kernel actions with no declared process"
     assert sorted(declared - expected) == [], "declared processes for actions the kernel does not have"
 
