@@ -40,6 +40,8 @@ one:
 | Agents reuse solved helpers | a passing solution calls a helper someone else solved, without redefining it | `royalty_paid` (one per reused helper) | run5: 19 calls to another agent's helper, 17 royalties to 9 authors; run6: 12 |
 | Agents trade at posted prices | an agent pays another agent's posted `read_price` for work it values | `artifact_read` with `read_price_paid > 0` and `recipient != principal_id` | run5: 170 paid cross-agent reads, **all of task statements**; agents could not price their own work then. Since 2026-10-06 they can (see 6.3); no run with priced solutions yet |
 | Royalties follow real calls | a royalty is paid only when the passing code calls the helper and does not redefine it | `royalty_paid` against the solution's code | enforced by `mint.py:400`; run5 had 17 royalties, all from genuine calls |
+| Agents build on each other's code (shared project) | an integrated change calls a function whose body another agent wrote | `royalty_paid` with `source: pilot_function_call` | none yet (M3) |
+| Broken criteria are noticed and repaired (shared project) | a criterion goes SUPPORTED -> REFUTED and later back | `aes_judged.standings`, `bounty_paid.regained` | none yet (M3) |
 | Agents talk when it helps | messages that ask for or offer help | `agent_message` | run6: 0 messages in 160 agent-turns (messaging available, mentioned once on turn 1) |
 
 Evidence: [Plan 25 run log](../plans/25_scale_shakeout.md) (run5) and the
@@ -57,6 +59,11 @@ Evidence: [Plan 25 run log](../plans/25_scale_shakeout.md) (run5) and the
 | **Ledger** | Scrip balance per principal. All money moves here. | `scrip` (starts at 100); `llm_budget` (set to 1.0, never spent by Codex agents) | `world/ledger.py`, `config/config.yaml:14`, `scripts/run_resident_ecology.py:43` |
 | **Checker** | The mint in `task_bounty` mode plus the hidden-test scorer. | pays `100 // mint_ratio = 10` scrip per first pass; `royalty_scrip = 3`; 10 s timeout | `world/mint.py:304`, `config/config.yaml:84`, `config.py:159`, `:162` |
 | **Message** | A free note from one agent to another. | `sender`, `recipient`, `text` (1-1000 characters), `turn` | `simulation/resident.py:141`, `:209` |
+| **Shared project** (Plan 27) | In a run started with `--aes-pilot`, the run's own git copy of the AES-governed pilot (stubbed tinydb, M1), at `<run>/pilot_project`. The pilot sandbox itself is never changed. | `main` (the integrated project), `manifest` (`pilot.json`), library roots (`tinydb/`), latest `aes reconcile --json`, criteria `held` (paid and still met), `bounty_scrip` 30 | `simulation/pilot.py:137`, `scripts/run_resident_ecology.py:112` |
+| **Agent branch** | The agent's git worktree of the shared project on branch `agent/<id>`; it is the agent's writable Codex folder (`agents/<id>/work`), a sibling of its Codex home. | path, last rejection reason | `simulation/pilot.py:129` |
+| **Success criterion** | AES criterion `SC-<M>`, one per test module `tests/test_<m>.py`. | standing from `aes reconcile --json`: INSUFFICIENT (no current evidence, including evidence gone STALE), SUPPORTED, REFUTED | `scripts/build_aes_pilot.py:120` |
+| **Observation** | What `aes evidence record` writes for one verification subject at one commit. | `OBS-<M>-<commit8>`, `dependency_paths` (test module, conftest, the library files the test imports), freshness CURRENT/STALE | `.aes/observations/` in the run copy |
+| **Bounty / contribution** | A criterion's bounty pays the agents whose lines survive (git blame) in that criterion's observation dependency files. | 30 scrip, equal shares | `simulation/pilot.py:95`, `:375` |
 | **Kernel** | The shared clock and action endpoint. | `turn`, `actions_per_turn` (default 4), `event_number`, a lock that runs actions one at a time | `simulation/resident.py:144`, `scripts/run_resident_ecology.py:133` |
 
 **Scales.** Time is measured in **turns**. In one turn every agent gets one
@@ -301,6 +308,56 @@ pasted its own `def mex`, Agent 3 would get nothing.
 - `agent_message` is logged with the full text and the kernel's per-call
   `action_id`, which its `resident_action` also carries; views join the two on
   it (two messages in one turn share an `event_number`).
+
+### 6.8a propose_change: integrate, judge, pay (`resident.py:252-333`, `simulation/pilot.py`)
+
+Only in a shared-project run (`run_resident_ecology.py --aes-pilot <sandbox>`).
+Example: Agent 1 implements `double()` in `tinydb/utils.py` in its folder, runs
+`tests/test_utils.py` there, and calls `propose_change`.
+
+1. **Submit** (`change_submitted`): the agent's branch state is logged.
+2. **Integrate** (`pilot.py:259`): the kernel stages edits to tracked files
+   under the library roots (`git add -u tinydb/`), commits them authored as
+   `alpha_1 <alpha_1@agents.agent-ecology3.invalid>`, merges `main` into the
+   branch and fast-forwards `main` to it (`change_integrated`: commit, files).
+   Rejected (`change_rejected`, reason) when: conflict markers remain; the merge
+   conflicts (the merge stays in the agent's folder with markers to resolve);
+   nothing is new (the folder is then up to date with `main`); or the change
+   adds, deletes or edits anything but existing library files. Tests,
+   `.aes/`, `pilot.json` and new files cannot be proposed, so an agent cannot
+   change what judges it. Untracked files and edits elsewhere stay in its
+   folder.
+3. **Judge** (`pilot.py:315`, `aes_judged`): `aes evidence record VS-<M>
+   --depends-on tests/conftest.py --command timeout 120 <pilot.json command>`
+   for all 7 subjects at the new `main`, observations committed by the kernel,
+   then `aes reconcile --json`. Standings before = the previous reconcile.
+   All subjects are recorded every time: every observation depends on nearly
+   every library file (tinydb's `__init__` imports the whole package), so
+   "only the affected ones" would be all of them.
+4. **Pay bounties** (`pilot.py:95`, `:383`, `bounty_paid`): a criterion
+   SUPPORTED now and not held pays 30 scrip (minted), split equally among the
+   agents with surviving lines (git blame at that commit) in its observation's
+   library dependency files; remainder one scrip each, most lines first. It is
+   then held. A held criterion that is not SUPPORTED now (REFUTED, or
+   INSUFFICIENT because its evidence went STALE) is released and pays nothing;
+   if it is SUPPORTED again later it pays again, `regained: true`. REFUTED and
+   INSUFFICIENT never pay.
+5. **Pay royalties** (`pilot.py:432`, `royalty_paid`, `source:
+   pilot_function_call`): each module-level library function the change's
+   added lines call or import, resolved through that file's imports (`f()`
+   with `f` imported from a library module or defined in the same file;
+   `mod.f()` with `mod` an imported library module; `from .utils import f`),
+   whose body (docstring excluded) is mostly another agent's lines by git
+   blame pays that author 3 scrip, once per (change, author, function).
+   Method calls on objects are not resolved: a first scripted run that
+   matched by bare name paid royalties for `os.path.exists`, the builtin
+   `any` and `dict.pop`, because the library defines methods with those
+   names.
+
+A git or `aes` failure here stops the run as invalid after the turn
+(`ResidentKernel.fatal_error`); nothing is substituted. Counts as one action;
+does not advance `event_number`; every event carries the `action_id` of its
+`resident_action`.
 
 ### 6.9 Other actions resident agents can reach
 

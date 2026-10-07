@@ -50,6 +50,20 @@ loop-run branch (`server.py:1393-1459`) still shows `loop_decision`.
 | `artifact_deleted` | 0 | partial: "delete artifact" | hidden | **missing**: a deleted helper stops being linked, so the view can mislead (gap 5) |
 | `resident_session_changed` | 0 | **missing** (gap 5) | hidden | hidden |
 
+**Shared-project events (Plan 27 M2, 2026-10-06).** Only runs started with
+`--aes-pilot` emit these; run5 has none (count = in the scripted fixture runs of
+`tests/test_pilot_kernel.py`). Checked by `_check_views` in that test on the
+real events of a scripted run, and by eye on the scripted tinydb run in Plan 27's review log.
+
+| Event | Feed | Matrix | Living view |
+|---|---|---|---|
+| `change_submitted` | shown: folded into the proposer's row, "proposed a change (“note”): …" | hidden: not a relation | hidden: the integrated or rejected frame stands for it |
+| `change_integrated` | shown: "… integrated into the shared project as <commit> (files)" | hidden: authorship shows as builds-on and co-built | shown: agent walks to the Project station; station counts integrations |
+| `change_rejected` | shown: "… rejected — <reason>", outcome colour failed | hidden | shown: agent walks to the Project; station counts rejections |
+| `aes_judged` | shown: row by "AES": "judged <commit> by <agent>: SC-X: insufficient → supported (unchanged: …) [s]" | hidden: not between agents | shown: station's criteria-met count and last judgement |
+| `bounty_paid` | shown: payee row "earned N scrip: SC-X met at <commit>, bounty 30 shared with …" (not counted as the payee's action) | shown: "co-built N" cells between payees of one bounty; node label counts bounties | shown: message from the Project to the payee, scrip rises |
+| `royalty_paid` (`source: pilot_function_call`) | shown: author row "earned a 3 scrip royalty: <agent>'s change calls its function f (file)" | shown: "builds on N" cells (dashed, orange edge) | shown: message from the caller to the author, scrip rises |
+
 The run5 event counts were made by counting `event_type` over `events.jsonl`.
 The view outputs were checked by running the three view functions on the same
 log:

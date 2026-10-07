@@ -540,10 +540,10 @@ _DASHBOARD_HTML = """<!doctype html>
         const key = `${edge.source}->${edge.target}`;
         const kind = edge.id.split(':')[0];
         const count = Number((edge.label.match(/×(\\d+)/) || [0, 0])[1]);
-        cell[key] = cell[key] || {read: 0, bought: 0, reused: 0, messaged: 0, paid: 0};
+        cell[key] = cell[key] || {read: 0, bought: 0, reused: 0, messaged: 0, paid: 0, builds_on: 0, co_contributed: 0};
         cell[key][kind] = count;
         // Shade by how many interactions, not scrip: a payment counts once per cell.
-        most = Math.max(most, cell[key].read + cell[key].bought + cell[key].reused + cell[key].messaged + (cell[key].paid ? 1 : 0));
+        most = Math.max(most, cell[key].read + cell[key].bought + cell[key].reused + cell[key].messaged + cell[key].builds_on + cell[key].co_contributed + (cell[key].paid ? 1 : 0));
       }
       const short = id => id.replace('alpha_', 'A');
       const head = nodes.map(n => `<th class="gm-col" title="${escapeHtml(n.label)}">${escapeHtml(short(n.id))}</th>`).join('');
@@ -552,10 +552,10 @@ _DASHBOARD_HTML = """<!doctype html>
           if (r.id === c.id) return '<td class="gm-self"></td>';
           const v = cell[`${r.id}->${c.id}`];
           if (!v) return `<td class="gm-cell" data-ids="" data-tip="${escapeHtml(short(r.id) + ' did not use ' + short(c.id) + "'s work")}"></td>`;
-          const total = v.read + v.bought + v.reused + v.messaged + (v.paid ? 1 : 0);
-          const parts = [v.read ? `code ${v.read}` : '', v.bought ? `bought ${v.bought}` : '', v.reused ? `reuse ${v.reused}` : '', v.messaged ? `msg ${v.messaged}` : '', v.paid ? `paid ${v.paid}` : ''].filter(Boolean).join('<br>');
-          const ids = ['read', 'bought', 'reused', 'messaged', 'paid'].filter(k => v[k]).map(k => `${k}:${r.id}->${c.id}`);
-          return `<td class="gm-cell${v.reused ? ' gm-reuse' : ''}" style="background:rgba(127,179,255,${(0.12 + 0.6 * total / most).toFixed(2)})" data-ids="${escapeHtml(ids.join('|'))}" data-tip="${escapeHtml(ids.map(i => graphDetails[i] || i).join(' '))}">${parts}</td>`;
+          const total = v.read + v.bought + v.reused + v.messaged + v.builds_on + v.co_contributed + (v.paid ? 1 : 0);
+          const parts = [v.read ? `code ${v.read}` : '', v.bought ? `bought ${v.bought}` : '', v.reused ? `reuse ${v.reused}` : '', v.builds_on ? `builds on ${v.builds_on}` : '', v.co_contributed ? `co-built ${v.co_contributed}` : '', v.messaged ? `msg ${v.messaged}` : '', v.paid ? `paid ${v.paid}` : ''].filter(Boolean).join('<br>');
+          const ids = ['read', 'bought', 'reused', 'builds_on', 'co_contributed', 'messaged', 'paid'].filter(k => v[k]).map(k => `${k}:${r.id}->${c.id}`);
+          return `<td class="gm-cell${v.reused || v.builds_on ? ' gm-reuse' : ''}" style="background:rgba(127,179,255,${(0.12 + 0.6 * total / most).toFixed(2)})" data-ids="${escapeHtml(ids.join('|'))}" data-tip="${escapeHtml(ids.map(i => graphDetails[i] || i).join(' '))}">${parts}</td>`;
         }).join('');
         return `<tr><th class="gm-row" data-ids="${escapeHtml(r.id)}" data-tip="${escapeHtml(graphDetails[r.id] || r.label)}">${escapeHtml(r.label)}</th>${tds}</tr>`;
       }).join('');
@@ -568,7 +568,11 @@ _DASHBOARD_HTML = """<!doctype html>
       };
       box.innerHTML = `<table class="gm"><thead><tr><th class="gm-corner">used work of →</th>${head}</tr></thead><tbody>${rows}</tbody></table>`;
       const s = payload.summary;
-      document.getElementById('graphSummary').textContent =
+      document.getElementById('graphSummary').textContent = s.bounties_met || s.builds_on ?
+        `${s.agents} agents · ${s.bounties_met} bounties met on the shared project · "builds on N" = the row agent's integrated code calls N functions the column agent wrote (${s.builds_on} in all) · "co-built N" = both had code in N criteria AES recorded as met` +
+        (s.messages ? ` · ${s.messages} messages` : '') +
+        (s.transfers ? ` · ${s.transfers} payment${s.transfers === 1 ? '' : 's'} (${s.scrip_transferred} scrip)` : '') +
+        '. Darker = more; an orange edge marks code reuse.' :
         `${s.agents} agents · ${s.tasks_solved} tasks solved · read each other's code ${s.code_reads} times · reused each other's helpers ${s.reuses} times` +
         (s.code_bought ? ` · bought each other's code ${s.code_bought} time${s.code_bought === 1 ? '' : 's'}` : '') +
         (s.messages ? ` · ${s.messages} messages` : '') +
@@ -631,7 +635,7 @@ _DASHBOARD_HTML = """<!doctype html>
           <div class=\"agent-stats\">
             <div class=\"agent-stat\"><b>${agent.scrip ?? '—'}</b>${operatorState.read_only ? 'final' : 'current'} scrip</div>
             ${agent.llm_budget == null ? `<div class=\"agent-stat\"><b>${visibleActions.filter(a => a.principal_id === agent.id && a.action === 'submit_to_mint' && a.success && a.value_amount).length}</b>tasks solved so far</div>` : `<div class=\"agent-stat\"><b>${formatMoney(agent.llm_budget)}</b>budget left</div>`}
-            <div class=\"agent-stat\"><b>${actions.filter(a => a.action !== 'note').length}</b>${operatorState.run_kind === 'resident' ? 'actions' : 'decisions'} so far</div>
+            <div class=\"agent-stat\"><b>${actions.filter(a => a.action !== 'note' && !a.by_kernel).length}</b>${operatorState.run_kind === 'resident' ? 'actions' : 'decisions'} so far</div>
           </div>
           <div class=\"mix\" style=\"margin-top:10px\">${Object.entries(mix).map(([name,count]) => `<span class=\"chip\">${escapeHtml(name)} × ${count}</span>`).join('')}${failures ? `<span class=\"chip fail\">${failures} failed</span>` : ''}</div>
         </article>`;
@@ -1108,6 +1112,9 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
     solved: Counter[str] = Counter()
     bought_scrip: Counter[tuple[str, str]] = Counter()
     transfers: Counter[tuple[str, str]] = Counter()
+    met: Counter[str] = Counter()
+    co_groups: set[tuple[str, str]] = set()
+    shared_bounties = 0
     for event in events:
         kind = event.get("event_type")
         if kind == "artifact_read":
@@ -1124,10 +1131,26 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
             else:
                 statement_reads[reader] += 1
                 statement_scrip[reader] += int(event.get("read_price_paid", 0) or 0)
+        elif kind == "royalty_paid" and event.get("source") == "pilot_function_call":
+            # Plan 27: the solver's integrated change calls a function the author wrote.
+            solver, author = str(event.get("solver") or ""), str(event.get("principal_id") or "")
+            if solver and author and solver != author:
+                links[(solver, author, "builds_on")] = links.get((solver, author, "builds_on"), 0) + 1
         elif kind == "royalty_paid":
             solver, author = str(event.get("solver") or ""), str(event.get("principal_id") or "")
             if solver and author and solver != author:
                 links[(solver, author, "reused")] = links.get((solver, author, "reused"), 0) + 1
+        elif kind == "bounty_paid":
+            met[str(event.get("principal_id"))] += 1
+            group = (str(event.get("criterion_id")), str(event.get("commit")))
+            if group not in co_groups:
+                co_groups.add(group)
+                payees = [str(p) for p in event.get("contributors") or []]
+                shared_bounties += len(payees) > 1
+                for a in payees:
+                    for b in payees:
+                        if a != b:
+                            links[(a, b, "co_contributed")] = links.get((a, b, "co_contributed"), 0) + 1
         elif kind == "agent_message":
             sender, recipient = str(event.get("principal_id") or ""), str(event.get("recipient") or "")
             if sender and recipient and sender != recipient:
@@ -1142,12 +1165,21 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
         elif kind == "task_bounty_scored" and event.get("first_claim"):
             solved[str(event.get("principal_id"))] += 1
     words = {"read": "read code ×{n}", "bought": "bought code ×{n}", "reused": "reused helper ×{n}",
-             "messaged": "messaged ×{n}", "paid": "paid scrip ×{n}"}
+             "messaged": "messaged ×{n}", "paid": "paid scrip ×{n}",
+             "builds_on": "builds on ×{n}", "co_contributed": "co-contributed ×{n}"}
     nodes = []
     details: dict[str, str] = {}
     for principal in principals:
         raw = balances.get(principal)
         scrip = raw.get("scrip") if isinstance(raw, dict) else None
+        if met[principal] or co_groups:
+            nodes.append({"id": principal, "kind": "Agent",
+                          "label": f"{_agent_label(principal)} · {met[principal]} bounties"})
+            details[principal] = (
+                f"{_agent_label(principal)}: {scrip if scrip is not None else '?'} scrip; paid a share of "
+                f"{met[principal]} bounties for shared-project criteria AES recorded as met."
+            )
+            continue
         nodes.append({"id": principal, "kind": "Agent",
                       "label": f"{_agent_label(principal)} · {solved[principal]} solved"})
         details[principal] = (
@@ -1158,7 +1190,7 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
     for (source, target, kind), count in sorted(links.items()):
         edge_id = f"{kind}:{source}->{target}"
         edges.append({"id": edge_id, "source": source, "target": target,
-                      "label": words[kind].format(n=count), "dashed": kind == "reused"})
+                      "label": words[kind].format(n=count), "dashed": kind in ("reused", "builds_on")})
         if kind == "paid":
             n = transfers[(source, target)]
             details[edge_id] = (f"{_agent_label(source)} paid {_agent_label(target)} {count} scrip "
@@ -1167,6 +1199,14 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
         if kind == "bought":
             details[edge_id] = (f"{_agent_label(source)} bought {_agent_label(target)}'s code {count} "
                                 f"time{'s' if count != 1 else ''}, paying {bought_scrip[(source, target)]} scrip.")
+            continue
+        if kind == "builds_on":
+            details[edge_id] = (f"{_agent_label(source)}'s integrated changes call functions written by "
+                                f"{_agent_label(target)} ({count} royalt{'ies' if count != 1 else 'y'} paid).")
+            continue
+        if kind == "co_contributed":
+            details[edge_id] = (f"{_agent_label(source)} and {_agent_label(target)} shared {count} "
+                                f"bount{'ies' if count != 1 else 'y'}: both had code in what AES recorded as met.")
             continue
         verb = {"read": "read the code of", "reused": "reused a helper written by", "messaged": "sent messages to"}[kind]
         details[edge_id] = f"{_agent_label(source)} {verb} {_agent_label(target)} {count} time{'s' if count != 1 else ''}."
@@ -1190,6 +1230,9 @@ def _agent_graph(events: list[dict[str, Any]], world_state: dict[str, Any]) -> d
             "scrip_transferred": sum(c for (_, _, k), c in links.items() if k == "paid"),
             "statement_reads": sum(statement_reads.values()),
             "tasks_solved": sum(solved.values()),
+            "builds_on": sum(c for (_, _, k), c in links.items() if k == "builds_on"),
+            "co_contributed": shared_bounties,
+            "bounties_met": len(co_groups),
         },
     }
 
@@ -1353,6 +1396,8 @@ def _resident_action_rows(
     Prices, checker results and royalties join on the action's event number.
     """
     by_number: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    # Plan 27 shared-project events, joined to their propose_change by action_id.
+    pilot_by_action: dict[int, list[dict[str, Any]]] = {}
     messages_by_action: dict[tuple[str, int], dict[str, Any]] = {}
     # Logs older than the per-action id: pair each agent's messages with its
     # send_message actions in order (the message is logged just before it).
@@ -1364,6 +1409,9 @@ def _resident_action_rows(
                 messages_by_action[(str(event.get("principal_id")), int(event["action_id"]))] = event
             else:
                 unkeyed_messages.setdefault(str(event.get("principal_id")), []).append(event)
+        elif kind in PILOT_EVENTS or (kind == "royalty_paid" and event.get("source") == "pilot_function_call"):
+            if event.get("action_id") is not None:
+                pilot_by_action.setdefault(int(event["action_id"]), []).append(event)
         elif kind in {"artifact_read", "task_bounty_scored", "royalty_paid", "transfer"}:
             by_number.setdefault((str(kind), int(event.get("event_number", 0) or 0)), []).append(event)
     def joined(kind: str, number: int, **match: Any) -> list[dict[str, Any]]:
@@ -1376,6 +1424,7 @@ def _resident_action_rows(
         kind = event.get("event_type")
         if kind not in {"resident_action", "resident_turn"}:
             continue
+        follow_on: list[dict[str, Any]] = []
         who = str(event.get("principal_id") or "unknown")
         number = int(event.get("event_number", 0) or 0)
         target = event.get("artifact_id")
@@ -1390,7 +1439,7 @@ def _resident_action_rows(
             success = True
         else:
             action = str(event.get("action_type") or "unknown")
-            if event.get("success") is False:
+            if event.get("success") is False and action != "propose_change":
                 verb = {"submit_to_mint": "submit", "read_artifact": "read", "write_artifact": "write"}.get(action, action.replace("_", " "))
                 description = f"tried to {verb} {target or ''}".rstrip() + f" — refused by the kernel ({event.get('error_code') or 'error'})"
             elif action == "read_artifact":
@@ -1448,6 +1497,10 @@ def _resident_action_rows(
                     description = f"paid {counterparty} {amount:g} scrip" + (f": \u201c{memo[:120]}\u201d" if memo else "")
                 else:
                     description = "transfer (no transfer record found)"
+            elif action == "propose_change":
+                pilot_events = pilot_by_action.get(int(event.get("action_id") or 0), [])
+                description, success = _proposal_description(pilot_events)
+                follow_on = _pilot_follow_on_rows(pilot_events)
             elif action == "query_kernel":
                 description = "searched the world"
             else:
@@ -1471,6 +1524,62 @@ def _resident_action_rows(
                 "counterparty": counterparty,
             }
         )
+        for extra in follow_on:
+            rows.append({
+                "turn": len(rows) + 1, "agent_turn": event.get("turn"), "event_number": number,
+                "artifact_id": None, "artifact_owner": None, "success": True, "local_action_success": True,
+                "error_code": None, "fallback_used": False, "value_amount": 0, "value_unit": None,
+                "counterparty": None, "by_kernel": True, **extra,
+            })
+    return rows
+
+
+PILOT_EVENTS = {"change_submitted", "change_integrated", "change_rejected", "aes_judged", "bounty_paid"}
+
+
+def _proposal_description(pilot_events: list[dict[str, Any]]) -> tuple[str, bool]:
+    """Plain words for one propose_change: submitted, then integrated or rejected."""
+    submitted = next((e for e in pilot_events if e.get("event_type") == "change_submitted"), {})
+    note = " ".join(str(submitted.get("message") or "").split())
+    head = "proposed a change" + (f" (\u201c{note[:120]}\u201d)" if note else "")
+    integrated = next((e for e in pilot_events if e.get("event_type") == "change_integrated"), None)
+    rejected = next((e for e in pilot_events if e.get("event_type") == "change_rejected"), None)
+    if integrated:
+        files = ", ".join(str(f) for f in integrated.get("files") or [])
+        return f"{head}: integrated into the shared project as {str(integrated.get('commit'))[:7]} ({files})", True
+    if rejected:
+        return f"{head}: rejected \u2014 {str(rejected.get('reason') or '')[:220]}", False
+    return f"{head}: no integration result recorded", False
+
+
+def _pilot_follow_on_rows(pilot_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Feed rows for what one integration caused: AES's judgement, bounties and royalties."""
+    rows: list[dict[str, Any]] = []
+    for e in pilot_events:
+        kind = e.get("event_type")
+        if kind == "aes_judged":
+            moved = [r for r in e.get("standings") or [] if r.get("before") != r.get("after")]
+            text = "; ".join(f"{r['criterion_id']}: {str(r.get('before')).lower()} \u2192 {str(r.get('after')).lower()}" for r in moved)
+            still = Counter(str(r.get("after")).lower() for r in e.get("standings") or [] if r.get("before") == r.get("after"))
+            rest = ", ".join(f"{n} {k}" for k, n in sorted(still.items()))
+            rows.append({"principal_id": "AES", "action": "aes_judged",
+                         "description": f"judged {str(e.get('commit'))[:7]} by {e.get('principal_id')}: "
+                                        + (text or "no criterion changed") + (f" (unchanged: {rest})" if rest else "")
+                                        + f" [{e.get('seconds')} s]",
+                         "success": not any(str(r.get("after")) == "REFUTED" and r.get("before") == "SUPPORTED" for r in moved)})
+        elif kind == "bounty_paid":
+            others = [c for c in e.get("contributors") or [] if c != e.get("principal_id")]
+            rows.append({"principal_id": str(e.get("principal_id")), "action": "bounty_paid",
+                         "description": f"earned {e.get('share')} scrip: "
+                                        + ("regained " if e.get("regained") else "")
+                                        + f"{e.get('criterion_id')} met at {str(e.get('commit'))[:7]}"
+                                        + (f", bounty {e.get('bounty')} shared with {', '.join(others)}" if others else f", whole bounty {e.get('bounty')}"),
+                         "value_amount": e.get("share", 0), "value_unit": "scrip"})
+        elif kind == "royalty_paid":
+            rows.append({"principal_id": str(e.get("principal_id")), "action": "royalty",
+                         "description": f"earned a {e.get('amount')} scrip royalty: {e.get('solver')}'s change calls its "
+                                        f"function {e.get('function')} ({e.get('file')})",
+                         "value_amount": e.get("amount", 0), "value_unit": "scrip", "counterparty": str(e.get("solver"))})
     return rows
 
 
@@ -1607,7 +1716,7 @@ def _operator_state(
         agent_counts = {}
         agent_failures = Counter()
         for row in action_rows:
-            if row["action"] != "note":
+            if row["action"] != "note" and not row.get("by_kernel"):
                 agent_counts.setdefault(row["principal_id"], Counter())[row["action"]] += 1
                 if not row["success"]:
                     agent_failures[row["principal_id"]] += 1

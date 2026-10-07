@@ -5,7 +5,7 @@ dependencies_reviewed: "2026-10-06"
 ---
 # Plan #27: Shared Projects Judged by AES
 
-**Status:** 🚧 In progress — M1 done (pilot scaffold); M2 next (kernel adapter)
+**Status:** 🚧 In progress — M1 done (pilot scaffold); M2 done (kernel adapter: propose_change / integrate / judge / pay); M3 next (4-agent live run)
 **Type:** durable living plan (company-planning `durable_solo`)
 **Priority:** Critical
 **Blocked By:** None
@@ -32,7 +32,7 @@ criterion is met, and decides whether this oracle produces cooperation worth
 scaling.
 **Stage / investment boundary:** local prototype; no verdict on whether
 cooperation pays (that needs scale); no benchmarks.
-**Last outcome-bearing update:** 2026-10-06, M1 done: tinydb pilot governed by AES; the oracle says no on the stubs and yes on the reference.
+**Last outcome-bearing update:** 2026-10-07, M2 done: agents propose changes to one shared tinydb copy; AES judges every integration and bounties pay only on criteria AES records as SUPPORTED (scripted run: 7/7 criteria met, one break and repair, 240 scrip in bounties, 1 royalty).
 
 ## Outcome and boundaries
 
@@ -117,8 +117,8 @@ the replay; M5 (scale) waits for Brian. Details below.
 | Milestone | Planning state | Output | Review point |
 |---|---|---|---|
 | M1 Pilot project scaffold | done 2026-10-06 (see Pilot facts) | One small real Python library chosen (Commit0 lite, MIT, smallest with clear module dependencies; candidates checked, not assumed); its function bodies stubbed in a sandbox repo; `aes init` with criteria = groups of the library's own tests; `aes status` shows every criterion INSUFFICIENT; a dashboard panel lists the open gaps as bounties | pilot `aes status` in the dashboard |
-| M2 Kernel adapter for AES judging | fully_specifiable_now (next) | `propose_change` / `integrate` / `judge` / `pay` in the resident gateway; AES called as a subprocess on the sandbox; model YAML, ODD and drift test updated; tests with a scripted agent (no model calls) prove pay on SUPPORTED, no pay on REFUTED or STALE, royalty on cross-author import | test run + feed rows on a scripted run |
-| M3 4-agent live run | conditional (after M2) | 4 Codex agents × 20 turns on the pilot, systemd unit; record criteria met, contributions per agent, cross-author imports, messages, payments | live dashboard link |
+| M2 Kernel adapter for AES judging | done 2026-10-07 (see review log) | `propose_change` / `integrate` / `judge` / `pay` in the resident gateway; AES called as a subprocess on the sandbox; model YAML, ODD and drift test updated; tests with a scripted agent (no model calls) prove pay on SUPPORTED, no pay on REFUTED or STALE, royalty on cross-author import | test run + feed rows on a scripted run |
+| M3 4-agent live run | fully_specifiable_now (next) | 4 Codex agents × 20 turns on the pilot, systemd unit; record criteria met, contributions per agent, cross-author imports, messages, payments | live dashboard link |
 | M4 Public replay | conditional (after M3) | republish via `scripts/deploy_public_replay.sh` after the leak check (pilot library code is MIT, so code may be shown; agent notes still checked) | brianmills.dev/agent-ecology/ |
 | M5 Scale | deliberately_deferred | 16+ agents, longer runs, larger library | Brian selects it |
 
@@ -137,18 +137,16 @@ the replay; M5 (scale) waits for Brian. Details below.
 - **Reproducibility:** rebuilding gives identical file content; commit ids differ only by AES's own `initialized_at` / `accepted_at` timestamps.
 - **Gap count:** a criterion gap appears under several components in `aes reconcile --json`; the board counts each gap id once, the same rule as AES's `Reconciliation.open_gaps()`.
 
-## Active slice: M2 — kernel adapter for AES judging
+## Active slice: M3 — 4-agent live run
 
 **Steps:**
-1. Read `src/agent_ecology3/simulation/resident.py` (the resident gateway) and the M1 sandbox's `pilot.json`; write the model-YAML and ODD additions for the entities, processes and events in the system model above.
-2. `propose_change`: an agent's files land on its own branch of a per-run clone of the pilot sandbox; `integrate` merges into that clone's `main` when it applies cleanly.
-3. `judge`: for each verification subject whose dependency files changed, `aes evidence record <VS> --depends-on tests/conftest.py --command <pilot.json command>`, commit the observation, then `aes reconcile --json`; emit `aes_judged` with standings before and after.
-4. `pay`: a criterion that moved to SUPPORTED pays its bounty to the contributors whose commits the supporting commit contains; REFUTED or STALE pays nothing; royalty when a contribution imports another agent's module.
-5. Scripted-agent tests (no model calls) on a fresh pilot build: pay on SUPPORTED, no pay on REFUTED or STALE, royalty on a cross-author import; drift test green.
+1. Launch as a systemd unit: `systemd-run --user --unit=ae3-plan27-m3 uv run python scripts/run_resident_ecology.py --agents 4 --turns 20 --aes-pilot ~/.local/state/agent_ecology3/pilots/tinydb --run-id plan27_m3_run1 --port 9080 --keep-serving` (Codex, low effort).
+2. Watch the first two turns in the dashboard (feed, Interactions, Bounties tab reads the run's copy); stop the unit if a turn fails or a judge step takes over 120 s.
+3. After the run: count criteria met, contributions per agent (`bounty_paid`), cross-author calls (`royalty_paid` with `source: pilot_function_call`), messages and transfers; redacted bundle with `scripts/run_evidence.py`; Living view screenshot; record here.
 
-**Focused check:** the scripted run's feed shows `aes_judged` and `bounty_paid` rows whose criterion ids match `aes reconcile --json` before and after.
+**Focused check:** every `bounty_paid` row's criterion is SUPPORTED in that integration's `aes_judged` row, and the final `aes reconcile --json` of `<run>/pilot_project` equals the last `aes_judged` standings.
 
-**Failure / containment:** if recording per change is too slow for a 20-turn run (the reference run of all 7 subjects took 13–58 s), record only the subjects whose dependency paths a change touched and say so in the review log.
+**Failure / containment:** a git or `aes` failure stops the run as invalid (`ResidentKernel.fatal_error`); judge time per integration was 7–42 s in the scripted run, so 4 agents × 20 turns with ~1 integration per agent-turn costs up to ~80 judge steps (≈15–25 min of judging).
 
 ## Decisions and assumptions
 
@@ -158,6 +156,15 @@ the replay; M5 (scale) waits for Brian. Details below.
 | Pilot on a sandbox library, not AES itself | agent_decided_reversible | agents editing the governance tool is unsafe for a first run |
 | Criteria from the library's own tests | agent_decided_reversible | nobody hand-writes the jobs; tests are the outside checker |
 | Pay only on AES-recorded SUPPORTED evidence; stale stops pay | agent_decided_reversible | evidence is bound to the commit (AES v0.2 design) |
+| M2: agents' folders are git worktrees of a per-run clone; the kernel commits for them (authored as the agent) | agent_decided_reversible | an agent's Codex sandbox can write only its folder, not the clone's `.git`, so it cannot commit or rebase itself; authorship is set by the kernel, so agents cannot spoof it |
+| M2: integrate = merge `main` into the agent's branch, then fast-forward `main` (changed from "the agent rebases") | agent_decided_reversible | the agent cannot run git writes; on conflict the merge with markers stays in its folder and it edits them out, then proposes again |
+| M2: only edits to existing library files (`tinydb/`) are proposed; tests, `.aes/`, `pilot.json`, new or deleted files never are | agent_decided_reversible | an agent must not change what judges it; a new file would be an AES orphan the agents cannot plan |
+| M2: every integration records all 7 subjects (changed from "only the affected ones") | agent_decided_reversible | each observation's `dependency_paths` holds nearly every library file (tinydb's `__init__` imports the package), so "affected" is all of them; scripted judge steps took 7–42 s |
+| M2: contributors = agents with surviving lines (git blame at the judged commit) in the observation's library `dependency_paths`; equal split, remainder one each, most lines first | agent_decided_reversible | AES names the files the evidence depends on; blame counts only code still present. Coarse: in the scripted run every agent shared 6–7 of 8 bounties because every test imports every module. Wrong when M3 shows bounties split evenly regardless of who wrote the code that matters; then weight by covered lines |
+| M2: a criterion lost and regained pays again (`regained: true`) | agent_decided_reversible (as specified) | exploitable by break-and-fix; M3 checks `bounty_paid.regained` rows for one agent breaking what it then repairs |
+| M2: royalties resolve calls through imports only (`f()` imported from a library module or defined in the same file, `mod.f()`, `from .x import f`); method calls on objects are not resolved | agent_decided_reversible | matching by bare name paid royalties for `os.path.exists`, builtin `any` and `dict.pop` in the first scripted run |
+| M2: each test command runs under `timeout --kill-after=5 120` | agent_decided_reversible | `aes evidence record` has no time limit, so an agent's infinite loop would hang the kernel ([AES #162](https://github.com/BrianMills2718/agentic-engineering-system-canonical/issues/162)) |
+| M2: bounty 30 scrip (`--bounty-scrip`), royalty `mint.royalty_scrip` 3, both minted | agent_decided_reversible | brief's example amount; minted like checker royalties |
 
 **Wrong when:** after M3, revisit the oracle if agents still show no cross-author imports and no messages or payments while open gaps span more than one agent's modules, or if `aes evidence record` per change makes a 20-turn run take more than 3× a CodeFlowBench run.
 
@@ -169,13 +176,13 @@ the replay; M5 (scale) waits for Brian. Details below.
 
 | Date | Milestone | What Brian can open | Result |
 |---|---|---|---|
+| 2026-10-07 | M2 | Scripted run served read-only: `uv run python scripts/run_recoverable_evaluation.py review --data-dir ~/.local/state/agent_ecology3/plan27_m2_scripted3 --port 9096`, then http://127.0.0.1:9096/ (feed, Interactions, Living view ↗). Screenshots: [feed](../evaluations/evidence/plan27_m2_scripted_feed.png), [matrix](../evaluations/evidence/plan27_m2_scripted_matrix.png), [Living view](../evaluations/evidence/plan27_m2_scripted_living.png) | `tests/test_pilot_kernel.py` 7 passed (5 drive the real `aes` CLI and git on a two-criterion fixture project; 2 unit-test the pay rule on recorded reconcile JSON); `tests/test_model_declaration.py` 5 passed. Scripted tinydb run (`scripts/run_pilot_scripted.py`, 4 scripted agents, no model calls, reference files restored from 429b27a5): 10 proposals, 7 integrated, 3 rejected (1 conflict, 2 nothing new), 7 `aes_judged`, 27 `bounty_paid` = 240 scrip (7 criteria × 30 + SC-OPERATIONS regained × 30 after alpha_2 broke `add()` and alpha_4 fixed it; the break paid nothing), 1 royalty (alpha_1's `freeze`, called from alpha_2's queries.py). Final standings 7 SUPPORTED, equal to an independent `aes reconcile --json` of the run copy. Judge seconds per integration: 41.5, 6.9, 11.8, 12.1, 29.4, 13.1, 18.7 (first one slow: tests on half-stubbed code; tests ran in parallel during some steps). Shared pilot unchanged (clean tree, HEAD 325a7b9). Playwright: 12 new matrix cells hovered, 0 without a styled tooltip, 0 page errors; feed shows `AES judged 2f9c796 by alpha_2: SC-OPERATIONS: supported → refuted`. Untested: a real Codex agent using its worktree (M3). |
 | 2026-10-06 | M1 | The bounty board: `uv run python -m agent_ecology3.dashboard --pilot ~/.local/state/agent_ecology3/pilots/tinydb --port 9095`, then http://127.0.0.1:9095/ (opens on the Bounties tab) | Pilot sandbox at 325a7b953eac. **Stubs** (`aes status`): `criteria: 0 supported, 7 insufficient, 0 refuted; 0 unsupported evidence requirement(s) with no route` / `observations: 0 current, 0 stale, 0 unknown, 0 unreachable; 0 superseded`. **Stubs recorded** (throwaway copy, `--stub-check`): `criteria: 0 supported, 0 insufficient, 7 refuted` (every module exits non-zero at import). **Reference** (throwaway copy `~/code/.scratch/ae3/pilot-reference-check-325a7b9`, tinydb/ restored from 429b27a5, `--reference-check`): `criteria: 7 supported, 0 insufficient, 0 refuted; 0 unsupported evidence requirement(s) with no route` / `observations: 7 current, 0 stale, 0 unknown, 0 unreachable; 0 superseded`; passes 8/14/32/13/28/97/9 = 201. Sandbox afterwards: tinydb/ and tests/ identical to ed761a72, clean tree. Board: 7 open gaps shown = 7 unique gap ids in `reconcile --json`; Playwright hovered 31 controls, 0 without a styled tooltip, standing colour blue only (no REFUTED rows), 0 page errors. Unit tests: tests/test_pilot_bounties.py 7 passed on real reconcile fixtures. |
 
 ## Exact next action
 
-M2 step 1: read `src/agent_ecology3/simulation/resident.py` and the pilot's
-`pilot.json`, then add the pilot entities, processes and events to
-`docs/model/ae3_model.yaml` and `docs/model/ODD.md` with the drift test green.
+M3 step 1: launch the 4-agent, 20-turn Codex run on the pilot as a systemd
+unit (command in the active slice), then watch turns 1–2 in the dashboard.
 
 ## Goal text (to start this plan)
 

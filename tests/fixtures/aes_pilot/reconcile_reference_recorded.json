@@ -1,0 +1,281 @@
+{
+  "schema_version": "aes.v0_2.reconciliation.probe0",
+  "subject_revision": "b30dc1c020d45ea1784732b8c99d2794af42340d",
+  "dirty": false,
+  "producer": {
+    "identity": "aes",
+    "version": "0.1.dev535+g618a6e475 (running: 60ad743)"
+  },
+  "target_id": "ae3-pilot-tinydb-target",
+  "artifacts": [
+    {
+      "artifact_id": "ART-TESTS-INIT-PY",
+      "path": "tests/__init__.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TESTS-CONFTEST-PY",
+      "path": "tests/conftest.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TESTS-TEST-MIDDLEWARES-PY",
+      "path": "tests/test_middlewares.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TESTS-TEST-OPERATIONS-PY",
+      "path": "tests/test_operations.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TESTS-TEST-QUERIES-PY",
+      "path": "tests/test_queries.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TESTS-TEST-STORAGES-PY",
+      "path": "tests/test_storages.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TESTS-TEST-TABLES-PY",
+      "path": "tests/test_tables.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TESTS-TEST-TINYDB-PY",
+      "path": "tests/test_tinydb.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TESTS-TEST-UTILS-PY",
+      "path": "tests/test_utils.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-INIT-PY",
+      "path": "tinydb/__init__.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-DATABASE-PY",
+      "path": "tinydb/database.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-MIDDLEWARES-PY",
+      "path": "tinydb/middlewares.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-MYPY-PLUGIN-PY",
+      "path": "tinydb/mypy_plugin.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-OPERATIONS-PY",
+      "path": "tinydb/operations.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-PY-TYPED",
+      "path": "tinydb/py.typed",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-QUERIES-PY",
+      "path": "tinydb/queries.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-STORAGES-PY",
+      "path": "tinydb/storages.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-TABLE-PY",
+      "path": "tinydb/table.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-UTILS-PY",
+      "path": "tinydb/utils.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    },
+    {
+      "artifact_id": "ART-TINYDB-VERSION-PY",
+      "path": "tinydb/version.py",
+      "status": "REALIZED",
+      "drift": [],
+      "note": null
+    }
+  ],
+  "criteria": [
+    {
+      "criterion_id": "SC-MIDDLEWARES",
+      "standing": "SUPPORTED",
+      "missing": []
+    },
+    {
+      "criterion_id": "SC-OPERATIONS",
+      "standing": "SUPPORTED",
+      "missing": []
+    },
+    {
+      "criterion_id": "SC-QUERIES",
+      "standing": "SUPPORTED",
+      "missing": []
+    },
+    {
+      "criterion_id": "SC-STORAGES",
+      "standing": "SUPPORTED",
+      "missing": []
+    },
+    {
+      "criterion_id": "SC-TABLES",
+      "standing": "SUPPORTED",
+      "missing": []
+    },
+    {
+      "criterion_id": "SC-TINYDB",
+      "standing": "SUPPORTED",
+      "missing": []
+    },
+    {
+      "criterion_id": "SC-UTILS",
+      "standing": "SUPPORTED",
+      "missing": []
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "OBS-MIDDLEWARES-0da5c213",
+      "freshness": "CURRENT",
+      "detail": "no dependency or target entry changed since 0da5c213ae85",
+      "superseded_by": null
+    },
+    {
+      "observation_id": "OBS-OPERATIONS-0da5c213",
+      "freshness": "CURRENT",
+      "detail": "no dependency or target entry changed since 0da5c213ae85",
+      "superseded_by": null
+    },
+    {
+      "observation_id": "OBS-QUERIES-0da5c213",
+      "freshness": "CURRENT",
+      "detail": "no dependency or target entry changed since 0da5c213ae85",
+      "superseded_by": null
+    },
+    {
+      "observation_id": "OBS-STORAGES-0da5c213",
+      "freshness": "CURRENT",
+      "detail": "no dependency or target entry changed since 0da5c213ae85",
+      "superseded_by": null
+    },
+    {
+      "observation_id": "OBS-TABLES-0da5c213",
+      "freshness": "CURRENT",
+      "detail": "no dependency or target entry changed since 0da5c213ae85",
+      "superseded_by": null
+    },
+    {
+      "observation_id": "OBS-TINYDB-0da5c213",
+      "freshness": "CURRENT",
+      "detail": "no dependency or target entry changed since 0da5c213ae85",
+      "superseded_by": null
+    },
+    {
+      "observation_id": "OBS-UTILS-0da5c213",
+      "freshness": "CURRENT",
+      "detail": "no dependency or target entry changed since 0da5c213ae85",
+      "superseded_by": null
+    }
+  ],
+  "plans": [
+    {
+      "plan_id": "PLAN-001-TEST-MODULES",
+      "accepted_at_revision": "3f2293c3111c2d1fd4cc3d579cf510b132c34ff6",
+      "reachable": true
+    }
+  ],
+  "orphans": [],
+  "components": [
+    {
+      "component_id": "CMP-LIBRARY",
+      "gaps": []
+    },
+    {
+      "component_id": "CMP-TEST-SUPPORT",
+      "gaps": []
+    },
+    {
+      "component_id": "CMP-MIDDLEWARES",
+      "gaps": []
+    },
+    {
+      "component_id": "CMP-OPERATIONS",
+      "gaps": []
+    },
+    {
+      "component_id": "CMP-QUERIES",
+      "gaps": []
+    },
+    {
+      "component_id": "CMP-STORAGES",
+      "gaps": []
+    },
+    {
+      "component_id": "CMP-TABLES",
+      "gaps": []
+    },
+    {
+      "component_id": "CMP-TINYDB",
+      "gaps": []
+    },
+    {
+      "component_id": "CMP-UTILS",
+      "gaps": []
+    }
+  ],
+  "unassigned_gaps": [],
+  "produced_at": "2026-10-06T20:52:53Z"
+}
