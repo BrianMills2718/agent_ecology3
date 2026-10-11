@@ -1,0 +1,14 @@
+# Repository layout contract read by AES tooling (agentic-engineering-system-canonical).
+# durable_documents: the fixed set of documents a fresh reader trusts as current
+# (AES plan aes-durable-docs; checked by company-planning durable_docs_check.py).
+durable_documents:
+  schema_version: "0.1"
+  goal: docs/architecture/GOAL.md
+  requirements: docs/architecture/REQUIREMENTS.md
+  # AE3 is an agent-based simulation, so its system model stays in ODD form
+  # (company-planning system-model reference: "Simulations keep ODD"); see ADR 0003.
+  system_model: {prose: docs/model/ODD.md, trace: docs/model/trace.yaml}
+  decisions: docs/adr/
+  plans: docs/plans/
+  glossary: {not_applicable: "terms are defined inline in ODD.md and the AGENTS.md terminology table; no separate glossary"}
+  catalog: {not_applicable: "no generated wiki catalog in this repository; wiki/index.md is hand-written and short"}

@@ -1,8 +1,14 @@
+---
+description: Decision to extend the AE3 kernel rather than adopt an outside framework for the trading-versus-solo comparison
+---
+
 # ADR 0002: Keep the AE3 kernel for the trading-vs-solo comparison
 
 **Status:** Accepted (agent decision under Brian's 2026-10-05 delegation)
 **Date:** 2026-10-05
 **Plan:** [Plan 24](../plans/24_external_score_vs_solo.md), milestone M1
+
+Governs: RULE-READ-PRICE-PAID, RULE-TRADING-OFF-CLOSES-CROSS-TRADE, RULE-FIRST-PASS-PAID
 
 ## Question
 
