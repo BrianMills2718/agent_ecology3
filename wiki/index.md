@@ -11,6 +11,15 @@ entry:
   as_of: 2026-10-05
   authority: docs/MVP_ROADMAP.md
 topics:
+  - title: "Goal and thesis"
+    path: "docs/architecture/GOAL.md"
+    answers: "What is AE3 for, what bet does it test, what would disprove that bet, and what is out of scope?"
+  - title: "Requirements"
+    path: "docs/architecture/REQUIREMENTS.md"
+    answers: "What must the workbench do, and what observable result shows each requirement met or broken?"
+  - title: "Rule trace"
+    path: "docs/model/trace.yaml"
+    answers: "Which file enforces each kernel rule, which tests check it, and which decision explains it?"
   - title: "Roadmap and current status"
     path: "docs/MVP_ROADMAP.md"
     answers: "What is the goal, what is done, and what comes next?"
@@ -59,6 +68,9 @@ scale it is about.
 ## Where to go next
 | If you want to... | Read |
 |---|---|
+| Know what AE3 is for and what would disprove its bet | [Goal and thesis](../docs/architecture/GOAL.md) |
+| Know what the workbench must do and how each requirement is checked | [Requirements](../docs/architecture/REQUIREMENTS.md) |
+| Find which file and test enforce a model rule | [Rule trace](../docs/model/trace.yaml) |
 | Know the goal, status, and next work | [MVP roadmap](../docs/MVP_ROADMAP.md) |
 | See the outside checker and the toy-scale comparison | [Plan 24](../docs/plans/24_external_score_vs_solo.md) |
 | Know the exact model rules and which events each view shows | [Model description](../docs/model/ODD.md), [view coverage](../docs/model/VIEW_COVERAGE.md) |

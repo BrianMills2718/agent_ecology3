@@ -1,3 +1,7 @@
+---
+description: The ODD-protocol description of the model AE3 runs today, its entities, schedule, rules and outputs, checked against the code
+---
+
 # Agent Ecology 3 — model description (ODD protocol)
 
 This is the explicit description of the model that Agent Ecology 3 (AE3) runs

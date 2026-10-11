@@ -1,0 +1,141 @@
+# Checked trace for Agent Ecology 3's system model (prose: ODD.md beside this file;
+# machine-readable event declaration: ae3_model.yaml). Each rule names one owner file
+# that enforces it, the tests that show it refusing or paying correctly, and the
+# decision records that say why. The full rule text lives in ODD.md section 6 and in
+# the owner's code; the statements below are one-line pointers with file:line.
+# Checked by company-planning plugins/company-planning/scripts/durable_docs_check.py.
+scope: >-
+  The resident ecology that Plans 25-27 run (scripts/run_resident_ecology.py): the kernel
+  actions agents reach through ae3_action, the outside checker (task_bounty mint) with
+  royalties, the shared-project pilot payouts, the event log and the read-only review.
+  The legacy autonomous-loop, auction-mint and in-world LLM paths are marked legacy in
+  ae3_model.yaml and are not traced here (same scope as ODD.md).
+entities:
+  - {id: ENT-AGENT, what: "a long-lived Codex session acting as principal alpha_<n> (simulation/resident.py)"}
+  - {id: ENT-ARTIFACT, what: "a named piece of text with an owner, read_price and contract (world/artifacts.py)"}
+  - {id: ENT-TASK, what: "one CodeFlowBench helper function with hidden tests and declared requires (world/mint.py)"}
+  - {id: ENT-LEDGER, what: "scrip balance per principal; all money moves here (world/ledger.py)"}
+  - {id: ENT-CHECKER, what: "the mint in task_bounty mode plus the hidden-test scorer (world/mint.py)"}
+processes:
+  - id: PROC-RESIDENT-ACTION
+    what: "an agent calls ae3_action; the resident kernel counts it against the turn limit and runs it under one lock (resident.py:190)"
+    enforces: [RULE-TURN-ACTION-LIMIT]
+  - id: PROC-READ-ARTIFACT
+    what: "read_artifact moves the posted read price from reader to owner (action_executor.py:170-180)"
+    enforces: [RULE-READ-PRICE-PAID, RULE-TRADING-OFF-CLOSES-CROSS-TRADE]
+  - id: PROC-TRANSFER
+    what: "transfer moves scrip between principals when trading is on (action_executor.py:751-777)"
+    enforces: [RULE-TRADING-OFF-CLOSES-CROSS-TRADE]
+  - id: PROC-SUBMIT-TO-MINT
+    what: "submit_to_mint links solved helpers, runs the hidden tests and pays the first pass (world/mint.py:304-358)"
+    enforces: [RULE-FIRST-PASS-PAID, RULE-ROYALTY-REQUIRES-CALL, RULE-CHECKER-FAILURE-STOPS]
+  - id: PROC-PROPOSE-CHANGE
+    what: "in a shared-project run, propose_change integrates, judges with aes and pays bounties (simulation/pilot.py)"
+    enforces: [RULE-PILOT-PAYS-ONLY-SUPPORTED]
+  - id: PROC-LOAD-CONFIG
+    what: "the typed config is loaded from config/config.yaml and CLI overrides (config.py)"
+    enforces: [RULE-CONFIG-STRICT]
+  - id: PROC-REVIEW-RUN
+    what: "scripts/run_recoverable_evaluation.py review reopens a preserved run in the dashboard"
+    enforces: [RULE-REVIEW-READ-ONLY]
+records:
+  - id: REC-EVENTS
+    what: "append-only events.jsonl per run; every kernel event is written by EventLogger.log (world/logger.py:51)"
+  - id: REC-RUN-RECEIPT
+    what: "run_receipt.json with the final world state, written by scripts/run_resident_ecology.py"
+views:
+  - {id: VIEW-FEED, what: "dashboard activity feed (dashboard/server.py), coverage in VIEW_COVERAGE.md"}
+  - {id: VIEW-MATRIX, what: "dashboard interaction matrix (dashboard/server.py), coverage in VIEW_COVERAGE.md"}
+  - {id: VIEW-LIVING, what: "World Substrate living view (viz/world_substrate_view.py), coverage in VIEW_COVERAGE.md"}
+rules:
+  - id: RULE-TURN-ACTION-LIMIT
+    statement: >-
+      An agent gets at most actions_per_turn (default 4) ae3_action calls per turn; the counter rises before the
+      action runs, and a call over the limit is refused with turn_action_limit (resident.py:190-195, ODD 6.1).
+    owner: src/agent_ecology3/simulation/resident.py
+    checks:
+      - tests/test_resident_agents.py::test_endpoint_enforces_actions_per_turn
+    decisions: [docs/plans/25_scale_shakeout.md]
+  - id: RULE-READ-PRICE-PAID
+    statement: >-
+      Reading an artifact with read_price > 0 needs the reader to afford it and moves the price to the owner, except
+      when the reader is the owner (action_executor.py:170-180, ODD 6.2); agents set read_price through ae3_action.
+    owner: src/agent_ecology3/world/action_executor.py
+    checks:
+      - tests/test_resident_agents.py::test_agent_sets_read_price_through_the_tool_and_another_agent_pays_it
+      - tests/test_plan24_task_bounty.py::test_trading_mode_charges_cross_reads
+    decisions: [docs/adr/0002-keep-ae3-kernel-for-trading-vs-solo.md]
+  - id: RULE-TRADING-OFF-CLOSES-CROSS-TRADE
+    statement: >-
+      With trading off (the solo baseline), cross-principal reads and transfers are refused with trading_disabled
+      (action_executor.py:161, :756), so a solo run cannot buy or move value between agents.
+    owner: src/agent_ecology3/world/action_executor.py
+    checks:
+      - tests/test_plan24_task_bounty.py::test_solo_closes_cross_principal_reads_and_transfers
+    decisions: [docs/adr/0002-keep-ae3-kernel-for-trading-vs-solo.md]
+  - id: RULE-FIRST-PASS-PAID
+    statement: >-
+      Only the first passing submission per task mints scrip (score // mint_ratio = 10); the task is marked claimed on
+      its statement and later passes earn nothing; bids are checked but not taken (mint.py:331-345, ODD 6.4).
+    owner: src/agent_ecology3/world/mint.py
+    checks:
+      - tests/test_plan24_task_bounty.py::test_only_first_passing_submission_is_paid_and_bids_are_refunded
+      - tests/test_plan24_task_bounty.py::test_checker_passes_fails_and_rejects_unknown_tasks
+    decisions: [docs/adr/0002-keep-ae3-kernel-for-trading-vs-solo.md]
+  - id: RULE-ROYALTY-REQUIRES-CALL
+    statement: >-
+      After a first-claim pass, each linked helper's author (not the solver) earns royalty_scrip = 3 only when the
+      passing code calls the helper and does not define it itself (mint.py:396-402, ODD 6.5).
+    owner: src/agent_ecology3/world/mint.py
+    checks:
+      - tests/test_compounding_tasks.py::test_solved_dependency_is_linked_and_its_author_earns_a_royalty
+      - tests/test_compounding_tasks.py::test_no_royalty_when_the_solver_defines_the_helper_itself
+      - tests/test_compounding_tasks.py::test_no_royalty_when_the_solution_never_calls_the_helper
+    decisions: [docs/plans/25_scale_shakeout.md]
+  - id: RULE-CHECKER-FAILURE-STOPS
+    statement: >-
+      A wrong or timed-out solution scores 0 with its reason, but a failure of the checker itself raises
+      MintScoringError instead of scoring (mint.py:165, :215); nothing is substituted for a failed check.
+    owner: src/agent_ecology3/world/mint.py
+    checks:
+      - tests/test_plan24_task_bounty.py::test_checker_infrastructure_failure_fails_loud
+      - tests/test_plan24_task_bounty.py::test_checker_times_out_as_a_failed_solution
+    decisions: [docs/plans/22_fail_loud_authentic_runs.md]
+  - id: RULE-PILOT-PAYS-ONLY-SUPPORTED
+    statement: >-
+      In a shared-project run a criterion pays its bounty only when SUPPORTED and not already held; REFUTED or
+      INSUFFICIENT pays nothing, and a criterion lost and SUPPORTED again pays again with regained true
+      (pilot.py:95-101, ODD 6.8a).
+    owner: src/agent_ecology3/simulation/pilot.py
+    checks:
+      - tests/test_pilot_kernel.py::test_pays_contributor_on_supported_and_nothing_on_refuted
+      - tests/test_pilot_kernel.py::test_breaking_a_supported_criterion_pays_nothing_and_regain_pays_again
+    decisions: [docs/plans/27_aes_shared_projects.md]
+  - id: RULE-CONFIG-STRICT
+    statement: >-
+      Every config model rejects unknown keys (extra="forbid", config.py:16); AE2-era keys fail validation instead of
+      being aliased (standing constraint 6 from the rebuild).
+    owner: src/agent_ecology3/config.py
+    checks:
+      - tests/test_config_and_actions.py::test_config_rejects_unknown_keys
+      - tests/test_config_and_actions.py::test_removed_actions_are_rejected
+    decisions: [docs/LINEAGE_AND_RESTARTS.md#standing-constraints-from-the-rebuild]
+  - id: RULE-MODEL-MATCHES-EVENTS
+    statement: >-
+      Every event type the code logs is declared in ae3_model.yaml with the same emitter and fields, every declared
+      event is logged, and every resident event has a VIEW_COVERAGE row; a new, removed or moved event fails the test.
+    owner: docs/model/ae3_model.yaml
+    checks:
+      - tests/test_model_declaration.py::test_every_emitted_event_is_declared_and_vice_versa
+      - tests/test_model_declaration.py::test_declared_emitters_and_fields_match_code
+      - tests/test_model_declaration.py::test_view_coverage_names_resident_events
+    decisions: [docs/adr/0003-adopt-durable-document-set-keep-odd.md]
+  - id: RULE-REVIEW-READ-ONLY
+    statement: >-
+      A completed run reopens in the dashboard read-only from its preserved events and state, with no model calls and
+      without fabricating a missing comparison condition.
+    owner: src/agent_ecology3/dashboard/server.py
+    checks:
+      - tests/test_recoverable_poc.py::test_dashboard_reopens_completed_pair_read_only
+      - tests/test_recoverable_poc.py::test_dashboard_reopens_one_preserved_run_without_fabricating_pair
+    decisions: [docs/LINEAGE_AND_RESTARTS.md#standing-constraints-from-the-rebuild]

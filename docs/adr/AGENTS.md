@@ -1,12 +1,19 @@
+---
+description: Index and lifecycle of AE3's architecture decision records
+---
+
 # Architecture Decision Records
 
 ADRs document significant architectural decisions.
+
+Governs: docs/adr/
 
 ## ADR Index
 
 | # | Title | Status | Date |
 |---|-------|--------|------|
 | 0002 | [Keep the AE3 kernel for the trading-vs-solo comparison](0002-keep-ae3-kernel-for-trading-vs-solo.md) | Accepted | 2026-10-05 |
+| 0003 | [Adopt the AES durable document set and keep ODD as the system model](0003-adopt-durable-document-set-keep-odd.md) | Accepted | 2026-10-10 |
 
 ## ADR Lifecycle
 
