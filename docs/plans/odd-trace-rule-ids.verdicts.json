@@ -1,0 +1,173 @@
+{
+  "178b3ccf66a371a3603ddc1aa51779caab9de029f8738f9a1e9f248c4ffa1922": {
+    "item_id": "OV-DURABLE-DOCS-DECLARED",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence declares durable documents and lists each updated role as a declared `system_model` role with its rule ID. It also requires running `durable_docs_check.py --plan ... --range ...` at completion and requires exit 0.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/OV-DURABLE-DOCS-DECLARED",
+    "verdict": "pass"
+  },
+  "1dddeaf60291846ceaad5499e16913d3e3235396e642f8110c38b197ca86b74c": {
+    "item_id": "CORE-SYSTEM-MODEL",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The plan links `docs/model/ODD.md`, identifies the repository documentation entry point and scope, and explicitly states that the work adds, changes, or relies on no entity, process, record, event, or view, with a documentation-only reason. It names the applicable requirement-to-verification view, explains why no other view applies, specifies the concrete drift test `tests/test_model_declaration.py`, and states how model, view coverage, and saved verification output are reconciled in the same commit.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-SYSTEM-MODEL",
+    "verdict": "pass"
+  },
+  "1f3ed3f07d2adc57654fe66f043c74c16358f640b4189467eb9c8d7a5281b703": {
+    "item_id": "OV-PROTO-VERTICAL-RESET",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence explicitly states the minimal vertical result: updating `docs/model/ODD.md` so all trace rule IDs have conforming passages and checks remain unchanged. It names the reset boundary as `git revert` of the commit, identifies non-goals (\u201canything outside these files\u201d), and explicitly excludes coordinated-work ceremony.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/OV-PROTO-VERTICAL-RESET",
+    "verdict": "pass"
+  },
+  "28a80f93c16d58f899bbdc7a85c28863bb86971bf437ea6c2c20c0fb767dda77": {
+    "item_id": "CORE-REQUIREMENTS-TRACED",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The Requirements table lists R1, explicitly states the requested behavior, names the success check under \u201cSuccess and disproof\u201d as its verifier, and records its status as \u201cplanned, not yet run.\u201d It also explicitly states that the change implies no requirements beyond R1 and claims no standard, schema, or contract.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-REQUIREMENTS-TRACED",
+    "verdict": "pass"
+  },
+  "2cdb38cd2cbe9b078d90306c0a89fab923b7685c253047e02810fbb104f3469b": {
+    "item_id": "CORE-REQUIREMENTS-TRACED",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence provides a requirements list with R1, explicitly states what was asked for, and states that no additional claims are implied. R1 names its verifying success check and records its status as \u201cplanned, not yet run\u201d; no requirement is deferred, so no deferral reason or release-record carry-forward is required.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-REQUIREMENTS-TRACED",
+    "verdict": "pass"
+  },
+  "314d36bc4f5b99a40f6acf9e6b9b141f3ffadc0fe2b21e8c651fec6989d100ab": {
+    "item_id": "CORE-SUCCESS-DISPROOF",
+    "materiality": "material",
+    "missing": "A direct success check that the prose statements on ODD.md correctly express and conform to their declared trace rules. The cited check verifies that rule IDs appear and that code/tests are unchanged, but does not test the content of the statements; the disproof condition mentions contradictions without defining a corresponding success check.",
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The plan provides a concrete disproof condition: remaining PROSE-RULE-MISSING findings, undeclared IDs, or contradictory statements. However, its success evidence primarily checks ID presence and unchanged code/tests, which does not directly establish that the prose conforms to or correctly states the trace rules.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-SUCCESS-DISPROOF",
+    "verdict": "unresolved"
+  },
+  "492762ebeccfbd41ac7d9ad7a299c309bb3215e9eaa094a42a8ef9631a6fb1a6": {
+    "item_id": "CORE-SYSTEM-MODEL",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The plan links `docs/model/ODD.md`, identifies `wiki/index.md` as the documentation entry point, and states that the repository is not using a shared model. It explicitly says the work adds, changes, or relies on no entity, process, record, event, or view and explains why; it also identifies the applicable requirement-to-verification view, a concrete model drift test, and same-commit reconciliation for the model, view coverage, and saved verification output.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-SYSTEM-MODEL",
+    "verdict": "pass"
+  },
+  "5871239d18773a88967868858504fbe62e9040654e15d3c81cb219b87e6336d5": {
+    "item_id": "CORE-ACTOR-RESULT-EXAMPLE",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence explicitly names Brian as the actor, states the desired result that ODD.md name every trace rule ID and produce zero PROSE-* findings, and gives a concrete user-visible example: section 6.1 ends with the specified rule ID matching trace.yaml.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-ACTOR-RESULT-EXAMPLE",
+    "verdict": "pass"
+  },
+  "62c2f176e8ec52e5f1d9e88045b353014a232585eb842255108db15c7defa836": {
+    "item_id": "OV-PROTO-VERTICAL-RESET",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence explicitly defines the minimal vertical as updating `docs/model/ODD.md` and the saved check output, names the reset boundary as `git revert` of the commit, and states the non-goal as anything outside those files. It also explicitly excludes coordinated-work ceremony, including work-unit graphs and review or release contracts.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/OV-PROTO-VERTICAL-RESET",
+    "verdict": "pass"
+  },
+  "636593045e7e573e8aa734c471286eb562ebe86f9dd40afb40968b9b5237d6f5": {
+    "item_id": "CORE-CAPABILITY-REUSE",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence explicitly checks both catalogue files and states, \u201cNo catalogue entry fits, because this is a one-page documentation edit to an existing model page.\u201d It also explains the unmet need: editing repository-owned files, which no catalogue entry provides.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-CAPABILITY-REUSE",
+    "verdict": "pass"
+  },
+  "76b51bac6734b404f41ee6445cb22e119690dbb01565c8411610a9e5a52ce11b": {
+    "item_id": "CORE-ACTIVATION-FACTS",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The plan explicitly declares false for shared_mechanism, empirical_comparison_proposed, llm_central, irreversible_or_spend_action, claims_external_standard, and aes_governed_target, with explanations matching the described documentation-only change. The quoted plan proposes no new shared mechanism, alternative-comparison experiment, LLM-dependent behavior, irreversible/spend action, external-standard conformance, or AES-governed target interaction.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-ACTIVATION-FACTS",
+    "verdict": "pass"
+  },
+  "840570ccea37b25a05af86acde87e7608464188c9e7dbeaca46de6e8cb6d2368": {
+    "item_id": "CORE-AUTHORITY-NONGOALS",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence explicitly identifies Brian as the requester with authority over the change and states the non-goals: work outside the listed files, irreversible actions, and spending.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-AUTHORITY-NONGOALS",
+    "verdict": "pass"
+  },
+  "a029b0a5fe2c9982f181a2b16202691c2c0fb4e1282fc90f0a10ae07f8a960bb": {
+    "item_id": "CORE-SUCCESS-DISPROOF",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The plan provides direct success checks: each trace statement is compared side by side with the corresponding prose for condition, outcome, default, refusal code, and file:line, and the durable-doc check verifies missing trace-rule findings. It also defines concrete disproof conditions, including remaining missing findings, undeclared IDs, mismatched passages, or differing make-check counts.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-SUCCESS-DISPROOF",
+    "verdict": "pass"
+  },
+  "a096102005bd52fcc7cf8552edb60c10bcf08d1e9b70dde10ab442a9f0002b5d": {
+    "item_id": "CORE-TRACE-REVIEW",
+    "materiality": "material",
+    "missing": "A full-trace review is not explicitly tied to the separate `make check` criterion: the evidence does not clearly name the `make check` run, identify its complete trace in the saved file, or state what must be seen in that run beyond its outcome.",
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The `durable_docs_check.py` criterion is covered with named before/after runs, a trace location, and required content beyond the result. However, `make check` is separately cited as success evidence, while the trace-review description refers to the \u201csuccess check above\u201d and \u201cthe check\u2019s\u201d output without explicitly establishing that `make check` itself is run and reviewed under those requirements.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-TRACE-REVIEW",
+    "verdict": "unresolved"
+  },
+  "ada7a28da612cd2b3c8142f2f6cb4cec313956db91700aaf0867a345b5bff4f7": {
+    "item_id": "CORE-ACTOR-RESULT-EXAMPLE",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence explicitly names the actor as Brian, states the desired result as zero PROSE-* findings after matching every rule ID and behavior, and gives a concrete, user-visible example: ODD.md section 6.1 includes RULE-TURN-ACTION-LIMIT matching the trace rule.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-ACTOR-RESULT-EXAMPLE",
+    "verdict": "pass"
+  },
+  "b40dd0e3afe8ef09ceaeb4c4ce87cd3959c73b18a34cd56e7dad15b678237c01": {
+    "item_id": "CORE-TRACE-DEBUGGING",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence explicitly defines a separate procedure for failed or surprising runs, preserves the failed check and trace ID, requires reading all specified artifacts before choosing a fix, and requires citing and classifying the observed divergence. It also prohibits causal repairs for unresolved diagnoses, links targeted repairs to new traced verification runs while retaining the original, and distinguishes review completeness from the run verdict.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-TRACE-DEBUGGING",
+    "verdict": "pass"
+  },
+  "c19dc7122f816409f36f49bdb1f8eacaf7aa92bdf8d2b58af454f95dae08ac66": {
+    "item_id": "CORE-TRACE-REVIEW",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The evidence names both the disproof and success runs, identifies their full output location (`docs/plans/odd-trace-rule-ids.check.txt`), and states that each run is headed by its commit. It also specifies evidence required beyond the final result, including commands, commit-reset files, named checks and results, non-skipped tests, exit status, and the System model lines; it explicitly exempts model/agent/LLM runs because none exist.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-TRACE-REVIEW",
+    "verdict": "pass"
+  },
+  "d6f486ac81e4359d88599e3145e26f8e097274213c0b8794a053833454c7a4e5": {
+    "item_id": "CORE-UNCERTAINTIES",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The plan explicitly identifies its complete set of material uncertainties as one item: whether files beyond the listed file are needed. It provides resolving evidence via the stated `git diff --stat` result showing only `docs/model/ODD.md` changed.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-UNCERTAINTIES",
+    "verdict": "pass"
+  },
+  "fe30a4665c3ece9f48047ba6078fe93b5c1a50a974f5716c7eb826c95f226b7f": {
+    "item_id": "CORE-ACTIVATION-FACTS",
+    "materiality": "non_material",
+    "missing": null,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "rationale": "The plan explicitly states that no alternatives are compared, no shared mechanism or contract is added, no LLM call, irreversible action, or spend is involved, and no external standard is claimed. It also states that the repository has no `.aes/target.yaml`, so none of the applicable activation facts is incorrectly declared false.",
+    "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-ACTIVATION-FACTS",
+    "verdict": "pass"
+  }
+}

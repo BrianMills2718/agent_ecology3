@@ -1,0 +1,21 @@
+{
+  "schema_version": "method-activation-facts.v1",
+  "record_type": "method_activation_facts",
+  "plan_ref": "docs/plans/odd-trace-rule-ids.md",
+  "plan_sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72",
+  "path_decision_ref": "docs/plans/odd-trace-rule-ids.path-decision.json",
+  "path_decision_sha256": "1084083b7c36ab6f7fe5c7aee286d30f73eb52e0e5692f13f6543102bd5710c6",
+  "facts": {
+    "shared_mechanism": false,
+    "empirical_comparison_proposed": false,
+    "llm_central": false,
+    "irreversible_or_spend_action": false
+  },
+  "fact_sources": {
+    "shared_mechanism": "derived_current_boundary",
+    "empirical_comparison_proposed": "derived_current_boundary",
+    "llm_central": "derived_current_boundary",
+    "irreversible_or_spend_action": "derived_current_boundary"
+  },
+  "recorded_at": "2026-10-12T16:04:20Z"
+}

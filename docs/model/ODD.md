@@ -9,8 +9,10 @@ today. It follows the ODD protocol (Overview, Design concepts, Details; Grimm
 et al. 2006, updated 2020). It is meant to be the single source of truth that
 the dashboard views project. The machine-readable twin is
 [`ae3_model.yaml`](ae3_model.yaml). A test keeps its event list identical to
-the code (`tests/test_model_declaration.py`). How each view covers each event
-is in [`VIEW_COVERAGE.md`](VIEW_COVERAGE.md).
+the code (`tests/test_model_declaration.py`): every logged event type is
+declared with the same emitter and fields, every declared event is logged, and
+every resident event has a coverage row (RULE-MODEL-MATCHES-EVENTS). How each
+view covers each event is in [`VIEW_COVERAGE.md`](VIEW_COVERAGE.md).
 
 Scope: the **resident ecology** that Plans 25 and 26 run
 (`scripts/run_resident_ecology.py`). The kernel also has older paths:
@@ -203,7 +205,7 @@ uses one of the agent's per-turn actions.
 - At turn start `actions_this_turn = 0` (`resident.py:443`).
 - Each `ae3_action` call first checks `actions_this_turn >= actions_per_turn`
   (default 4). If it is, the call is refused with `turn_action_limit` and
-  nothing runs.
+  nothing runs (RULE-TURN-ACTION-LIMIT).
 - Otherwise the counter goes up by one **before** the action runs, so a refused
   or failed action still uses up an action.
 - Every call, refused or not, is logged as `resident_action`.
@@ -220,7 +222,10 @@ actions were refused this way, out of 52 refusals in total.
 2. The contract must allow reading. Freeware allows anyone (`contracts.py:93`).
 3. If `read_price > 0`, the reader must be able to afford it
    (`insufficient_funds`). Then the price moves from reader to owner, **unless
-   the reader is the owner, when nothing moves** (`:170-180`).
+   the reader is the owner, when nothing moves** (`:170-180`)
+   (RULE-READ-PRICE-PAID). With trading off (the solo baseline), a
+   cross-principal read is refused with `trading_disabled` (`:161`)
+   (RULE-TRADING-OFF-CLOSES-CROSS-TRADE).
 4. The full content is returned. `artifact_read` is logged with
    `read_price_paid` set to the posted price, even when nothing moved.
 
@@ -258,11 +263,13 @@ Agent 3 reading its own statement pays nothing, but the event still says
 4. **Check** (`mint.py:183-221`). It runs
    `prelude + solution + hidden test + check(entry_point)` in a fresh isolated
    Python with a 10 s limit. Exit code 0 means score 100; anything else means
-   score 0, with the last error line as the reason.
+   score 0, with the last error line as the reason. A failure of the checker
+   itself raises `MintScoringError` instead of scoring (`mint.py:165`, `:215`);
+   nothing is substituted for a failed check (RULE-CHECKER-FAILURE-STOPS).
 5. **Pay** (`mint.py:331-343`). Only the **first** passing submission per task
    is paid: `100 // 10 = 10` scrip, newly created. The task is marked claimed,
    and `bounty_claimed_by` is written onto its statement. A later pass earns 0
-   ("already claimed").
+   ("already claimed") (RULE-FIRST-PASS-PAID).
 6. `task_bounty_scored` is logged with `passed`, `first_claim`, `scrip_minted`
    and `reason`.
 
@@ -270,7 +277,8 @@ Agent 3 reading its own statement pays nothing, but the event still says
 
 - This runs only after a **first-claim pass**.
 - For each linked helper, the helper's author is credited `royalty_scrip = 3`
-  scrip (newly created; the solver pays nothing) when all of these hold:
+  scrip (newly created; the solver pays nothing) when all of these hold
+  (RULE-ROYALTY-REQUIRES-CALL):
   - the author is not the solver;
   - the passing solution **calls** the helper by name;
   - the passing solution does **not define** a function with that name
@@ -283,7 +291,7 @@ pasted its own `def mex`, Agent 3 would get nothing.
 
 ### 6.6 transfer (`action_executor.py:751-777`)
 
-- Trading must be on (`trading_disabled`).
+- Trading must be on (`trading_disabled`; RULE-TRADING-OFF-CLOSES-CROSS-TRADE).
 - The amount must be a positive whole number. Both sides must be principals,
   and the sender must be able to afford it.
 - The scrip moves, and `transfer` is logged with sender, recipient, amount and
@@ -345,7 +353,7 @@ Example: Agent 1 implements `double()` in `tinydb/utils.py` in its folder, runs
    then held. A held criterion that is not SUPPORTED now (REFUTED, or
    INSUFFICIENT because its evidence went STALE) is released and pays nothing;
    if it is SUPPORTED again later it pays again, `regained: true`. REFUTED and
-   INSUFFICIENT never pay.
+   INSUFFICIENT never pay (RULE-PILOT-PAYS-ONLY-SUPPORTED).
 5. **Pay royalties** (`pilot.py:432`, `royalty_paid`, `source:
    pilot_function_call`): each module-level library function the change's
    added lines call or import, resolved through that file's imports (`f()`
@@ -389,3 +397,13 @@ Two things advance or skip `event_number` differently:
   and produce no `action` event.
 - In run5 there were 955 `resident_action` events and 927 `action` events. The
   difference of 28 is 9 turn-limit refusals plus 19 parse failures.
+
+### 6.11 Rules outside the actions
+
+- **Strict config** (RULE-CONFIG-STRICT): every config model rejects unknown
+  keys (`extra="forbid"`, `config.py:16`); AE2-era keys fail validation instead
+  of being aliased.
+- **Read-only review** (RULE-REVIEW-READ-ONLY): a completed run reopens in the
+  dashboard read-only from its preserved events and state
+  (`scripts/run_recoverable_evaluation.py review`), with no model calls and
+  without fabricating a missing comparison condition.
