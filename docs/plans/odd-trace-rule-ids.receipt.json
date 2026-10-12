@@ -1,0 +1,546 @@
+{
+  "schema_version": "planning-method-conformance-receipt.v1",
+  "record_type": "planning_method_conformance_receipt",
+  "receipt_id": "RECEIPT-odd-trace-rule-ids-3609b3d55c9a",
+  "plan": {
+    "plan_ref": "docs/plans/odd-trace-rule-ids.md",
+    "plan_sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+  },
+  "path_decision": {
+    "ref": "docs/plans/odd-trace-rule-ids.path-decision.json",
+    "sha256": "1084083b7c36ab6f7fe5c7aee286d30f73eb52e0e5692f13f6543102bd5710c6",
+    "selected_path": "prototype",
+    "classified_path": "prototype",
+    "errors": []
+  },
+  "route": "inline_prototype",
+  "profile": {
+    "profile_id": "bounded-design",
+    "revision": "bounded-design@13",
+    "path": "contracts/method-conformance/profiles/bounded-design.v1.json",
+    "sha256": "b62a29405f2c6a0ef730a8d4f78b8eb4bdccca5a29cc1c711a5a96902a121291"
+  },
+  "compiler": {
+    "path": "scripts/method_conformance/compiler.py",
+    "sha256": "9ca8d6e47f651430c21ff382a3d7c1f99e25c61f7ea85d0919ec09d71918d4f9"
+  },
+  "activation": {
+    "facts_ref": "docs/plans/odd-trace-rule-ids.facts.json",
+    "facts_sha256": "b348f9a73fcdcb0dd164445851e9e8b44d7f3858a5f56c463e22f08468aead6f",
+    "facts": {
+      "shared_mechanism": false,
+      "empirical_comparison_proposed": false,
+      "llm_central": false,
+      "irreversible_or_spend_action": false,
+      "crosses_system_boundary": false,
+      "deploys": false,
+      "claims_external_standard": false,
+      "aes_governed_target": false,
+      "durable_documents_declared": true,
+      "multiple_writers": false,
+      "consequential_boundary": false,
+      "inline_prototype": true
+    },
+    "fact_origins": {
+      "shared_mechanism": "declared:derived_current_boundary",
+      "empirical_comparison_proposed": "declared:derived_current_boundary",
+      "llm_central": "declared:derived_current_boundary",
+      "irreversible_or_spend_action": "declared:derived_current_boundary",
+      "crosses_system_boundary": "default:not_declared",
+      "deploys": "default:not_declared",
+      "claims_external_standard": "default:not_declared",
+      "aes_governed_target": "default:not_declared",
+      "durable_documents_declared": "derived:.agentic/repo.yaml has durable_documents",
+      "multiple_writers": "derived:path_decision.concurrent_writers",
+      "consequential_boundary": "derived:path_decision.persistent_migration|consequential_external_mutation",
+      "inline_prototype": "derived:classified_path==prototype"
+    },
+    "overlays": [
+      {
+        "overlay_id": "OV-PRIOR-ART",
+        "activation_fact": "shared_mechanism",
+        "active": false,
+        "reason": "shared_mechanism=false (declared:derived_current_boundary)"
+      },
+      {
+        "overlay_id": "OV-EMPIRICAL-COMPARISON",
+        "activation_fact": "empirical_comparison_proposed",
+        "active": false,
+        "reason": "empirical_comparison_proposed=false (declared:derived_current_boundary)"
+      },
+      {
+        "overlay_id": "OV-LLM-CENTRAL",
+        "activation_fact": "llm_central",
+        "active": false,
+        "reason": "llm_central=false (declared:derived_current_boundary)"
+      },
+      {
+        "overlay_id": "OV-MULTIPLE-WRITERS",
+        "activation_fact": "multiple_writers",
+        "active": false,
+        "reason": "multiple_writers=false (derived:path_decision.concurrent_writers)"
+      },
+      {
+        "overlay_id": "OV-CONSEQUENTIAL-BOUNDARY",
+        "activation_fact": "consequential_boundary",
+        "active": false,
+        "reason": "consequential_boundary=false (derived:path_decision.persistent_migration|consequential_external_mutation)"
+      },
+      {
+        "overlay_id": "OV-INLINE-PROTOTYPE",
+        "activation_fact": "inline_prototype",
+        "active": true,
+        "reason": "inline_prototype=true (derived:classified_path==prototype)"
+      },
+      {
+        "overlay_id": "OV-SYSTEM-BOUNDARY",
+        "activation_fact": "crosses_system_boundary",
+        "active": false,
+        "reason": "crosses_system_boundary=false (default:not_declared)"
+      },
+      {
+        "overlay_id": "OV-DEPLOYMENT",
+        "activation_fact": "deploys",
+        "active": false,
+        "reason": "deploys=false (default:not_declared)"
+      },
+      {
+        "overlay_id": "OV-STANDARD-CONFORMANCE",
+        "activation_fact": "claims_external_standard",
+        "active": false,
+        "reason": "claims_external_standard=false (default:not_declared)"
+      },
+      {
+        "overlay_id": "OV-AES",
+        "activation_fact": "aes_governed_target",
+        "active": false,
+        "reason": "aes_governed_target=false (default:not_declared)"
+      },
+      {
+        "overlay_id": "OV-DURABLE-DOCS",
+        "activation_fact": "durable_documents_declared",
+        "active": true,
+        "reason": "durable_documents_declared=true (derived:.agentic/repo.yaml has durable_documents)"
+      }
+    ]
+  },
+  "checklist": {
+    "checklist_id": "method-conformance.bounded-design",
+    "revision": "sha256:a1eb782584da663327caddd2bc841e2829ad6b151f4e78f3213ed9af0ecf09c4",
+    "definition_sha256": "8cab4764ac0905a9989a9a0da770125e6fd05f6c4a9316e51bb5597b2a8fab63",
+    "bundle_ref": "docs/plans/odd-trace-rule-ids.bundle.json",
+    "bundle_sha256": "3c1dc417a383c48ffd88378d930a1c128e8676167a1c09bc69d6ed69b1220dd8",
+    "coverage": "complete",
+    "definition_matches_recompilation": true
+  },
+  "items": [
+    {
+      "item_id": "CORE-ACTOR-RESULT-EXAMPLE",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#actor-and-result",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-ACTOR-RESULT-EXAMPLE",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The evidence explicitly names the actor as Brian, states the desired result as zero PROSE-* findings after matching every rule ID and behavior, and gives a concrete, user-visible example: ODD.md section 6.1 includes RULE-TURN-ACTION-LIMIT matching the trace rule.",
+        "reused": false
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-ROUTE",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "structural",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.path-decision.json",
+          "sha256": "1084083b7c36ab6f7fe5c7aee286d30f73eb52e0e5692f13f6543102bd5710c6"
+        }
+      ],
+      "semantic": null,
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-REQUIREMENTS-TRACED",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-REQUIREMENTS-TRACED",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The Requirements table lists R1, explicitly states the requested behavior, names the success check under “Success and disproof” as its verifier, and records its status as “planned, not yet run.” It also explicitly states that the change implies no requirements beyond R1 and claims no standard, schema, or contract.",
+        "reused": false
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-SUCCESS-DISPROOF",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#success-and-disproof",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-SUCCESS-DISPROOF",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The plan provides direct success checks: each trace statement is compared side by side with the corresponding prose for condition, outcome, default, refusal code, and file:line, and the durable-doc check verifies missing trace-rule findings. It also defines concrete disproof conditions, including remaining missing findings, undeclared IDs, mismatched passages, or differing make-check counts.",
+        "reused": false
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-TRACE-REVIEW",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#success-and-disproof",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-TRACE-REVIEW",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The evidence names both the disproof and success runs, identifies their full output location (`docs/plans/odd-trace-rule-ids.check.txt`), and states that each run is headed by its commit. It also specifies evidence required beyond the final result, including commands, commit-reset files, named checks and results, non-skipped tests, exit status, and the System model lines; it explicitly exempts model/agent/LLM runs because none exist.",
+        "reused": false
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-TRACE-DEBUGGING",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#when-a-run-fails-or-surprises-us",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-TRACE-DEBUGGING",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The evidence explicitly defines a separate procedure for failed or surprising runs, preserves the failed check and trace ID, requires reading all specified artifacts before choosing a fix, and requires citing and classifying the observed divergence. It also prohibits causal repairs for unresolved diagnoses, links targeted repairs to new traced verification runs while retaining the original, and distinguishes review completeness from the run verdict.",
+        "reused": true
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-SYSTEM-MODEL",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "warn",
+      "verifier_result": "pass",
+      "reason_codes": [
+        "MODEL-NO-ELEMENT-IDS",
+        "MODEL-NO-UNKNOWNS"
+      ],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-SYSTEM-MODEL",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The plan links `docs/model/ODD.md`, identifies the repository documentation entry point and scope, and explicitly states that the work adds, changes, or relies on no entity, process, record, event, or view, with a documentation-only reason. It names the applicable requirement-to-verification view, explains why no other view applies, specifies the concrete drift test `tests/test_model_declaration.py`, and states how model, view coverage, and saved verification output are reconciled in the same commit.",
+        "reused": false
+      },
+      "suggested_action": "MODEL-NO-ELEMENT-IDS: docs/model/ODD.md has no element lines; write each as `- ID (decided|guessed): what it is`; MODEL-NO-UNKNOWNS: docs/model/ODD.md has no unknowns table (header `| Unknown | What would decide it |`)"
+    },
+    {
+      "item_id": "CORE-CAPABILITY-REUSE",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#capability-reuse",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-CAPABILITY-REUSE",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The evidence explicitly checks both catalogue files and states, “No catalogue entry fits, because this is a one-page documentation edit to an existing model page.” It also explains the unmet need: editing repository-owned files, which no catalogue entry provides.",
+        "reused": true
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-AUTHORITY-NONGOALS",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#authority-and-non-goals",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-AUTHORITY-NONGOALS",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The evidence explicitly identifies Brian as the requester with authority over the change and states the non-goals: work outside the listed files, irreversible actions, and spending.",
+        "reused": true
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-IRREVERSIBLE-SPEND",
+      "effect": "blocking",
+      "applicability_mode": "conditional",
+      "condition_fact": "irreversible_or_spend_action",
+      "condition_value": false,
+      "verifier_kind": "semantic",
+      "disposition": "not_applicable",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [],
+      "semantic": null,
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-UNCERTAINTIES",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#uncertainties",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/CORE-UNCERTAINTIES",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The plan explicitly identifies its complete set of material uncertainties as one item: whether files beyond the listed file are needed. It provides resolving evidence via the stated `git diff --stat` result showing only `docs/model/ODD.md` changed.",
+        "reused": true
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "CORE-ACTIVATION-FACTS",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#activation-facts",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/CORE-ACTIVATION-FACTS",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The plan explicitly declares false for shared_mechanism, empirical_comparison_proposed, llm_central, irreversible_or_spend_action, claims_external_standard, and aes_governed_target, with explanations matching the described documentation-only change. The quoted plan proposes no new shared mechanism, alternative-comparison experiment, LLM-dependent behavior, irreversible/spend action, external-standard conformance, or AES-governed target interaction.",
+        "reused": false
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "OV-PROTO-VERTICAL-RESET",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#vertical-and-reset",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/1724a5f19141/OV-PROTO-VERTICAL-RESET",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The evidence explicitly states the minimal vertical result: updating `docs/model/ODD.md` so all trace rule IDs have conforming passages and checks remain unchanged. It names the reset boundary as `git revert` of the commit, identifies non-goals (“anything outside these files”), and explicitly excludes coordinated-work ceremony.",
+        "reused": false
+      },
+      "suggested_action": null
+    },
+    {
+      "item_id": "OV-DURABLE-DOCS-DECLARED",
+      "effect": "blocking",
+      "applicability_mode": "required",
+      "condition_fact": null,
+      "condition_value": null,
+      "verifier_kind": "semantic",
+      "disposition": "pass",
+      "verifier_result": "pass",
+      "reason_codes": [],
+      "evidence": [
+        {
+          "ref": "docs/plans/odd-trace-rule-ids.md#durable-documents",
+          "sha256": "3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72"
+        }
+      ],
+      "semantic": {
+        "trace_id": "company-planning/method-conformance/odd-trace-rule-ids/4ffc0b3a9fc7/OV-DURABLE-DOCS-DECLARED",
+        "model": "openrouter/openai/gpt-5.6-luna",
+        "verdict": "pass",
+        "materiality": "non_material",
+        "missing": null,
+        "rationale": "The evidence declares durable documents and lists each updated role as a declared `system_model` role with its rule ID. It also requires running `durable_docs_check.py --plan ... --range ...` at completion and requires exit 0.",
+        "reused": true
+      },
+      "suggested_action": null
+    }
+  ],
+  "item_counts": {
+    "pass": 12,
+    "unresolved": 0,
+    "not_applicable": 1,
+    "unavailable": 0,
+    "missing": 0,
+    "warn": 1
+  },
+  "semantic_verifier": {
+    "kind": "llm_client",
+    "available": true,
+    "model": "openrouter/openai/gpt-5.6-luna",
+    "task": "company_planning.method_conformance.semantic_item_review"
+  },
+  "conformance_report": {
+    "schema_version": "1.0",
+    "record_type": "planning_conformance_report",
+    "report_id": "REPORT-odd-trace-rule-ids-3609b3d55c9a",
+    "snapshot_ref": "SNAPSHOT-odd-trace-rule-ids",
+    "snapshot_revision": "sha256:3c1dc417a383c48ffd88378d930a1c128e8676167a1c09bc69d6ed69b1220dd8",
+    "packet_ref": "docs/plans/odd-trace-rule-ids.md",
+    "packet_revision": "sha256:3609b3d55c9a8f9d5ce78655fae66d4d0c4984ce9e8fae6197c36d3d471e9f72",
+    "structural_status": "pass",
+    "semantic_review_status": "complete",
+    "diagnostics": [],
+    "route": "inline_prototype",
+    "adoption_readiness": "ready_for_contributor",
+    "limitations": [
+      "Semantic verdicts judge only the cited plan excerpt against the item statement; they do not judge product strategy."
+    ]
+  },
+  "advisory_deviations": [],
+  "result": "pass",
+  "reason_codes": [],
+  "actionable_summary": [
+    "pass: 12 items evidenced, 1 confirmed not applicable, 0 advisory deviation(s)",
+    "warn CORE-SYSTEM-MODEL: MODEL-NO-ELEMENT-IDS, MODEL-NO-UNKNOWNS -> MODEL-NO-ELEMENT-IDS: docs/model/ODD.md has no element lines; write each as `- ID (decided|guessed): what it is`; MODEL-NO-UNKNOWNS: docs/model/ODD.md has no unknowns table (header `| Unknown | What would decide it |`)"
+  ],
+  "limitations": [
+    "Semantic verdicts judge only the cited plan excerpt against the item statement; they do not judge product strategy."
+  ],
+  "caller": {
+    "client": "quick-adopt",
+    "session": "0031e708-eb6b-409b-8823-6d04cc3aa693"
+  },
+  "started_at": "2026-10-12T16:04:20Z",
+  "completed_at": "2026-10-12T16:04:40Z",
+  "duration_ms": 20401
+}

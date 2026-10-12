@@ -49,6 +49,10 @@ larger task bank for longer runs.
 | 26 | [Watch the ecology: feed, graph, messaging, public replay](26_watch_the_ecology.md) | Critical | 🚧 In Progress — M3 active (agents can message each other) | Choosing a real oracle |
 | 27 | [Shared projects judged by AES](27_aes_shared_projects.md) | Critical | 🚧 In progress — M1, M2 done (pilot; propose/judge/pay kernel adapter); M3 next (4-agent live run) | Later scale runs on a real oracle |
 
+Quick plans (company-planning quick-adopt, small documentation fixes):
+
+- [odd-trace-rule-ids](odd-trace-rule-ids.md) ([goal](odd-trace-rule-ids.goal.md)): name every `docs/model/trace.yaml` rule id on `docs/model/ODD.md`. ✅ Complete
+
 ## Status Key
 
 | Status | Meaning |
