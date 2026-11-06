@@ -177,7 +177,7 @@ def test_queries_do_not_leak_priced_content(tmp_path: Path) -> None:
 def test_luna_profile_accepts_low_and_medium_only() -> None:
     base = {
         "decision_output_mode": "luna_structured_v1",
-        "default_model": "codex/gpt-5.6-luna",
+        "default_model": "codex/gpt-6-luna",
         "codex_transport": "cli",
         "codex_sandbox_mode": "read-only",
         "codex_approval_policy": "never",
@@ -201,7 +201,7 @@ def _receipt_dir(tmp_path: Path, condition: str, events: list[dict[str, Any]]) -
     log_path.write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
     receipt = {
         "acknowledgement": f"plan24/luna-low/task-bounty/{condition}/v2",
-        "model": "codex/gpt-5.6-luna",
+        "model": "codex/gpt-6-luna",
         "recovery": {"committed_attempts": 4, "target_attempts": 4, "lifecycle_state": "complete"},
         "world_state": {"balances": {}, "artifact_count": 0, "log_path": str(log_path)},
     }

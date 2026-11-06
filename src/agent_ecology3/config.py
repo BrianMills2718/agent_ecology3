@@ -106,7 +106,7 @@ class LLMConfig(StrictModel):
             return self
 
         expected: dict[str, object] = {
-            "default_model": "codex/gpt-5.6-luna",
+            "default_model": "codex/gpt-6-luna",
             "codex_transport": "cli",
             "codex_sandbox_mode": "read-only",
             "codex_approval_policy": "never",
@@ -126,9 +126,9 @@ class LLMConfig(StrictModel):
             mismatches.append(
                 f"reasoning_effort={self.reasoning_effort!r} (expected 'medium' or 'low')"
             )
-        if self.allowed_models and self.allowed_models != ["codex/gpt-5.6-luna"]:
+        if self.allowed_models and self.allowed_models != ["codex/gpt-6-luna"]:
             mismatches.append(
-                "allowed_models must be empty or exactly ['codex/gpt-5.6-luna']"
+                "allowed_models must be empty or exactly ['codex/gpt-6-luna']"
             )
         if mismatches:
             raise ValueError(

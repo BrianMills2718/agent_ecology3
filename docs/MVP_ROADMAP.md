@@ -61,7 +61,7 @@ which remains the MVP evidence).
 
 - Starting state: main at `f9727ff`, a local CodeFlowBench helper-task bank
   (seed 25101: 52 tasks, 16 problems, 28 cross-agent dependency links), 8
-  resident `codex/gpt-5.6-luna` agents at low effort.
+  resident `codex/gpt-6-luna` agents at low effort.
 - Operator action: `uv run python scripts/run_resident_ecology.py --agents 8
   --turns 20 --actions-per-turn 4 --task-bank <bank> --run-id
   plan25_codeflow_run1 --keep-serving`, then the dashboard's Living view.

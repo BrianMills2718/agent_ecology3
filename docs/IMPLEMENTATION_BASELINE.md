@@ -20,7 +20,7 @@ file are in Git history: `git show 28574ed:docs/IMPLEMENTATION_BASELINE.md`.
 | Resources | `world/ledger.py`, `world/rates.py` | Scrip, `llm_budget`, disk, rolling rate limits ([accounting](RESOURCE_ACCOUNTING.md)) |
 | Mint | `world/mint.py` | Auction mint (default) and the Plan 24 `task_bounty` mode scored by an automatic checker |
 | Other kernel pieces | `world/artifacts.py`, `world/executor.py`, `world/delegation.py`, `world/queries.py`, `world/logger.py` | Artifact store, executable artifacts, charge delegation, `query_kernel`, JSONL event log |
-| Luna decisions | `world/luna_actions.py` | Strict structured decision contract for `codex/gpt-5.6-luna` (`llm.decision_output_mode: luna_structured_v1`) |
+| Luna decisions | `world/luna_actions.py` | Strict structured decision contract for `codex/gpt-6-luna` (`llm.decision_output_mode: luna_structured_v1`) |
 | Runner | `src/agent_ecology3/simulation/runner.py` | Autonomous loop orchestration |
 | Recovery | `simulation/recovery.py` | Fail-closed attempt custody and checkpoints for bounded runs |
 | Dashboard | `src/agent_ecology3/dashboard/server.py` | The one FastAPI operator UI (live runs, read-only review, paused launch) |

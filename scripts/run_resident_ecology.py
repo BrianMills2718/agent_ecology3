@@ -161,7 +161,7 @@ def main() -> int:
     parser.add_argument("--agents", type=int, default=4)
     parser.add_argument("--turns", type=int, default=3)
     parser.add_argument("--actions-per-turn", type=int, default=4)
-    parser.add_argument("--model", default="codex/gpt-5.6-luna",
+    parser.add_argument("--model", default="codex/gpt-6-luna",
                         help="codex/<model> (ChatGPT subscription) or claude-code/<model> (Claude subscription)")
     parser.add_argument("--reasoning-effort", default="low", help="Codex reasoning effort")
     parser.add_argument("--task-bank", default=str(REPO_ROOT / "config" / "tasks" / "humaneval_scale_v1.jsonl"))

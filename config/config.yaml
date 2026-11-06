@@ -36,7 +36,7 @@ llm:
   provider_budget_reservation_usd: 0.0
   allowed_models:
     - minimax/minimax-m3
-    - openrouter/deepseek/deepseek-chat
+    - openrouter/deepseek/deepseek-v4-flash
     - deepseek/deepseek-chat
     - claude-code/opus
     - claude-code/sonnet

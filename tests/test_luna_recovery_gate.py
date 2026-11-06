@@ -661,7 +661,7 @@ def test_prompt_schema_profile_is_ambient_free_and_observes_tool_event_custody()
     assert report.status == "pass"
     assert report.blocker_owner is None
     assert report.blocker_code is None
-    assert "gpt-5.6-luna" in report.command
+    assert "gpt-6-luna" in report.command
     assert 'model_reasoning_effort="medium"' in report.command
     assert report.command[report.command.index("-s") + 1] == "read-only"
     assert "ae3_action" not in "\n".join(

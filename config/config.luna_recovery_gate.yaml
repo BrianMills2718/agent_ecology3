@@ -26,7 +26,7 @@ resources:
     total_disk_bytes: 1000000
 
 llm:
-  default_model: codex/gpt-5.6-luna
+  default_model: codex/gpt-6-luna
   model_justification: "Plan 10 qualifies one bounded AE3 action through the exact Luna subscription route."
   timeout_seconds: 90
   num_retries: 0
@@ -34,7 +34,7 @@ llm:
   provider_max_budget_usd: 0.0
   provider_budget_reservation_usd: 0.0
   allowed_models:
-    - codex/gpt-5.6-luna
+    - codex/gpt-6-luna
   model_override_acceptance: {}
   estimate_tokens_per_call: 900
   agent_cwd: null
