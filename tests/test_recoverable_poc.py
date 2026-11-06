@@ -596,7 +596,7 @@ def test_dashboard_reopens_completed_pair_read_only(tmp_path: Path) -> None:
         )
         receipt = {
             "acknowledgement": f"eval15/luna-medium/{condition}/pair-01/v1",
-            "model": "codex/gpt-5.6-luna",
+            "model": "codex/gpt-6-luna",
             "recovery": {
                 "run_id": f"eval15_{condition}",
                 "committed_attempts": 14,
@@ -747,7 +747,7 @@ def test_dashboard_reopens_one_preserved_run_without_fabricating_pair(
     )
     receipt = {
         "acknowledgement": "plan19/luna-medium/live-economic-mvp/v1",
-        "model": "codex/gpt-5.6-luna",
+        "model": "codex/gpt-6-luna",
         "recovery": {
             "run_id": data_dir.name,
             "committed_attempts": 14,

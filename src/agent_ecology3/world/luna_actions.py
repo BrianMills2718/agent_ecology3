@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .actions import ActionIntent, parse_intent_from_json
 
-LUNA_MODEL = "codex/gpt-5.6-luna"
+LUNA_MODEL = "codex/gpt-6-luna"
 LUNA_RESPONSE_MODEL = "LunaLoopDecisionV1"
 LUNA_SCHEMA_VERSION = "luna_loop_decision.v1"
 REVIEWED_LLM_CLIENT_REVISION = "ea550d2d4b8463798d973d2899bc9ebf5e07201f"
