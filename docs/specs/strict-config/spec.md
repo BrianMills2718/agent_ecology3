@@ -1,0 +1,1 @@
+../../../openspec/specs/strict-config/spec.md

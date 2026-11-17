@@ -14,7 +14,7 @@ status:  ## Show git status
 	@git status --short --branch
 
 # --- During Implementation ---
-.PHONY: test test-quick check
+.PHONY: test test-quick check full fast docs-specs
 
 test:  ## Run pytest
 	uv run pytest tests/ -v
@@ -22,7 +22,7 @@ test:  ## Run pytest
 test-quick:  ## Run pytest (no traceback)
 	uv run pytest tests/ --tb=no
 
-check:  ## Run all checks (test, mypy)
+full:  ## Full suite: all tests and mypy (the former check)
 	@echo "Running tests..."
 	uv run pytest tests/ --tb=short
 	@echo ""
@@ -30,6 +30,22 @@ check:  ## Run all checks (test, mypy)
 	uv run mypy src/ --ignore-missing-imports
 	@echo ""
 	@echo "All checks passed!"
+
+unexport GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX GIT_COMMON_DIR GIT_OBJECT_DIRECTORY
+
+docs-specs:  ## Link OpenSpec specs into docs/specs
+	@mkdir -p docs/specs/strict-config
+	@ln -sfn ../../../openspec/specs/strict-config/spec.md docs/specs/strict-config/spec.md
+
+fast:  ## Lockstep and OpenSpec checks
+	uv run lockstep check trace
+	uv run lockstep check sources
+	uv run lockstep check project --check
+	openspec validate --all --strict --no-interactive
+
+check: docs-specs fast  ## code2 check: Lockstep, OpenSpec, scoped tests, import contracts
+	uv run pytest tests/test_strict_config_spec.py tests/test_config_and_actions.py
+	uv run lockstep check arch check
 
 # --- Experiment Targets ---
 .PHONY: phase1-default-med phase1-prompt-med phase1-confirmatory phase1-compare-suites

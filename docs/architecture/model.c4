@@ -1,0 +1,7 @@
+specification { element component }
+model {
+ cli = component 'Command line' { metadata { python 'agent_ecology3.cli' } }
+ config = component 'Strict configuration loader' { metadata { python 'agent_ecology3.config' } }
+ cli -> config 'Loads and validates config'
+}
+views { view index { include * } }

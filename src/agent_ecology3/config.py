@@ -1,4 +1,9 @@
-"""Configuration loading and strict validation for Agent Ecology 3."""
+"""Configuration loading and strict validation for Agent Ecology 3.
+
+Implements: strict-config/unknown-keys-rejected
+Implements: strict-config/task-bounty-needs-a-task-bank
+Implements: strict-config/luna-structured-profile-is-exact
+"""
 
 from __future__ import annotations
 

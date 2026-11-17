@@ -1,0 +1,13 @@
+# Generated from docs/architecture/*.c4 by `lockstep check arch gen`. Do not edit by hand.
+
+[importlinter]
+root_packages =
+    agent_ecology3
+
+[importlinter:contract:agent_ecology3.config]
+name = agent_ecology3.config imports only what the diagram allows
+type = forbidden
+source_modules = agent_ecology3.config
+forbidden_modules =
+    agent_ecology3.cli
+allow_indirect_imports = True

@@ -34,7 +34,8 @@ shared `llm_client` and the dev tools.
 uv sync
 uv run python run.py --duration 5     # provider-free: the LLM loop is off by default
 uv run python run.py --help           # all simulation flags
-make check                            # pytest + mypy, through uv
+make check                            # code2 check: Lockstep, OpenSpec, config tests
+make full                             # pytest + mypy, through uv (the former check)
 ```
 
 A run writes `logs/<run_id>/events.jsonl` and points `logs/latest` at it.
