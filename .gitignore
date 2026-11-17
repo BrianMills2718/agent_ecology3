@@ -19,3 +19,7 @@ logs/
 # Editor/system
 .DS_Store
 *.egg-info/
+
+.venv/
+.code2check/
+.import_linter_cache/

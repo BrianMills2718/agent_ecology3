@@ -12,7 +12,8 @@ make status              # Git status
 ### During Work
 ```bash
 make test                # Run tests
-make check               # All checks (pytest, mypy)
+make check               # code2 check (Lockstep, OpenSpec, config tests)
+make full                # Full suite: all pytest + mypy
 ```
 
 ### Finishing Work
@@ -48,7 +49,7 @@ agent_ecology3/
        |
 2. IMPLEMENT -->  Edit files, commit with [Plan #N] prefix
        |
-3. VERIFY    -->  make test && make check
+3. VERIFY    -->  make full && make check
        |
 4. SHIP      -->  make pr-ready && make pr && make finish BRANCH=X PR=N
 ```
